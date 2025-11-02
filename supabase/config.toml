@@ -1,1 +1,4 @@
 project_id = "sxcsbqglcmwbueztpvei"
+
+[functions.scan]
+verify_jwt = false

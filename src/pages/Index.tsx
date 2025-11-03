@@ -22,6 +22,11 @@ interface ScanResponse {
   promptsCount: number;
   score: number;
   results: ScanResult[];
+  meta?: {
+    llmAnalysisUsed: number;
+    totalPrompts: number;
+    llmErrors?: string[];
+  };
 }
 
 const Index = () => {
@@ -56,10 +61,25 @@ const Index = () => {
       if (error) throw error;
 
       setScanData(data);
-      toast({
-        title: "Scan complete",
-        description: `AI Visibility Score: ${data.score}`,
-      });
+      
+      // Show warning if LLM wasn't used
+      if (data.meta && data.meta.llmAnalysisUsed === 0) {
+        toast({
+          title: "Scan complete (Limited Analysis)",
+          description: "Results used basic analysis. OpenAI rate limit may have been exceeded.",
+          variant: "destructive",
+        });
+      } else if (data.meta && data.meta.llmAnalysisUsed < data.meta.totalPrompts) {
+        toast({
+          title: "Scan complete (Partial LLM Analysis)",
+          description: `${data.meta.llmAnalysisUsed}/${data.meta.totalPrompts} prompts used AI analysis. Some used fallback due to rate limits.`,
+        });
+      } else {
+        toast({
+          title: "Scan complete",
+          description: `AI Visibility Score: ${data.score}`,
+        });
+      }
     } catch (error) {
       console.error('Scan error:', error);
       toast({
@@ -184,6 +204,11 @@ const Index = () => {
                   <CardTitle>Scan Results</CardTitle>
                   <CardDescription>
                     Project: {scanData.project} • {scanData.promptsCount} prompts analyzed
+                    {scanData.meta && scanData.meta.llmAnalysisUsed < scanData.meta.totalPrompts && (
+                      <span className="text-amber-600 dark:text-amber-400 ml-2">
+                        ({scanData.meta.llmAnalysisUsed}/{scanData.meta.totalPrompts} with AI analysis)
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-4">

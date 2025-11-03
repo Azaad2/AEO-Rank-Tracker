@@ -105,10 +105,11 @@ async function analyzeWithLLM(
   prompt: string,
   targetDomain: string,
   results: SearchResult[]
-): Promise<any> {
+): Promise<{ analysis: any; usedLLM: boolean; error?: string }> {
   const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
   if (!OPENAI_API_KEY) {
-    return null;
+    console.log('⚠️ OpenAI API key not configured - using heuristic fallback');
+    return { analysis: null, usedLLM: false };
   }
 
   const brandName = domainToName(targetDomain);
@@ -155,18 +156,32 @@ Return JSON with keys:
     });
 
     if (!response.ok) {
-      console.error('OpenAI API error:', response.status);
-      return null;
+      const errorText = await response.text();
+      if (response.status === 429) {
+        console.error('❌ OpenAI rate limit exceeded (429) - using heuristic fallback');
+        return { analysis: null, usedLLM: false, error: 'rate_limit' };
+      } else if (response.status === 401) {
+        console.error('❌ OpenAI authentication failed (401) - check API key');
+        return { analysis: null, usedLLM: false, error: 'auth_failed' };
+      } else {
+        console.error(`❌ OpenAI API error: ${response.status} - ${errorText}`);
+        return { analysis: null, usedLLM: false, error: `api_error_${response.status}` };
+      }
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
+    if (!content) {
+      console.error('❌ OpenAI returned no content');
+      return { analysis: null, usedLLM: false, error: 'no_content' };
+    }
 
-    return JSON.parse(content);
+    const parsedAnalysis = JSON.parse(content);
+    console.log('✅ OpenAI LLM analysis successful for prompt:', prompt.substring(0, 50) + '...');
+    return { analysis: parsedAnalysis, usedLLM: true };
   } catch (error) {
-    console.error('LLM analysis error:', error);
-    return null;
+    console.error('❌ LLM analysis error:', error);
+    return { analysis: null, usedLLM: false, error: 'exception' };
   }
 }
 
@@ -232,12 +247,25 @@ serve(async (req) => {
     }
 
     const rows: RowResult[] = [];
+    let llmUsedCount = 0;
+    let llmErrors: string[] = [];
 
     for (const prompt of prompts) {
       const searchResults = await fetchSearchResults(prompt, market);
       
-      let analysis = await analyzeWithLLM(prompt, targetDomain, searchResults);
+      const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
+      let analysis = llmResult.analysis;
+      
+      if (llmResult.usedLLM) {
+        llmUsedCount++;
+      }
+      
+      if (llmResult.error && !llmErrors.includes(llmResult.error)) {
+        llmErrors.push(llmResult.error);
+      }
+      
       if (!analysis) {
+        console.log('ℹ️ Using heuristic analysis for prompt:', prompt.substring(0, 50) + '...');
         analysis = heuristicAnalysis(targetDomain, searchResults);
       }
 
@@ -258,6 +286,11 @@ serve(async (req) => {
       });
 
       await sleep(150);
+    }
+
+    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} prompts analyzed with LLM`);
+    if (llmErrors.length > 0) {
+      console.log('⚠️ LLM errors encountered:', llmErrors.join(', '));
     }
 
     const score = aggregateScore(rows);
@@ -308,6 +341,11 @@ serve(async (req) => {
         promptsCount: prompts.length,
         score,
         results: rows,
+        meta: {
+          llmAnalysisUsed: llmUsedCount,
+          totalPrompts: prompts.length,
+          llmErrors: llmErrors.length > 0 ? llmErrors : undefined,
+        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

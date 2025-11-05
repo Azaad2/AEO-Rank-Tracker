@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users } from "lucide-react";
 
 interface ScanResult {
   prompt: string;
@@ -124,21 +125,43 @@ const Index = () => {
     return "text-score-low";
   };
 
+  const scrollToScan = () => {
+    const scanSection = document.getElementById('scan');
+    if (scanSection) {
+      scanSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-3">
+        {/* Hero Section */}
+        <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            AI Visibility Checker
+            AI Search Visibility Checker
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            We simulate AI answers from public web results and report mentions & citations for your brand.
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            This free AI visibility checker simulates AI answers from public web results and shows whether assistants like ChatGPT, Perplexity and Gemini mention and cite your website — plus which competitors appear instead of you.
           </p>
+          <div className="pt-2">
+            <Button onClick={scrollToScan} size="lg" className="font-semibold">
+              Run a Free AI Visibility Scan
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+            </p>
+          </div>
         </div>
 
-        {/* Input Section */}
-        <Card className="shadow-lg">
+        {/* Scan Input Section */}
+        <section id="scan" className="scroll-mt-8">
+          <div className="text-center space-y-2 mb-6">
+            <h2 className="text-3xl font-bold">Check If AI Mentions Your Website</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Run an AI search visibility audit by entering your domain and the prompts or keywords your audience uses. We'll show you exactly where you appear in AI-generated answers.
+            </p>
+          </div>
+          <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Enter Scan Details</CardTitle>
             <CardDescription>
@@ -194,6 +217,7 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
+        </section>
 
         {/* Results Section */}
         {scanData && (
@@ -201,7 +225,7 @@ const Index = () => {
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                  <CardTitle>Scan Results</CardTitle>
+                  <CardTitle>AI Search Visibility Results</CardTitle>
                   <CardDescription>
                     Project: {scanData.project} • {scanData.promptsCount} prompts analyzed
                     {scanData.meta && scanData.meta.llmAnalysisUsed < scanData.meta.totalPrompts && (
@@ -216,6 +240,9 @@ const Index = () => {
                     <p className="text-sm text-muted-foreground">AI Visibility Score</p>
                     <p className={`text-3xl font-bold ${getScoreColor(scanData.score)}`}>
                       {scanData.score}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Score is based on AI mentions, citations and citation rank across your prompts.
                     </p>
                   </div>
                   <Button
@@ -282,10 +309,194 @@ const Index = () => {
           </Card>
         )}
 
+        {/* SEO Content Sections */}
+        <div className="space-y-12 pt-8">
+          {/* Target Audience Section */}
+          <section className="text-center space-y-4">
+            <h2 className="text-3xl font-bold">Built for Any Website That Cares About AI Search Visibility</h2>
+            <div className="max-w-3xl mx-auto space-y-3 text-muted-foreground">
+              <p>
+                Whether you run a SaaS platform, an ecommerce store, a content blog, a local service business, or a digital agency, this AI search visibility checker helps you understand how AI assistants represent your brand. As more users turn to ChatGPT, Perplexity, and Gemini for answers, traditional blue-link rankings tell only part of the story.
+              </p>
+              <p>
+                Our AI visibility tool analyzes the prompts your audience actually types and shows you exactly where your website appears—or doesn't appear—in AI-generated responses. Use these insights to optimize your content strategy, identify competitor gaps, and ensure your brand gets the visibility it deserves in the age of AI search.
+              </p>
+            </div>
+          </section>
+
+          {/* How It Works Section */}
+          <section className="max-w-3xl mx-auto space-y-4">
+            <h2 className="text-3xl font-bold text-center">How Our AI Search Visibility Tool Works</h2>
+            <ol className="space-y-3 list-decimal list-inside text-muted-foreground">
+              <li className="pl-2">
+                <span className="font-medium text-foreground">Enter your domain</span> – Provide the website you want to analyze for AI visibility.
+              </li>
+              <li className="pl-2">
+                <span className="font-medium text-foreground">Add prompts or keywords</span> – Input the questions and search terms your target audience actually uses.
+              </li>
+              <li className="pl-2">
+                <span className="font-medium text-foreground">Tool uses search API + AI</span> – We fetch real search results and simulate how AI assistants create answers.
+              </li>
+              <li className="pl-2">
+                <span className="font-medium text-foreground">Check mentions and citations</span> – See if your brand is mentioned in the AI answer and whether it's cited as a source.
+              </li>
+              <li className="pl-2">
+                <span className="font-medium text-foreground">View competitors and score</span> – Identify which competitors appear instead of you and get an overall AI visibility score.
+              </li>
+            </ol>
+          </section>
+
+          {/* Why It Matters Section */}
+          <section className="max-w-3xl mx-auto space-y-4">
+            <h2 className="text-3xl font-bold text-center">Why AI SEO Visibility Matters</h2>
+            <div className="space-y-3 text-muted-foreground">
+              <p>
+                AI-powered search experiences are transforming how users discover information online. Instead of clicking through multiple blue links, users now receive direct answers from AI assistants—often before they even see traditional search results. If your website isn't mentioned or cited in these AI-generated responses, you're missing a critical touchpoint with your audience.
+              </p>
+              <p>
+                This AI seo visibility tool helps you track three essential metrics:
+              </p>
+              <ul className="space-y-2 list-disc list-inside pl-4">
+                <li>
+                  <span className="font-medium text-foreground">AI mentions</span> – Does the AI assistant include your brand name in its answer?
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">AI citations</span> – Is your website cited as a credible source with a clickable reference?
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Competitor coverage</span> – Which competing websites appear in AI answers when yours doesn't?
+                </li>
+              </ul>
+              <p>
+                Understanding your AI search visibility allows you to adapt your content strategy, strengthen your brand authority, and stay competitive in an AI-first search landscape.
+              </p>
+            </div>
+          </section>
+
+          {/* Use Cases Section */}
+          <section className="space-y-6">
+            <h2 className="text-3xl font-bold text-center">Practical Ways to Use the AI Visibility Checker</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <Users className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle className="text-xl">Agencies</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Run client AI visibility audits as part of SEO reporting</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Identify content gaps where competitors dominate AI answers</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Track AI visibility improvements over time for client ROI</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <TrendingUp className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle className="text-xl">SaaS & Online Brands</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Monitor brand mentions in AI assistant responses</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Prioritize content creation based on AI visibility gaps</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Benchmark AI citation performance against competitors</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <Loader2 className="h-8 w-8 text-primary mb-2" />
+                  <CardTitle className="text-xl">Blogs & Local Businesses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Discover which topics and keywords drive AI citations</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Find local service queries where you should appear</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                      <span>Optimize content to earn authoritative AI mentions</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* FAQ Section */}
+          <section className="max-w-3xl mx-auto space-y-6">
+            <h2 className="text-3xl font-bold text-center">AI Search Visibility Checker – FAQ</h2>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left">
+                  What is an AI search visibility checker?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  An AI search visibility checker is a tool that shows whether AI assistants like ChatGPT, Perplexity, and Gemini mention and cite your website when answering user questions. Unlike traditional SEO tools that track Google rankings, this AI visibility tool analyzes whether your brand appears in AI-generated answers based on real search results.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left">
+                  How is this AI visibility checker different from normal SEO tools?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  Traditional SEO tools focus on blue-link rankings in Google search results. This AI search visibility tool simulates how AI assistants generate answers and checks if your website is mentioned or cited in those AI responses. As AI answers increasingly appear above traditional search results, tracking AI visibility becomes essential for modern SEO strategy.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left">
+                  Who should use this AI search visibility tool?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  This AI visibility checker is valuable for any website type: SaaS companies tracking brand mentions, ecommerce sites monitoring product visibility, blogs optimizing for AI citations, local businesses checking service area coverage, and agencies reporting client AI visibility metrics. If your audience uses AI assistants, you need to track your AI search visibility.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left">
+                  Does running an AI search visibility audit improve my rankings automatically?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  No, this AI visibility tool provides insights and data about your current AI mention and citation performance. Rankings and visibility improve when you take action based on those insights—such as creating better content, earning authoritative citations, and optimizing for the queries where competitors currently outrank you in AI answers.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </section>
+        </div>
+
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          This tool estimates 'AI-answer' visibility using public web results.
-        </p>
+        <footer className="text-center text-xs text-muted-foreground pt-8 border-t">
+          <p>
+            This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
+          </p>
+        </footer>
       </div>
     </div>
   );

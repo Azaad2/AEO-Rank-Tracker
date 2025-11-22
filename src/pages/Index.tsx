@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download, TrendingUp, CheckCircle2, Users } from "lucide-react";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 
 interface ScanResult {
   prompt: string;
@@ -36,6 +37,7 @@ const Index = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
   const { toast } = useToast();
+  const { trackEvent } = useActivityTracking();
 
   const handleScan = async () => {
     if (!domain.trim() || !promptsText.trim()) {
@@ -46,6 +48,14 @@ const Index = () => {
       });
       return;
     }
+
+    const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
+    
+    // Track scan initiation
+    trackEvent('scan_initiated', {
+      domain: domain.trim(),
+      prompt_count: promptCount,
+    });
 
     setIsScanning(true);
     setScanData(null);
@@ -62,6 +72,14 @@ const Index = () => {
       if (error) throw error;
 
       setScanData(data);
+      
+      // Track successful scan completion
+      trackEvent('scan_completed', {
+        domain: domain.trim(),
+        score: data.score,
+        prompts_count: data.promptsCount,
+        llm_analysis_used: data.meta?.llmAnalysisUsed || 0,
+      });
       
       // Show warning if LLM wasn't used
       if (data.meta && data.meta.llmAnalysisUsed === 0) {
@@ -83,6 +101,13 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Scan error:', error);
+      
+      // Track scan failure
+      trackEvent('scan_failed', {
+        domain: domain.trim(),
+        error_message: error instanceof Error ? error.message : "Unknown error",
+      });
+      
       toast({
         title: "Scan failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -95,6 +120,13 @@ const Index = () => {
 
   const downloadCSV = () => {
     if (!scanData) return;
+
+    // Track CSV download
+    trackEvent('csv_download', {
+      domain: scanData.project,
+      score: scanData.score,
+      prompts_count: scanData.promptsCount,
+    });
 
     const headers = ['Prompt', 'Mentioned', 'Cited', 'Citation Rank', 'Top Cited Domains'];
     const rows = scanData.results.map(r => [
@@ -126,6 +158,12 @@ const Index = () => {
   };
 
   const scrollToScan = () => {
+    // Track CTA click
+    trackEvent('cta_click', {
+      cta_location: 'hero',
+      cta_text: 'Run a Free AI Visibility Scan',
+    });
+    
     const scanSection = document.getElementById('scan');
     if (scanSection) {
       scanSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -451,7 +489,18 @@ const Index = () => {
           {/* FAQ Section */}
           <section className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-3xl font-bold text-center">AI Search Visibility Checker – FAQ</h2>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion 
+              type="single" 
+              collapsible 
+              className="w-full"
+              onValueChange={(value) => {
+                if (value) {
+                  trackEvent('faq_opened', {
+                    faq_question: value,
+                  });
+                }
+              }}
+            >
               <AccordionItem value="item-1">
                 <AccordionTrigger className="text-left">
                   What is an AI search visibility checker?

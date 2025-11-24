@@ -5,6 +5,8 @@ import { MetricsCards } from "@/components/analytics/MetricsCards";
 import { EventsChart } from "@/components/analytics/EventsChart";
 import { ActivityFeed } from "@/components/analytics/ActivityFeed";
 import { TopEventsTable } from "@/components/analytics/TopEventsTable";
+import { ConversionFunnel } from "@/components/analytics/ConversionFunnel";
+import { EngagementMetrics } from "@/components/analytics/EngagementMetrics";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +43,22 @@ const Analytics = () => {
 
         <MetricsCards timeRange={timeRange} />
 
+        <EngagementMetrics timeRange={timeRange} />
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <ConversionFunnel timeRange={timeRange} />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Activity Feed</CardTitle>
+              <CardDescription>Real-time user events</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ActivityFeed />
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid gap-6 md:grid-cols-7">
           <Card className="md:col-span-4">
             <CardHeader>
@@ -53,17 +71,9 @@ const Analytics = () => {
           </Card>
 
           <Card className="md:col-span-3">
-            <CardHeader>
-              <CardTitle>Live Activity Feed</CardTitle>
-              <CardDescription>Real-time user events</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ActivityFeed />
-            </CardContent>
+            <TopEventsTable timeRange={timeRange} />
           </Card>
         </div>
-
-        <TopEventsTable timeRange={timeRange} />
       </div>
     </div>
   );

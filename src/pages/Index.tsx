@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +38,55 @@ const Index = () => {
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+
+  // Track page view on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    trackEvent('page_view', {
+      page: 'home',
+      referrer: document.referrer || 'direct',
+      utm_source: urlParams.get('utm_source') || null,
+      utm_medium: urlParams.get('utm_medium') || null,
+      utm_campaign: urlParams.get('utm_campaign') || null,
+      device_type: /mobile|android|iphone|ipad/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    });
+  }, [trackEvent]);
+
+  // Track scroll depth
+  useEffect(() => {
+    let scrollTracked = { 
+      '25': false, 
+      '50': false, 
+      '75': false, 
+      '100': false 
+    };
+
+    const handleScroll = () => {
+      const scrollPercentage = Math.round(
+        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+      );
+
+      if (scrollPercentage >= 25 && !scrollTracked['25']) {
+        scrollTracked['25'] = true;
+        trackEvent('scroll_depth', { depth: '25%' });
+      }
+      if (scrollPercentage >= 50 && !scrollTracked['50']) {
+        scrollTracked['50'] = true;
+        trackEvent('scroll_depth', { depth: '50%' });
+      }
+      if (scrollPercentage >= 75 && !scrollTracked['75']) {
+        scrollTracked['75'] = true;
+        trackEvent('scroll_depth', { depth: '75%' });
+      }
+      if (scrollPercentage >= 99 && !scrollTracked['100']) {
+        scrollTracked['100'] = true;
+        trackEvent('scroll_depth', { depth: '100%' });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [trackEvent]);
 
   const handleScan = async () => {
     if (!domain.trim() || !promptsText.trim()) {
@@ -216,6 +265,7 @@ const Index = () => {
                 placeholder="bndbox.com"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
+                onFocus={() => trackEvent('form_interaction', { field: 'domain' })}
                 disabled={isScanning}
               />
             </div>
@@ -229,6 +279,7 @@ const Index = () => {
                 placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
                 value={promptsText}
                 onChange={(e) => setPromptsText(e.target.value)}
+                onFocus={() => trackEvent('form_interaction', { field: 'prompts' })}
                 disabled={isScanning}
                 rows={6}
                 className="font-mono text-sm"

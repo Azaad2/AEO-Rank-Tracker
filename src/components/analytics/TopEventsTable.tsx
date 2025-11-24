@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 interface TopEventsTableProps {
   timeRange: "24h" | "7d" | "30d";
@@ -67,7 +66,7 @@ export const TopEventsTable = ({ timeRange }: TopEventsTableProps) => {
   };
 
   return (
-    <Card>
+    <>
       <CardHeader>
         <CardTitle>Top Events</CardTitle>
         <CardDescription>Most frequent user actions</CardDescription>
@@ -77,28 +76,22 @@ export const TopEventsTable = ({ timeRange }: TopEventsTableProps) => {
           <TableHeader>
             <TableRow>
               <TableHead>Event Type</TableHead>
-              <TableHead className="text-right">Total Count</TableHead>
-              <TableHead className="text-right">Unique Sessions</TableHead>
-              <TableHead className="text-right">Avg per Session</TableHead>
+              <TableHead className="text-right">Count</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {topEvents && topEvents.length > 0 ? (
-              topEvents.map((event) => (
+              topEvents.slice(0, 6).map((event) => (
                 <TableRow key={event.event_type}>
-                  <TableCell>
-                    <Badge variant="outline">{getEventLabel(event.event_type)}</Badge>
+                  <TableCell className="font-medium text-sm">
+                    {getEventLabel(event.event_type)}
                   </TableCell>
-                  <TableCell className="text-right font-medium">{event.count}</TableCell>
-                  <TableCell className="text-right">{event.unique_sessions}</TableCell>
-                  <TableCell className="text-right">
-                    {(event.count / event.unique_sessions).toFixed(1)}
-                  </TableCell>
+                  <TableCell className="text-right font-semibold">{event.count}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={2} className="text-center text-muted-foreground text-sm">
                   No events recorded yet
                 </TableCell>
               </TableRow>
@@ -106,6 +99,6 @@ export const TopEventsTable = ({ timeRange }: TopEventsTableProps) => {
           </TableBody>
         </Table>
       </CardContent>
-    </Card>
+    </>
   );
 };

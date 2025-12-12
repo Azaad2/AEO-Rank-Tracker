@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download, TrendingUp, CheckCircle2, Users } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
+import { generateEnhancedCSV } from "@/utils/csvExport";
 
 interface ScanResult {
   prompt: string;
@@ -177,25 +179,13 @@ const Index = () => {
       prompts_count: scanData.promptsCount,
     });
 
-    const headers = ['Prompt', 'Mentioned', 'Cited', 'Citation Rank', 'Top Cited Domains'];
-    const rows = scanData.results.map(r => [
-      r.prompt,
-      r.mentioned ? 'Yes' : 'No',
-      r.cited ? 'Yes' : 'No',
-      r.citationRank?.toString() || '—',
-      r.topCitedDomains.join(', '),
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-    ].join('\n');
+    const csvContent = generateEnhancedCSV(scanData);
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ai-visibility-${scanData.project}-${Date.now()}.csv`;
+    a.download = `ai-visibility-report-${scanData.project}-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -396,6 +386,15 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Improvement Roadmap */}
+        {scanData && (
+          <ImprovementRoadmap 
+            results={scanData.results}
+            domain={scanData.project}
+            currentScore={scanData.score}
+          />
         )}
 
         {/* SEO Content Sections */}

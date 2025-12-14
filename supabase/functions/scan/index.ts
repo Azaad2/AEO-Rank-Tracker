@@ -337,6 +337,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        scanId: scan.id,
         project: targetDomain,
         promptsCount: prompts.length,
         score,

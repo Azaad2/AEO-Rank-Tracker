@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          paid_at: string | null
+          pdf_sent_at: string | null
+          scan_id: string | null
+          stripe_customer_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          paid_at?: string | null
+          pdf_sent_at?: string | null
+          scan_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          paid_at?: string | null
+          pdf_sent_at?: string | null
+          scan_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scan_results: {
         Row: {
           citation_rank: number | null

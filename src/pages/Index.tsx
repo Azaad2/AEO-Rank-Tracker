@@ -7,10 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
+import { EmailCaptureModal } from "@/components/EmailCaptureModal";
+import { LockedOverlay } from "@/components/LockedOverlay";
 
 interface ScanResult {
   prompt: string;
@@ -38,6 +40,10 @@ const Index = () => {
   const [promptsText, setPromptsText] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [unlockedEmail, setUnlockedEmail] = useState<string | null>(null);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
 
@@ -110,6 +116,9 @@ const Index = () => {
 
     setIsScanning(true);
     setScanData(null);
+    setScanId(null);
+    setIsUnlocked(false);
+    setUnlockedEmail(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('scan', {
@@ -123,6 +132,10 @@ const Index = () => {
       if (error) throw error;
 
       setScanData(data);
+      // Store scan ID if returned from function
+      if (data.scanId) {
+        setScanId(data.scanId);
+      }
       
       // Track successful scan completion
       trackEvent('scan_completed', {
@@ -208,6 +221,26 @@ const Index = () => {
       scanSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const handleEmailSuccess = (email: string) => {
+    setIsUnlocked(true);
+    setUnlockedEmail(email);
+    trackEvent('results_unlocked', {
+      domain: scanData?.project,
+      score: scanData?.score,
+    });
+  };
+
+  const openEmailModal = () => {
+    trackEvent('unlock_modal_opened', {
+      domain: scanData?.project,
+      score: scanData?.score,
+    });
+    setShowEmailModal(true);
+  };
+
+  // Number of free preview results
+  const FREE_PREVIEW_COUNT = 2;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4 md:p-8">
@@ -324,14 +357,25 @@ const Index = () => {
                       Score is based on AI mentions, citations and citation rank across your prompts.
                     </p>
                   </div>
-                  <Button
-                    onClick={downloadCSV}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    CSV
-                  </Button>
+                  {isUnlocked ? (
+                    <Button
+                      onClick={downloadCSV}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={openEmailModal}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Lock className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -348,54 +392,86 @@ const Index = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {scanData.results.map((result, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium max-w-xs">
-                          {result.prompt}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.mentioned ? (
-                            <span className="text-success">✓</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.cited ? (
-                            <span className="text-success">✓</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.citationRank ? (
-                            <span className="font-semibold text-primary">
-                              {result.citationRank}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {result.topCitedDomains.slice(0, 3).join(', ') || '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {scanData.results.map((result, idx) => {
+                      const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
+                      
+                      return (
+                        <TableRow key={idx} className={isLocked ? "relative" : ""}>
+                          <TableCell className={`font-medium max-w-xs ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {isLocked ? "Locked prompt content..." : result.prompt}
+                          </TableCell>
+                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.mentioned ? (
+                              <span className="text-success">✓</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.cited ? (
+                              <span className="text-success">✓</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.citationRank ? (
+                              <span className="font-semibold text-primary">
+                                {result.citationRank}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-sm text-muted-foreground ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.topCitedDomains.slice(0, 3).join(', ') || '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
+                
+                {/* Unlock CTA for locked results */}
+                {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted/30 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      <Lock className="inline-block h-4 w-4 mr-1" />
+                      {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
+                    </p>
+                    <Button onClick={openEmailModal} size="sm">
+                      Unlock All Results
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Improvement Roadmap */}
+        {/* Improvement Roadmap - locked behind email gate */}
         {scanData && (
-          <ImprovementRoadmap 
-            results={scanData.results}
-            domain={scanData.project}
-            currentScore={scanData.score}
-          />
+          <div className="relative">
+            {!isUnlocked && <LockedOverlay onUnlock={openEmailModal} message="Enter your email to see your personalized improvement roadmap" />}
+            <div className={!isUnlocked ? "blur-sm pointer-events-none" : ""}>
+              <ImprovementRoadmap 
+                results={scanData.results}
+                domain={scanData.project}
+                currentScore={scanData.score}
+              />
+            </div>
+          </div>
         )}
+
+        {/* Email Capture Modal */}
+        <EmailCaptureModal
+          open={showEmailModal}
+          onOpenChange={setShowEmailModal}
+          onSuccess={handleEmailSuccess}
+          scanId={scanId || undefined}
+          domain={scanData?.project || domain}
+          score={scanData?.score || 0}
+        />
 
         {/* SEO Content Sections */}
         <div className="space-y-12 pt-8">

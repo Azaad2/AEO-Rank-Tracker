@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
@@ -44,6 +44,8 @@ const Index = () => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [unlockedEmail, setUnlockedEmail] = useState<string | null>(null);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
 
@@ -239,6 +241,92 @@ const Index = () => {
     setShowEmailModal(true);
   };
 
+  const downloadPDF = async () => {
+    if (!scanId || !unlockedEmail) return;
+    
+    setIsDownloadingPDF(true);
+    trackEvent('pdf_download_started', {
+      domain: scanData?.project,
+      score: scanData?.score,
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-pdf', {
+        body: { scanId, email: unlockedEmail, sendEmail: false },
+      });
+
+      if (error) throw error;
+
+      // Create downloadable HTML file
+      const blob = new Blob([data.html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-visibility-report-${scanData?.project || 'report'}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      trackEvent('pdf_downloaded', {
+        domain: scanData?.project,
+        score: scanData?.score,
+      });
+
+      toast({
+        title: "Report downloaded",
+        description: "Open the HTML file in your browser and print to PDF for best results.",
+      });
+    } catch (error) {
+      console.error('PDF download error:', error);
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
+
+  const sendReportEmail = async () => {
+    if (!scanId || !unlockedEmail) return;
+    
+    setIsSendingEmail(true);
+    trackEvent('pdf_email_started', {
+      domain: scanData?.project,
+      score: scanData?.score,
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-pdf', {
+        body: { scanId, email: unlockedEmail, sendEmail: true },
+      });
+
+      if (error) throw error;
+
+      if (data.emailSent) {
+        trackEvent('pdf_emailed', {
+          domain: scanData?.project,
+          score: scanData?.score,
+        });
+        toast({
+          title: "Report sent!",
+          description: `Check your inbox at ${unlockedEmail}`,
+        });
+      } else {
+        throw new Error(data.emailError || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Email send error:', error);
+      toast({
+        title: "Email failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   // Number of free preview results
   const FREE_PREVIEW_COUNT = 2;
 
@@ -347,7 +435,7 @@ const Index = () => {
                     )}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">AI Visibility Score</p>
                     <p className={`text-3xl font-bold ${getScoreColor(scanData.score)}`}>
@@ -358,14 +446,42 @@ const Index = () => {
                     </p>
                   </div>
                   {isUnlocked ? (
-                    <Button
-                      onClick={downloadCSV}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      CSV
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={downloadCSV}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                      </Button>
+                      <Button
+                        onClick={downloadPDF}
+                        variant="outline"
+                        size="sm"
+                        disabled={isDownloadingPDF}
+                      >
+                        {isDownloadingPDF ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileText className="mr-2 h-4 w-4" />
+                        )}
+                        Report
+                      </Button>
+                      <Button
+                        onClick={sendReportEmail}
+                        variant="outline"
+                        size="sm"
+                        disabled={isSendingEmail}
+                      >
+                        {isSendingEmail ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mail className="mr-2 h-4 w-4" />
+                        )}
+                        Email
+                      </Button>
+                    </div>
                   ) : (
                     <Button
                       onClick={openEmailModal}
@@ -373,7 +489,7 @@ const Index = () => {
                       size="sm"
                     >
                       <Lock className="mr-2 h-4 w-4" />
-                      CSV
+                      Unlock
                     </Button>
                   )}
                 </div>

@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,7 @@ const corsHeaders = {
 interface GeneratePDFRequest {
   scanId: string;
   email: string;
+  sendEmail?: boolean;
 }
 
 interface ScanResult {
@@ -66,7 +68,7 @@ function generatePDFHTML(
   <meta charset="UTF-8">
   <title>AI Visibility Report - ${domain}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; color: #111827; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px; color: #111827; line-height: 1.5; }
     .header { text-align: center; margin-bottom: 40px; }
     .logo { font-size: 24px; font-weight: bold; color: #6366f1; }
     .domain { font-size: 32px; font-weight: bold; margin: 20px 0; }
@@ -74,12 +76,12 @@ function generatePDFHTML(
     .score-box { text-align: center; }
     .score-value { font-size: 64px; font-weight: bold; }
     .score-label { font-size: 14px; color: #6b7280; margin-top: 8px; }
-    .section { margin: 40px 0; }
+    .section { margin: 40px 0; page-break-inside: avoid; }
     .section-title { font-size: 20px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th { text-align: left; padding: 12px; background: #f3f4f6; font-weight: 600; }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .summary-card { background: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; }
+    .summary-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+    .summary-card { background: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px; }
     .summary-value { font-size: 28px; font-weight: bold; color: #111827; }
     .summary-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
     .competitor-list { list-style: none; padding: 0; }
@@ -88,6 +90,10 @@ function generatePDFHTML(
     .recommendation.critical { background: #fee2e2; border-left-color: #ef4444; }
     .recommendation.success { background: #dcfce7; border-left-color: #22c55e; }
     .footer { margin-top: 60px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+    @media print {
+      body { padding: 20px; }
+      .section { page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -233,13 +239,84 @@ function generateRecommendations(results: ScanResult[], domain: string, score: n
   `).join('');
 }
 
+function generateEmailHTML(domain: string, score: number, downloadUrl: string): string {
+  const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+    .logo { font-size: 20px; font-weight: bold; color: #6366f1; text-align: center; margin-bottom: 30px; }
+    .title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px; color: #111827; }
+    .subtitle { font-size: 16px; color: #6b7280; text-align: center; margin-bottom: 30px; }
+    .score-section { text-align: center; background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 30px; }
+    .score-value { font-size: 48px; font-weight: bold; color: ${scoreColor}; }
+    .score-label { font-size: 12px; color: #6b7280; margin-top: 8px; text-transform: uppercase; }
+    .cta-button { display: block; background: #6366f1; color: white; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; text-align: center; margin: 30px 0; }
+    .cta-button:hover { background: #5558e8; }
+    .features { margin: 30px 0; }
+    .feature { display: flex; align-items: flex-start; margin-bottom: 16px; }
+    .feature-icon { color: #22c55e; margin-right: 12px; font-size: 18px; }
+    .feature-text { color: #374151; font-size: 14px; }
+    .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">AI Visibility Checker</div>
+      <div class="title">Your AI Visibility Report is Ready!</div>
+      <div class="subtitle">Full report for <strong>${domain}</strong></div>
+      
+      <div class="score-section">
+        <div class="score-value">${score}</div>
+        <div class="score-label">AI Visibility Score</div>
+      </div>
+      
+      <div class="features">
+        <div class="feature">
+          <span class="feature-icon">✓</span>
+          <span class="feature-text">Complete analysis of all your prompts</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">✓</span>
+          <span class="feature-text">Competitor breakdown and insights</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">✓</span>
+          <span class="feature-text">Personalized recommendations for improvement</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">✓</span>
+          <span class="feature-text">Action checklist for better AI visibility</span>
+        </div>
+      </div>
+      
+      <a href="${downloadUrl}" class="cta-button">Download Your Full Report</a>
+      
+      <div class="footer">
+        <p>This report was generated by AI Visibility Checker</p>
+        <p>Questions? Reply to this email and we'll help you out.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { scanId, email }: GeneratePDFRequest = await req.json();
+    const { scanId, email, sendEmail = false }: GeneratePDFRequest = await req.json();
 
     if (!scanId || !email) {
       return new Response(
@@ -248,7 +325,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`📄 Generating PDF for scan ${scanId}, email: ${email}`);
+    console.log(`📄 Generating PDF for scan ${scanId}, email: ${email}, sendEmail: ${sendEmail}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -284,13 +361,95 @@ serve(async (req) => {
       );
     }
 
-    // Generate HTML
+    // Generate HTML for PDF
     const html = generatePDFHTML(scan.project_domain, scan.score, results || [], email);
+    
+    // Convert HTML to base64 for download
+    const htmlBase64 = btoa(unescape(encodeURIComponent(html)));
 
     console.log(`✅ PDF HTML generated for ${scan.project_domain}`);
 
-    // For now, return the HTML content - actual PDF conversion would require a service like Puppeteer/Playwright
-    // This can be converted to PDF using a PDF generation service later
+    // Send email if requested
+    if (sendEmail) {
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      if (!resendApiKey) {
+        console.error('RESEND_API_KEY not configured');
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            html: html,
+            htmlBase64: htmlBase64,
+            emailSent: false,
+            emailError: 'Email service not configured'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      try {
+        const resend = new Resend(resendApiKey);
+        
+        // Create a data URI for the HTML file attachment
+        const emailHtml = generateEmailHTML(
+          scan.project_domain, 
+          scan.score,
+          `data:text/html;base64,${htmlBase64}`
+        );
+
+        const emailResponse = await resend.emails.send({
+          from: 'AI Visibility Checker <onboarding@resend.dev>',
+          to: [email],
+          subject: `Your AI Visibility Report for ${scan.project_domain} (Score: ${scan.score})`,
+          html: emailHtml,
+          attachments: [
+            {
+              filename: `ai-visibility-report-${scan.project_domain}.html`,
+              content: htmlBase64,
+            }
+          ]
+        });
+
+        console.log('📧 Email sent successfully:', emailResponse);
+
+        // Update customer record with pdf_sent_at
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({ pdf_sent_at: new Date().toISOString() })
+          .eq('email', email)
+          .eq('scan_id', scanId);
+
+        if (updateError) {
+          console.warn('Failed to update pdf_sent_at:', updateError);
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            domain: scan.project_domain,
+            score: scan.score,
+            promptsCount: results?.length || 0,
+            html: html,
+            htmlBase64: htmlBase64,
+            emailSent: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            html: html,
+            htmlBase64: htmlBase64,
+            emailSent: false,
+            emailError: emailError instanceof Error ? emailError.message : 'Failed to send email'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Return HTML content for download
     return new Response(
       JSON.stringify({
         success: true,
@@ -298,8 +457,7 @@ serve(async (req) => {
         score: scan.score,
         promptsCount: results?.length || 0,
         html: html,
-        // In production, you'd convert HTML to PDF and return a download URL
-        message: 'PDF content generated. Integration with PDF service pending.',
+        htmlBase64: htmlBase64,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

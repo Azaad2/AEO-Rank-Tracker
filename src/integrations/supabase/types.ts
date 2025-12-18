@@ -63,6 +63,10 @@ export type Database = {
           citation_rank: number | null
           cited: boolean | null
           created_at: string
+          gemini_cited: boolean | null
+          gemini_competitors: string[] | null
+          gemini_mentioned: boolean | null
+          gemini_response: string | null
           id: number
           mentioned: boolean | null
           prompt: string
@@ -74,6 +78,10 @@ export type Database = {
           citation_rank?: number | null
           cited?: boolean | null
           created_at?: string
+          gemini_cited?: boolean | null
+          gemini_competitors?: string[] | null
+          gemini_mentioned?: boolean | null
+          gemini_response?: string | null
           id?: number
           mentioned?: boolean | null
           prompt: string
@@ -85,6 +93,10 @@ export type Database = {
           citation_rank?: number | null
           cited?: boolean | null
           created_at?: string
+          gemini_cited?: boolean | null
+          gemini_competitors?: string[] | null
+          gemini_mentioned?: boolean | null
+          gemini_response?: string | null
           id?: number
           mentioned?: boolean | null
           prompt?: string

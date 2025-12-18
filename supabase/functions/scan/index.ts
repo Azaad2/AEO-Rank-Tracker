@@ -19,6 +19,13 @@ interface SearchResult {
   snippet: string;
 }
 
+interface GeminiAnalysis {
+  response: string;
+  brandMentioned: boolean;
+  brandCited: boolean;
+  competitors: string[];
+}
+
 interface RowResult {
   prompt: string;
   mentioned: boolean;
@@ -26,6 +33,11 @@ interface RowResult {
   citationRank: number | null;
   topCitedDomains: string[];
   debug: { usedResults: string[] };
+  // Gemini direct analysis
+  geminiMentioned: boolean;
+  geminiCited: boolean;
+  geminiResponse: string;
+  geminiCompetitors: string[];
 }
 
 // Helper: normalize domain
@@ -100,7 +112,7 @@ async function fetchSearchResults(prompt: string, market: string): Promise<Searc
   return results.slice(0, 8);
 }
 
-// Analyze with OpenAI
+// Analyze with OpenAI (existing - Google Search based)
 async function analyzeWithLLM(
   prompt: string,
   targetDomain: string,
@@ -185,6 +197,126 @@ Return JSON with keys:
   }
 }
 
+// NEW: Direct Gemini AI Analysis
+async function analyzeWithGemini(
+  prompt: string,
+  targetDomain: string
+): Promise<GeminiAnalysis | null> {
+  const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+  if (!GOOGLE_AI_API_KEY) {
+    console.log('⚠️ Google AI API key not configured - skipping Gemini analysis');
+    return null;
+  }
+
+  const brandName = domainToName(targetDomain);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Gemini API error: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const geminiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!geminiResponse) {
+      console.log('⚠️ Gemini returned empty response');
+      return null;
+    }
+
+    console.log('✅ Gemini response received for prompt:', prompt.substring(0, 50) + '...');
+
+    // Analyze Gemini's response for brand mentions and citations
+    const responseText = geminiResponse.toLowerCase();
+    const brandNameLower = brandName.toLowerCase();
+    const domainLower = targetDomain.toLowerCase();
+
+    // Check if brand is mentioned (name or domain)
+    const brandMentioned = 
+      responseText.includes(brandNameLower) || 
+      responseText.includes(domainLower) ||
+      responseText.includes(domainLower.replace('.', ' '));
+
+    // Check if domain URL is cited
+    const brandCited = 
+      responseText.includes(targetDomain) ||
+      responseText.includes(`https://${targetDomain}`) ||
+      responseText.includes(`http://${targetDomain}`) ||
+      responseText.includes(`www.${targetDomain}`);
+
+    // Extract competitor brands mentioned in response
+    const competitors = extractCompetitorBrands(geminiResponse, targetDomain);
+
+    return {
+      response: geminiResponse.substring(0, 1000), // Limit stored response
+      brandMentioned,
+      brandCited,
+      competitors,
+    };
+  } catch (error) {
+    console.error('❌ Gemini analysis error:', error);
+    return null;
+  }
+}
+
+// Helper: Extract competitor brands from Gemini response
+function extractCompetitorBrands(response: string, targetDomain: string): string[] {
+  const competitors: string[] = [];
+  
+  // Common patterns for brand mentions in AI responses
+  const patterns = [
+    /(?:like|such as|including|e\.g\.|for example|try|use|recommend)\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)?)/g,
+    /([A-Z][a-zA-Z0-9]+(?:\.com|\.io|\.ai|\.co|\.org))/g,
+    /\*\*([A-Z][a-zA-Z0-9\s]+)\*\*/g, // Bold mentions
+    /(?:^|\n)\d+\.\s+\*?\*?([A-Z][a-zA-Z0-9\s]+)\*?\*?/gm, // Numbered lists
+  ];
+
+  const targetBrand = domainToName(targetDomain).toLowerCase();
+  
+  for (const pattern of patterns) {
+    const matches = response.matchAll(pattern);
+    for (const match of matches) {
+      const brand = match[1]?.trim();
+      if (brand && 
+          brand.length > 2 && 
+          brand.length < 30 &&
+          brand.toLowerCase() !== targetBrand &&
+          !competitors.includes(brand)) {
+        competitors.push(brand);
+      }
+    }
+  }
+
+  // Return unique competitors (max 5)
+  return [...new Set(competitors)].slice(0, 5);
+}
+
 // Heuristic fallback
 function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   const matchingResult = results.find(r => safeHost(r.url) === targetDomain);
@@ -200,14 +332,23 @@ function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   };
 }
 
-// Score calculation
+// Score calculation - now combines both sources
 function scoreFromRow(row: RowResult): number {
-  const mentioned = row.mentioned ? 1 : 0;
-  const cited = row.cited ? 1 : 0;
+  // Google Search + OpenAI analysis (40% weight)
+  const searchMentioned = row.mentioned ? 1 : 0;
+  const searchCited = row.cited ? 1 : 0;
   const rankBonus = row.citationRank && row.citationRank <= 3
     ? (4 - row.citationRank) / 3
     : 0;
-  return Math.round(((mentioned + 0.7 * cited + 0.3 * rankBonus) / 2) * 100);
+  const searchScore = (searchMentioned + 0.7 * searchCited + 0.3 * rankBonus) / 2;
+
+  // Direct Gemini analysis (60% weight - actual AI response matters more)
+  const geminiMentioned = row.geminiMentioned ? 1 : 0;
+  const geminiCited = row.geminiCited ? 0.5 : 0;
+  const geminiScore = (geminiMentioned + geminiCited) / 1.5;
+
+  // Combined score
+  return Math.round(((searchScore * 0.4) + (geminiScore * 0.6)) * 100);
 }
 
 function aggregateScore(rows: RowResult[]): number {
@@ -248,11 +389,14 @@ serve(async (req) => {
 
     const rows: RowResult[] = [];
     let llmUsedCount = 0;
+    let geminiUsedCount = 0;
     let llmErrors: string[] = [];
 
     for (const prompt of prompts) {
+      // 1. Fetch Google Search results
       const searchResults = await fetchSearchResults(prompt, market);
       
+      // 2. Analyze with OpenAI (existing)
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
       let analysis = llmResult.analysis;
       
@@ -269,6 +413,12 @@ serve(async (req) => {
         analysis = heuristicAnalysis(targetDomain, searchResults);
       }
 
+      // 3. Direct Gemini Analysis (NEW)
+      const geminiAnalysis = await analyzeWithGemini(prompt, targetDomain);
+      if (geminiAnalysis) {
+        geminiUsedCount++;
+      }
+
       const topCitedDomains = (analysis.citations || [])
         .slice(0, 5)
         .map((c: any) => safeHost(c.url))
@@ -276,6 +426,7 @@ serve(async (req) => {
 
       rows.push({
         prompt,
+        // OpenAI/Search analysis
         mentioned: analysis.brandMentioned || false,
         cited: analysis.brandCited || false,
         citationRank: analysis.brandCitationRank,
@@ -283,12 +434,17 @@ serve(async (req) => {
         debug: {
           usedResults: searchResults.slice(0, 5).map(r => r.url),
         },
+        // Gemini direct analysis
+        geminiMentioned: geminiAnalysis?.brandMentioned || false,
+        geminiCited: geminiAnalysis?.brandCited || false,
+        geminiResponse: geminiAnalysis?.response || '',
+        geminiCompetitors: geminiAnalysis?.competitors || [],
       });
 
-      await sleep(150);
+      await sleep(200); // Slightly longer delay for both APIs
     }
 
-    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} prompts analyzed with LLM`);
+    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini`);
     if (llmErrors.length > 0) {
       console.log('⚠️ LLM errors encountered:', llmErrors.join(', '));
     }
@@ -324,6 +480,11 @@ serve(async (req) => {
       citation_rank: row.citationRank,
       top_cited_domains: row.topCitedDomains,
       used_results: row.debug.usedResults,
+      // Gemini columns
+      gemini_mentioned: row.geminiMentioned,
+      gemini_cited: row.geminiCited,
+      gemini_response: row.geminiResponse,
+      gemini_competitors: row.geminiCompetitors,
     }));
 
     const { error: resultsError } = await supabase
@@ -344,6 +505,7 @@ serve(async (req) => {
         results: rows,
         meta: {
           llmAnalysisUsed: llmUsedCount,
+          geminiAnalysisUsed: geminiUsedCount,
           totalPrompts: prompts.length,
           llmErrors: llmErrors.length > 0 ? llmErrors : undefined,
         },

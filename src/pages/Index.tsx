@@ -21,6 +21,11 @@ interface ScanResult {
   citationRank: number | null;
   topCitedDomains: string[];
   debug: { usedResults: string[] };
+  // Gemini direct analysis
+  geminiMentioned: boolean;
+  geminiCited: boolean;
+  geminiResponse: string;
+  geminiCompetitors: string[];
 }
 
 interface ScanResponse {
@@ -30,6 +35,7 @@ interface ScanResponse {
   results: ScanResult[];
   meta?: {
     llmAnalysisUsed: number;
+    geminiAnalysisUsed: number;
     totalPrompts: number;
     llmErrors?: string[];
   };
@@ -428,9 +434,9 @@ const Index = () => {
                   <CardTitle>AI Search Visibility Results</CardTitle>
                   <CardDescription>
                     Project: {scanData.project} • {scanData.promptsCount} prompts analyzed
-                    {scanData.meta && scanData.meta.llmAnalysisUsed < scanData.meta.totalPrompts && (
-                      <span className="text-amber-600 dark:text-amber-400 ml-2">
-                        ({scanData.meta.llmAnalysisUsed}/{scanData.meta.totalPrompts} with AI analysis)
+                    {scanData.meta && (
+                      <span className="text-primary ml-2">
+                        (Gemini: {scanData.meta.geminiAnalysisUsed || 0}/{scanData.meta.totalPrompts})
                       </span>
                     )}
                   </CardDescription>
@@ -501,10 +507,11 @@ const Index = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Prompt</TableHead>
-                      <TableHead className="text-center">Mentioned</TableHead>
-                      <TableHead className="text-center">Cited</TableHead>
-                      <TableHead className="text-center">Citation Rank</TableHead>
-                      <TableHead>Top Cited Domains</TableHead>
+                      <TableHead className="text-center">Search Mentioned</TableHead>
+                      <TableHead className="text-center">Search Cited</TableHead>
+                      <TableHead className="text-center">Gemini Mentions</TableHead>
+                      <TableHead className="text-center">Gemini Cites</TableHead>
+                      <TableHead>Gemini Competitors</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -531,16 +538,21 @@ const Index = () => {
                             )}
                           </TableCell>
                           <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.citationRank ? (
-                              <span className="font-semibold text-primary">
-                                {result.citationRank}
-                              </span>
+                            {result.geminiMentioned ? (
+                              <span className="text-success font-semibold">✓ Yes</span>
+                            ) : (
+                              <span className="text-destructive">✗ No</span>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.geminiCited ? (
+                              <span className="text-success font-semibold">✓ Yes</span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
                           </TableCell>
-                          <TableCell className={`text-sm text-muted-foreground ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.topCitedDomains.slice(0, 3).join(', ') || '—'}
+                          <TableCell className={`text-sm text-muted-foreground max-w-xs ${isLocked ? "blur-sm select-none" : ""}`}>
+                            {result.geminiCompetitors?.slice(0, 3).join(', ') || '—'}
                           </TableCell>
                         </TableRow>
                       );

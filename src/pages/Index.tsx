@@ -13,7 +13,7 @@ import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-light.png";
 
 interface ScanResult {
   prompt: string;

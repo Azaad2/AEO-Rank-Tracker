@@ -13,6 +13,7 @@ import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
+import logo from "@/assets/logo.png";
 
 interface ScanResult {
   prompt: string;
@@ -341,6 +342,7 @@ const Index = () => {
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Hero Section */}
         <div className="text-center space-y-4">
+          <img src={logo} alt="AI Visibility Scanner Logo" className="w-20 h-20 mx-auto mb-4" />
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             AI Search Visibility Checker
           </h1>

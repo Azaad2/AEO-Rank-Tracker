@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_test_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          test_name: string
+          variant_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          test_name: string
+          variant_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          test_name?: string
+          variant_key?: string
+        }
+        Relationships: []
+      }
+      ab_test_conversions: {
+        Row: {
+          conversion_type: string
+          created_at: string
+          id: string
+          session_id: string
+          test_name: string
+          variant_key: string
+        }
+        Insert: {
+          conversion_type: string
+          created_at?: string
+          id?: string
+          session_id: string
+          test_name: string
+          variant_key: string
+        }
+        Update: {
+          conversion_type?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          test_name?: string
+          variant_key?: string
+        }
+        Relationships: []
+      }
+      ab_test_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          test_name: string
+          variant_key: string
+          variant_value: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          test_name: string
+          variant_key: string
+          variant_value: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          test_name?: string
+          variant_key?: string
+          variant_value?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string

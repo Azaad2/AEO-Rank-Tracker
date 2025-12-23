@@ -392,31 +392,21 @@ serve(async (req) => {
     let geminiUsedCount = 0;
     let llmErrors: string[] = [];
 
-    for (const prompt of prompts) {
-      // 1. Fetch Google Search results
-      const searchResults = await fetchSearchResults(prompt, market);
-      
-      // 2. Analyze with OpenAI (existing)
+    // Process all prompts in parallel for speed
+    const promptPromises = prompts.map(async (prompt) => {
+      // Run Serper search and Gemini analysis in parallel
+      const [searchResults, geminiAnalysis] = await Promise.all([
+        fetchSearchResults(prompt, market),
+        analyzeWithGemini(prompt, targetDomain),
+      ]);
+
+      // OpenAI analysis depends on search results, run after
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
       let analysis = llmResult.analysis;
-      
-      if (llmResult.usedLLM) {
-        llmUsedCount++;
-      }
-      
-      if (llmResult.error && !llmErrors.includes(llmResult.error)) {
-        llmErrors.push(llmResult.error);
-      }
-      
+
       if (!analysis) {
         console.log('ℹ️ Using heuristic analysis for prompt:', prompt.substring(0, 50) + '...');
         analysis = heuristicAnalysis(targetDomain, searchResults);
-      }
-
-      // 3. Direct Gemini Analysis (NEW)
-      const geminiAnalysis = await analyzeWithGemini(prompt, targetDomain);
-      if (geminiAnalysis) {
-        geminiUsedCount++;
       }
 
       const topCitedDomains = (analysis.citations || [])
@@ -424,24 +414,45 @@ serve(async (req) => {
         .map((c: any) => safeHost(c.url))
         .filter((h: string) => h);
 
-      rows.push({
+      return {
         prompt,
-        // OpenAI/Search analysis
         mentioned: analysis.brandMentioned || false,
         cited: analysis.brandCited || false,
         citationRank: analysis.brandCitationRank,
         topCitedDomains,
-        debug: {
-          usedResults: searchResults.slice(0, 5).map(r => r.url),
-        },
-        // Gemini direct analysis
+        debug: { usedResults: searchResults.slice(0, 5).map(r => r.url) },
         geminiMentioned: geminiAnalysis?.brandMentioned || false,
         geminiCited: geminiAnalysis?.brandCited || false,
         geminiResponse: geminiAnalysis?.response || '',
         geminiCompetitors: geminiAnalysis?.competitors || [],
-      });
+        llmUsed: llmResult.usedLLM,
+        geminiUsed: !!geminiAnalysis,
+        llmError: llmResult.error,
+      };
+    });
 
-      await sleep(200); // Slightly longer delay for both APIs
+    // Wait for all prompts to complete
+    const promptResults = await Promise.all(promptPromises);
+
+    // Aggregate results
+    for (const result of promptResults) {
+      if (result.llmUsed) llmUsedCount++;
+      if (result.geminiUsed) geminiUsedCount++;
+      if (result.llmError && !llmErrors.includes(result.llmError)) {
+        llmErrors.push(result.llmError);
+      }
+      rows.push({
+        prompt: result.prompt,
+        mentioned: result.mentioned,
+        cited: result.cited,
+        citationRank: result.citationRank,
+        topCitedDomains: result.topCitedDomains,
+        debug: result.debug,
+        geminiMentioned: result.geminiMentioned,
+        geminiCited: result.geminiCited,
+        geminiResponse: result.geminiResponse,
+        geminiCompetitors: result.geminiCompetitors,
+      });
     }
 
     console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini`);

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useABTest } from "@/hooks/useABTest";
 import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
@@ -55,6 +56,14 @@ const Index = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+  
+  // A/B Testing for headlines and CTAs
+  const { variant: headlineVariant, trackConversion: trackHeadlineConversion } = useABTest('headline');
+  const { variant: ctaVariant, trackConversion: trackCtaConversion } = useABTest('cta');
+  
+  // Default values while loading
+  const headline = headlineVariant?.value || 'AI Search Visibility Checker';
+  const ctaText = ctaVariant?.value || 'Run a Free AI Visibility Scan';
 
   // Track page view on mount
   useEffect(() => {
@@ -152,7 +161,13 @@ const Index = () => {
         score: data.score,
         prompts_count: data.promptsCount,
         llm_analysis_used: data.meta?.llmAnalysisUsed || 0,
+        headline_variant: headlineVariant?.key || 'A',
+        cta_variant: ctaVariant?.key || 'A',
       });
+      
+      // Track A/B test conversions for scan completion
+      trackHeadlineConversion('scan_completed');
+      trackCtaConversion('scan_completed');
       
       // Show warning if LLM wasn't used
       if (data.meta && data.meta.llmAnalysisUsed === 0) {
@@ -219,11 +234,17 @@ const Index = () => {
   };
 
   const scrollToScan = () => {
-    // Track CTA click
+    // Track CTA click with A/B variant info
     trackEvent('cta_click', {
       cta_location: 'hero',
-      cta_text: 'Run a Free AI Visibility Scan',
+      cta_text: ctaText,
+      cta_variant: ctaVariant?.key || 'A',
+      headline_variant: headlineVariant?.key || 'A',
     });
+    
+    // Track conversion for A/B tests
+    trackCtaConversion('cta_click');
+    trackHeadlineConversion('cta_click');
     
     const scanSection = document.getElementById('scan');
     if (scanSection) {
@@ -344,14 +365,14 @@ const Index = () => {
         <div className="text-center space-y-4">
           <img src={logo} alt="AI Visibility Scanner Logo" className="w-20 h-20 mx-auto mb-4" />
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            AI Search Visibility Checker
+            {headline}
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             This free AI visibility checker simulates AI answers from public web results and shows whether assistants like ChatGPT, Perplexity and Gemini mention and cite your website — plus which competitors appear instead of you.
           </p>
           <div className="pt-2">
             <Button onClick={scrollToScan} size="lg" className="font-semibold">
-              Run a Free AI Visibility Scan
+              {ctaText}
             </Button>
             <p className="text-xs text-muted-foreground mt-3">
               Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.

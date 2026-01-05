@@ -446,6 +446,20 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
+        
+        {/* Featured On Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+          <span className="text-sm text-muted-foreground font-medium">Featured on:</span>
+          <a href="https://twelve.tools" target="_blank" rel="noopener noreferrer">
+            <img 
+              src="https://twelve.tools/badge3-light.svg" 
+              alt="Featured on Twelve Tools" 
+              width="200" 
+              height="54"
+              className="hover:opacity-80 transition-opacity"
+            />
+          </a>
+        </div>
         </section>
 
         {/* Results Section */}

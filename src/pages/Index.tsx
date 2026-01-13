@@ -816,99 +816,204 @@ const Index = () => {
             </Accordion>
           </section>
         </div>
+      </div>
 
-        {/* Footer */}
-        <footer className="pt-12 border-t">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            {/* Free Tools Column */}
+      {/* Footer - Light themed for visibility */}
+      <footer className="bg-slate-50 border-t mt-16">
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          {/* Logo and tagline */}
+          <div className="flex items-center gap-3 mb-10">
+            <img src={logo} alt="AI Visibility Checker" className="w-10 h-10" />
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Free Tools</h3>
-              <ul className="space-y-2 text-sm">
+              <p className="font-bold text-lg text-slate-900">AI Visibility Checker</p>
+              <p className="text-sm text-slate-600">Free AI SEO Tools for Modern Marketers</p>
+            </div>
+          </div>
+
+          {/* Tool Columns */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8 mb-10">
+            {/* AI Visibility Tools */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Visibility Tools</h3>
+              <ul className="space-y-3 text-sm">
                 <li>
-                  <a href="#scan" className="text-muted-foreground hover:text-primary transition-colors">
+                  <a href="#scan" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
                     AI Visibility Checker
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/ai-prompt-generator" className="text-muted-foreground hover:text-primary transition-colors">
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Competitor Analyzer
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Brand Monitor
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    LLM Readiness Score
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* AI Generators */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">AI Generators</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a href="/tools/ai-prompt-generator" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
                     AI Prompt Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/ai-faq-generator" className="text-muted-foreground hover:text-primary transition-colors">
-                    AI FAQ Generator
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    AI Answer Generator
                   </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-muted-foreground/60">Schema Generator</span>
-                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    AI Email Generator
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-muted-foreground/60">LLM Readiness Score</span>
-                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    AI Blog Outline
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
               </ul>
             </div>
 
-            {/* Resources Column */}
+            {/* Content Tools */}
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Resources</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Content Tools</h3>
+              <ul className="space-y-3 text-sm">
                 <li>
-                  <a href="/tools" className="text-muted-foreground hover:text-primary transition-colors">
-                    All Tools
+                  <a href="/tools/ai-faq-generator" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    AI FAQ Generator
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors">
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Schema Generator
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Meta Optimizer
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Content Auditor
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* More Tools */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">More Tools</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Keyword Analyzer
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    SERP Previewer
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Title Generator
+                  </a>
+                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    All Free Tools →
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Resources</h3>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Tools Directory
+                  </a>
+                </li>
+                <li>
+                  <a href="#how-it-works" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
                     How It Works
                   </a>
                 </li>
                 <li>
-                  <a href="#faq" className="text-muted-foreground hover:text-primary transition-colors">
+                  <a href="#faq" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
                     FAQ
+                  </a>
+                </li>
+                <li>
+                  <a href="#use-cases" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                    Use Cases
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Company Column */}
+            {/* Company */}
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Company</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Company</h3>
+              <ul className="space-y-3 text-sm">
                 <li>
-                  <span className="text-muted-foreground/60">About</span>
+                  <span className="text-slate-500">About</span>
+                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-muted-foreground/60">Contact</span>
+                  <span className="text-slate-500">Contact</span>
+                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-muted-foreground/60">Privacy Policy</span>
+                  <span className="text-slate-500">Privacy Policy</span>
+                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
+                </li>
+                <li>
+                  <span className="text-slate-500">Terms of Service</span>
+                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
               </ul>
-            </div>
-
-            {/* Branding Column */}
-            <div>
-              <img src={logo} alt="AI Visibility Checker" className="w-10 h-10 mb-3" />
-              <p className="text-sm font-medium text-foreground mb-2">AI Visibility Checker</p>
-              <p className="text-xs text-muted-foreground">
-                Track your brand's presence in AI-generated answers.
-              </p>
             </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-6 border-t text-center text-xs text-muted-foreground">
-            <p className="mb-2">
+          <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-slate-600">
               © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
             </p>
-            <p>
+            <p className="text-xs text-slate-500 text-center md:text-right max-w-lg">
               This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
             </p>
           </div>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 };

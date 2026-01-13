@@ -14,6 +14,7 @@ import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
+import { Header } from "@/components/Header";
 import logo from "@/assets/logo-light.png";
 
 interface ScanResult {
@@ -359,12 +360,13 @@ const Index = () => {
   const FREE_PREVIEW_COUNT = 2;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <img src={logo} alt="AI Visibility Scanner Logo" className="w-20 h-20 mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <Header />
+      <div className="pt-20 p-4 md:p-8">
+        <div className="max-w-5xl mx-auto space-y-8">
+          {/* Hero Section */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             {headline}
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
@@ -1002,6 +1004,7 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 };

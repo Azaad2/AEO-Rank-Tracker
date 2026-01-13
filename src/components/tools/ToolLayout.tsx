@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ interface ToolLayoutProps {
   title: string;
   description: string;
   children: ReactNode;
+  metaTitle?: string;
+  metaDescription?: string;
   relatedTools?: Array<{
     title: string;
     href: string;
@@ -14,7 +16,86 @@ interface ToolLayoutProps {
   }>;
 }
 
-const ToolLayout = ({ title, description, children, relatedTools }: ToolLayoutProps) => {
+const ToolLayout = ({ 
+  title, 
+  description, 
+  children, 
+  metaTitle,
+  metaDescription,
+  relatedTools 
+}: ToolLayoutProps) => {
+  // Set SEO meta tags dynamically
+  useEffect(() => {
+    const finalTitle = metaTitle || `${title} | AI Visibility Checker`;
+    const finalDescription = metaDescription || description;
+
+    // Update document title
+    document.title = finalTitle;
+
+    // Update or create meta description
+    let metaDescTag = document.querySelector('meta[name="description"]');
+    if (!metaDescTag) {
+      metaDescTag = document.createElement('meta');
+      metaDescTag.setAttribute('name', 'description');
+      document.head.appendChild(metaDescTag);
+    }
+    metaDescTag.setAttribute('content', finalDescription);
+
+    // Update Open Graph tags
+    const ogTags = [
+      { property: 'og:title', content: finalTitle },
+      { property: 'og:description', content: finalDescription },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: window.location.href },
+    ];
+
+    ogTags.forEach(({ property, content }) => {
+      let tag = document.querySelector(`meta[property="${property}"]`);
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    });
+
+    // Add JSON-LD schema
+    const schemaId = 'tool-schema';
+    let schemaScript = document.getElementById(schemaId) as HTMLScriptElement | null;
+    if (!schemaScript) {
+      schemaScript = document.createElement('script');
+      schemaScript.id = schemaId;
+      schemaScript.type = 'application/ld+json';
+      document.head.appendChild(schemaScript);
+    }
+    
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": title,
+      "description": finalDescription,
+      "url": window.location.href,
+      "applicationCategory": "SEO Tool",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "AI Visibility Checker"
+      }
+    };
+    
+    schemaScript.textContent = JSON.stringify(schema);
+
+    // Cleanup on unmount
+    return () => {
+      document.title = 'AI Visibility Checker';
+    };
+  }, [title, description, metaTitle, metaDescription]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

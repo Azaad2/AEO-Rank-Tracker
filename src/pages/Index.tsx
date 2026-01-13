@@ -820,133 +820,121 @@ const Index = () => {
 
       {/* Footer - Light themed for visibility */}
       <footer className="bg-slate-50 border-t mt-16">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-16">
           {/* Logo and tagline */}
-          <div className="flex items-center gap-3 mb-10">
-            <img src={logo} alt="AI Visibility Checker" className="w-10 h-10" />
+          <div className="flex items-center gap-4 mb-12">
+            <img src={logo} alt="AI Visibility Checker" className="w-14 h-14" />
             <div>
-              <p className="font-bold text-lg text-slate-900">AI Visibility Checker</p>
-              <p className="text-sm text-slate-600">Free AI SEO Tools for Modern Marketers</p>
+              <p className="font-bold text-xl text-slate-900">AI Visibility Checker</p>
+              <p className="text-base text-slate-600">Free AI SEO Tools for Modern Marketers</p>
             </div>
           </div>
 
           {/* Tool Columns */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10 mb-12">
             {/* AI Visibility Tools */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Visibility Tools</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Visibility Tools</h3>
+              <ul className="space-y-4">
                 <li>
-                  <a href="#scan" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="#scan" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI Visibility Checker
                   </a>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/competitor-analyzer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Competitor Analyzer
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/brand-monitor" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Brand Monitor
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/llm-readiness" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     LLM Readiness Score
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
               </ul>
             </div>
 
             {/* AI Generators */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">AI Generators</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">AI Generators</h3>
+              <ul className="space-y-4">
                 <li>
-                  <a href="/tools/ai-prompt-generator" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/ai-prompt-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI Prompt Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/ai-answer-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI Answer Generator
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/ai-email-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI Email Generator
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/ai-blog-outline" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI Blog Outline
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
               </ul>
             </div>
 
             {/* Content Tools */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Content Tools</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Content Tools</h3>
+              <ul className="space-y-4">
                 <li>
-                  <a href="/tools/ai-faq-generator" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/ai-faq-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     AI FAQ Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/schema-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Schema Generator
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/meta-optimizer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Meta Optimizer
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/content-auditor" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Content Auditor
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
               </ul>
             </div>
 
             {/* More Tools */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">More Tools</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">More Tools</h3>
+              <ul className="space-y-4">
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/keyword-analyzer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Keyword Analyzer
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/serp-previewer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     SERP Previewer
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="/tools/title-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Title Generator
                   </a>
-                  <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Soon</span>
                 </li>
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                    All Free Tools →
+                  <a href="/tools/description-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                    Description Generator
                   </a>
                 </li>
               </ul>
@@ -954,25 +942,25 @@ const Index = () => {
 
             {/* Resources */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Resources</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Resources</h3>
+              <ul className="space-y-4">
                 <li>
-                  <a href="/tools" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-                    Tools Directory
+                  <a href="/tools" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                    All 16 Free Tools →
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="#how-it-works" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     How It Works
                   </a>
                 </li>
                 <li>
-                  <a href="#faq" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="#faq" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     FAQ
                   </a>
                 </li>
                 <li>
-                  <a href="#use-cases" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+                  <a href="#use-cases" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
                     Use Cases
                   </a>
                 </li>
@@ -981,34 +969,34 @@ const Index = () => {
 
             {/* Company */}
             <div>
-              <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Company</h3>
-              <ul className="space-y-3 text-sm">
+              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Company</h3>
+              <ul className="space-y-4">
                 <li>
-                  <span className="text-slate-500">About</span>
-                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
+                  <span className="text-base text-slate-500">About</span>
+                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-slate-500">Contact</span>
-                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
+                  <span className="text-base text-slate-500">Contact</span>
+                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-slate-500">Privacy Policy</span>
-                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
+                  <span className="text-base text-slate-500">Privacy Policy</span>
+                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-slate-500">Terms of Service</span>
-                  <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Soon</span>
+                  <span className="text-base text-slate-500">Terms of Service</span>
+                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-slate-600">
+          <div className="pt-10 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-base text-slate-600">
               © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
             </p>
-            <p className="text-xs text-slate-500 text-center md:text-right max-w-lg">
+            <p className="text-sm text-slate-500 text-center md:text-right max-w-lg">
               This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
             </p>
           </div>

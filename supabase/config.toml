@@ -5,3 +5,48 @@ verify_jwt = false
 
 [functions.generate-pdf]
 verify_jwt = false
+
+[functions.generate-prompts]
+verify_jwt = false
+
+[functions.generate-faqs]
+verify_jwt = false
+
+[functions.generate-answer]
+verify_jwt = false
+
+[functions.generate-email]
+verify_jwt = false
+
+[functions.generate-blog-outline]
+verify_jwt = false
+
+[functions.generate-schema]
+verify_jwt = false
+
+[functions.optimize-meta]
+verify_jwt = false
+
+[functions.audit-content]
+verify_jwt = false
+
+[functions.analyze-keywords]
+verify_jwt = false
+
+[functions.preview-serp]
+verify_jwt = false
+
+[functions.generate-titles]
+verify_jwt = false
+
+[functions.generate-description]
+verify_jwt = false
+
+[functions.analyze-competitors]
+verify_jwt = false
+
+[functions.monitor-brand]
+verify_jwt = false
+
+[functions.score-readiness]
+verify_jwt = false

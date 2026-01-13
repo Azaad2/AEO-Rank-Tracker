@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Search, MessageSquare, FileText, Code, Lightbulb, Users, BarChart3, Mail, PenLine, Eye, Zap, Type, AlignLeft, Globe, Target } from "lucide-react";
+import { Search, MessageSquare, FileText, Code, Lightbulb, Users, BarChart3, Mail, PenLine, Eye, Zap, Type, AlignLeft, Globe, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ToolCard from "@/components/tools/ToolCard";
+import { Header } from "@/components/Header";
 
 const tools = [
   {
@@ -129,25 +130,10 @@ const tools = [
 const Tools = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">AI Visibility Checker</span>
-            </Link>
-            <Link to="/">
-              <Button variant="outline" size="sm">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-primary/5 to-background py-16 md:py-24">
+      <section className="bg-gradient-to-b from-primary/5 to-background pt-24 pb-16 md:pt-32 md:pb-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Free AI Visibility Tools

@@ -818,10 +818,95 @@ const Index = () => {
         </div>
 
         {/* Footer */}
-        <footer className="text-center text-xs text-muted-foreground pt-8 border-t">
-          <p>
-            This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
-          </p>
+        <footer className="pt-12 border-t">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            {/* Free Tools Column */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Free Tools</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a href="#scan" className="text-muted-foreground hover:text-primary transition-colors">
+                    AI Visibility Checker
+                  </a>
+                </li>
+                <li>
+                  <a href="/tools/ai-prompt-generator" className="text-muted-foreground hover:text-primary transition-colors">
+                    AI Prompt Generator
+                  </a>
+                </li>
+                <li>
+                  <a href="/tools/ai-faq-generator" className="text-muted-foreground hover:text-primary transition-colors">
+                    AI FAQ Generator
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-muted-foreground/60">Schema Generator</span>
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-muted-foreground/60">LLM Readiness Score</span>
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources Column */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Resources</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a href="/tools" className="text-muted-foreground hover:text-primary transition-colors">
+                    All Tools
+                  </a>
+                </li>
+                <li>
+                  <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-colors">
+                    How It Works
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="text-muted-foreground hover:text-primary transition-colors">
+                    FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company Column */}
+            <div>
+              <h3 className="font-semibold text-foreground mb-4">Company</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <span className="text-muted-foreground/60">About</span>
+                </li>
+                <li>
+                  <span className="text-muted-foreground/60">Contact</span>
+                </li>
+                <li>
+                  <span className="text-muted-foreground/60">Privacy Policy</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Branding Column */}
+            <div>
+              <img src={logo} alt="AI Visibility Checker" className="w-10 h-10 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-2">AI Visibility Checker</p>
+              <p className="text-xs text-muted-foreground">
+                Track your brand's presence in AI-generated answers.
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="pt-6 border-t text-center text-xs text-muted-foreground">
+            <p className="mb-2">
+              © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
+            </p>
+            <p>
+              This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
+            </p>
+          </div>
         </footer>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Header } from "@/components/Header";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 
 interface ToolLayoutProps {
   title: string;
@@ -96,35 +96,29 @@ const ToolLayout = ({
     };
   }, [title, description, metaTitle, metaDescription]);
 
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: "Tools", href: "/tools" },
+    { label: title }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg">AI Visibility Checker</span>
-            </Link>
-            <Link to="/tools">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                All Tools
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-b from-primary/5 to-background py-12 md:py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            {title}
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {description}
-          </p>
+      {/* Hero with Breadcrumbs */}
+      <section className="bg-gradient-to-b from-primary/5 to-background pt-24 pb-12 md:pt-28 md:pb-16">
+        <div className="container mx-auto px-4">
+          <Breadcrumbs items={breadcrumbItems} />
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              {title}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {description}
+            </p>
+          </div>
         </div>
       </section>
 

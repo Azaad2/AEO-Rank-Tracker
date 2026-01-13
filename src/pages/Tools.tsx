@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Search, MessageSquare, FileText, Code, Lightbulb, Users, BarChart3 } from "lucide-react";
+import { Sparkles, Search, MessageSquare, FileText, Code, Lightbulb, Users, BarChart3, Mail, PenLine, Eye, Zap, Type, AlignLeft, Globe, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ToolCard from "@/components/tools/ToolCard";
 
@@ -20,12 +20,23 @@ const tools = [
         description: "Compare your AI visibility against competitors. See who gets mentioned more in AI responses.",
         href: "/tools/competitor-analyzer",
         icon: Users,
-        badge: "Coming Soon",
+      },
+      {
+        title: "Brand Monitor",
+        description: "Track where your brand appears in AI-generated responses and monitor sentiment.",
+        href: "/tools/brand-monitor",
+        icon: Eye,
+      },
+      {
+        title: "LLM Readiness Score",
+        description: "Get a score on how AI-friendly your website is. Check schema markup, content structure, and more.",
+        href: "/tools/llm-readiness",
+        icon: BarChart3,
       },
     ],
   },
   {
-    category: "AI Optimization Tools",
+    category: "AI Generator Tools",
     items: [
       {
         title: "AI Prompt Generator",
@@ -35,16 +46,27 @@ const tools = [
         isPopular: true,
       },
       {
-        title: "LLM Readiness Score",
-        description: "Get a score on how AI-friendly your website is. Check schema markup, content structure, and more.",
-        href: "/tools/llm-readiness",
-        icon: BarChart3,
-        badge: "Coming Soon",
+        title: "AI Answer Generator",
+        description: "Create comprehensive, citation-optimized answers that AI assistants are likely to reference.",
+        href: "/tools/ai-answer-generator",
+        icon: MessageSquare,
+      },
+      {
+        title: "AI Email Generator",
+        description: "Generate professional email copy with AI. Choose tone, purpose, and get multiple variations.",
+        href: "/tools/ai-email-generator",
+        icon: Mail,
+      },
+      {
+        title: "AI Blog Outline",
+        description: "Create complete blog structures with SEO-optimized headings, sections, and key points.",
+        href: "/tools/ai-blog-outline",
+        icon: PenLine,
       },
     ],
   },
   {
-    category: "Content Generation Tools",
+    category: "Content Optimization Tools",
     items: [
       {
         title: "AI FAQ Generator",
@@ -54,11 +76,51 @@ const tools = [
         isPopular: true,
       },
       {
-        title: "Schema Markup Generator",
+        title: "Schema Generator",
         description: "Create JSON-LD schema markup for your business. Help AI understand your content better.",
         href: "/tools/schema-generator",
         icon: Code,
-        badge: "Coming Soon",
+      },
+      {
+        title: "Meta Optimizer",
+        description: "Optimize your meta titles and descriptions for both search engines and AI discovery.",
+        href: "/tools/meta-optimizer",
+        icon: Zap,
+      },
+      {
+        title: "Content Auditor",
+        description: "Analyze your content for AI-friendliness. Get actionable recommendations to improve visibility.",
+        href: "/tools/content-auditor",
+        icon: FileText,
+      },
+    ],
+  },
+  {
+    category: "SEO & Research Tools",
+    items: [
+      {
+        title: "Keyword Analyzer",
+        description: "Discover AI-focused keyword opportunities. Find what questions users ask AI about your topic.",
+        href: "/tools/keyword-analyzer",
+        icon: Target,
+      },
+      {
+        title: "SERP Previewer",
+        description: "Preview how your page appears in search results and AI overviews before publishing.",
+        href: "/tools/serp-previewer",
+        icon: Globe,
+      },
+      {
+        title: "Title Generator",
+        description: "Generate 10 SEO-optimized title options for your content. Maximize click-through rates.",
+        href: "/tools/title-generator",
+        icon: Type,
+      },
+      {
+        title: "Description Generator",
+        description: "Create meta descriptions optimized for both search engines and AI assistants.",
+        href: "/tools/description-generator",
+        icon: AlignLeft,
       },
     ],
   },
@@ -97,7 +159,7 @@ const Tools = () => {
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              6 Free Tools
+              16 Free Tools
             </span>
             <span className="text-border">•</span>
             <span>No signup required</span>
@@ -114,7 +176,7 @@ const Tools = () => {
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               {category.category}
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {category.items.map((tool) => (
                 <ToolCard
                   key={tool.href}

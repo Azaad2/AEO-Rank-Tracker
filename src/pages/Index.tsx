@@ -995,9 +995,14 @@ const Index = () => {
 
           {/* Bottom Bar */}
           <div className="pt-10 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-base text-slate-600">
-              © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center md:items-start gap-1">
+              <p className="text-base text-slate-600">
+                © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
+              </p>
+              <a href="mailto:hello@aimentionyou.com" className="text-sm text-slate-500 hover:text-primary transition-colors">
+                hello@aimentionyou.com
+              </a>
+            </div>
             <p className="text-sm text-slate-500 text-center md:text-right max-w-lg">
               This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
             </p>

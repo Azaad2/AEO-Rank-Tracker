@@ -152,6 +152,9 @@ const ToolLayout = ({
       <footer className="border-t py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} AI Visibility Checker. All rights reserved.</p>
+          <a href="mailto:hello@aimentionyou.com" className="hover:text-foreground transition-colors block mt-2">
+            hello@aimentionyou.com
+          </a>
           <div className="flex justify-center gap-4 mt-4">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link to="/tools" className="hover:text-foreground transition-colors">All Tools</Link>

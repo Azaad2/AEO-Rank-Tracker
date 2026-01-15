@@ -137,8 +137,11 @@ export const MobileNav = () => {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} AI Visibility Checker
+      <div className="p-4 border-t text-center text-xs text-muted-foreground space-y-1">
+        <p>© {new Date().getFullYear()} AI Visibility Checker</p>
+        <a href="mailto:hello@aimentionyou.com" className="hover:text-foreground transition-colors block">
+          hello@aimentionyou.com
+        </a>
       </div>
     </div>
   );

@@ -26,6 +26,14 @@ interface GeminiAnalysis {
   competitors: string[];
 }
 
+interface PerplexityAnalysis {
+  response: string;
+  brandMentioned: boolean;
+  brandCited: boolean;
+  competitors: string[];
+  citations: string[];
+}
+
 interface RowResult {
   prompt: string;
   mentioned: boolean;
@@ -38,6 +46,11 @@ interface RowResult {
   geminiCited: boolean;
   geminiResponse: string;
   geminiCompetitors: string[];
+  // Perplexity analysis
+  perplexityMentioned: boolean;
+  perplexityCited: boolean;
+  perplexityResponse: string;
+  perplexityCompetitors: string[];
 }
 
 // Helper: normalize domain
@@ -285,7 +298,7 @@ async function analyzeWithGemini(
   }
 }
 
-// Helper: Extract competitor brands from Gemini response
+// Helper: Extract competitor brands from AI response
 function extractCompetitorBrands(response: string, targetDomain: string): string[] {
   const competitors: string[] = [];
   
@@ -317,6 +330,87 @@ function extractCompetitorBrands(response: string, targetDomain: string): string
   return [...new Set(competitors)].slice(0, 5);
 }
 
+// NEW: Direct Perplexity AI Analysis
+async function analyzeWithPerplexity(
+  prompt: string,
+  targetDomain: string
+): Promise<PerplexityAnalysis | null> {
+  const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
+  if (!PERPLEXITY_API_KEY) {
+    console.log('⚠️ Perplexity API key not configured - skipping Perplexity analysis');
+    return null;
+  }
+
+  const brandName = domainToName(targetDomain);
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [
+          { role: 'system', content: 'Be precise and provide helpful information with sources.' },
+          { role: 'user', content: prompt }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Perplexity API error: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const perplexityResponse = data.choices?.[0]?.message?.content || '';
+    const citations = data.citations || [];
+
+    if (!perplexityResponse) {
+      console.log('⚠️ Perplexity returned empty response');
+      return null;
+    }
+
+    console.log('✅ Perplexity response received for prompt:', prompt.substring(0, 50) + '...');
+
+    // Analyze Perplexity's response for brand mentions and citations
+    const responseText = perplexityResponse.toLowerCase();
+    const brandNameLower = brandName.toLowerCase();
+    const domainLower = targetDomain.toLowerCase();
+
+    // Check if brand is mentioned (name or domain)
+    const brandMentioned = 
+      responseText.includes(brandNameLower) || 
+      responseText.includes(domainLower) ||
+      responseText.includes(domainLower.replace('.', ' '));
+
+    // Check if domain URL is cited in response or citations array
+    const brandCited = 
+      responseText.includes(targetDomain) ||
+      responseText.includes(`https://${targetDomain}`) ||
+      responseText.includes(`http://${targetDomain}`) ||
+      responseText.includes(`www.${targetDomain}`) ||
+      citations.some((c: string) => c.toLowerCase().includes(domainLower));
+
+    // Extract competitor brands mentioned in response
+    const competitors = extractCompetitorBrands(perplexityResponse, targetDomain);
+
+    return {
+      response: perplexityResponse.substring(0, 1000), // Limit stored response
+      brandMentioned,
+      brandCited,
+      competitors,
+      citations: citations.slice(0, 5),
+    };
+  } catch (error) {
+    console.error('❌ Perplexity analysis error:', error);
+    return null;
+  }
+}
+
 // Heuristic fallback
 function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   const matchingResult = results.find(r => safeHost(r.url) === targetDomain);
@@ -332,9 +426,9 @@ function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   };
 }
 
-// Score calculation - now combines both sources
+// Score calculation - now combines all three sources
 function scoreFromRow(row: RowResult): number {
-  // Google Search + OpenAI analysis (40% weight)
+  // Google Search + OpenAI analysis (25% weight)
   const searchMentioned = row.mentioned ? 1 : 0;
   const searchCited = row.cited ? 1 : 0;
   const rankBonus = row.citationRank && row.citationRank <= 3
@@ -342,13 +436,18 @@ function scoreFromRow(row: RowResult): number {
     : 0;
   const searchScore = (searchMentioned + 0.7 * searchCited + 0.3 * rankBonus) / 2;
 
-  // Direct Gemini analysis (60% weight - actual AI response matters more)
+  // Direct Gemini analysis (40% weight)
   const geminiMentioned = row.geminiMentioned ? 1 : 0;
   const geminiCited = row.geminiCited ? 0.5 : 0;
   const geminiScore = (geminiMentioned + geminiCited) / 1.5;
 
+  // Perplexity analysis (35% weight - real-time search grounded)
+  const perplexityMentioned = row.perplexityMentioned ? 1 : 0;
+  const perplexityCited = row.perplexityCited ? 0.5 : 0;
+  const perplexityScore = (perplexityMentioned + perplexityCited) / 1.5;
+
   // Combined score
-  return Math.round(((searchScore * 0.4) + (geminiScore * 0.6)) * 100);
+  return Math.round(((searchScore * 0.25) + (geminiScore * 0.40) + (perplexityScore * 0.35)) * 100);
 }
 
 function aggregateScore(rows: RowResult[]): number {
@@ -394,10 +493,11 @@ serve(async (req) => {
 
     // Process all prompts in parallel for speed
     const promptPromises = prompts.map(async (prompt) => {
-      // Run Serper search and Gemini analysis in parallel
-      const [searchResults, geminiAnalysis] = await Promise.all([
+      // Run Serper search, Gemini analysis, and Perplexity analysis in parallel
+      const [searchResults, geminiAnalysis, perplexityAnalysis] = await Promise.all([
         fetchSearchResults(prompt, market),
         analyzeWithGemini(prompt, targetDomain),
+        analyzeWithPerplexity(prompt, targetDomain),
       ]);
 
       // OpenAI analysis depends on search results, run after
@@ -425,8 +525,13 @@ serve(async (req) => {
         geminiCited: geminiAnalysis?.brandCited || false,
         geminiResponse: geminiAnalysis?.response || '',
         geminiCompetitors: geminiAnalysis?.competitors || [],
+        perplexityMentioned: perplexityAnalysis?.brandMentioned || false,
+        perplexityCited: perplexityAnalysis?.brandCited || false,
+        perplexityResponse: perplexityAnalysis?.response || '',
+        perplexityCompetitors: perplexityAnalysis?.competitors || [],
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
+        perplexityUsed: !!perplexityAnalysis,
         llmError: llmResult.error,
       };
     });
@@ -435,9 +540,11 @@ serve(async (req) => {
     const promptResults = await Promise.all(promptPromises);
 
     // Aggregate results
+    let perplexityUsedCount = 0;
     for (const result of promptResults) {
       if (result.llmUsed) llmUsedCount++;
       if (result.geminiUsed) geminiUsedCount++;
+      if (result.perplexityUsed) perplexityUsedCount++;
       if (result.llmError && !llmErrors.includes(result.llmError)) {
         llmErrors.push(result.llmError);
       }
@@ -452,10 +559,14 @@ serve(async (req) => {
         geminiCited: result.geminiCited,
         geminiResponse: result.geminiResponse,
         geminiCompetitors: result.geminiCompetitors,
+        perplexityMentioned: result.perplexityMentioned,
+        perplexityCited: result.perplexityCited,
+        perplexityResponse: result.perplexityResponse,
+        perplexityCompetitors: result.perplexityCompetitors,
       });
     }
 
-    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini`);
+    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity`);
     if (llmErrors.length > 0) {
       console.log('⚠️ LLM errors encountered:', llmErrors.join(', '));
     }
@@ -517,6 +628,7 @@ serve(async (req) => {
         meta: {
           llmAnalysisUsed: llmUsedCount,
           geminiAnalysisUsed: geminiUsedCount,
+          perplexityAnalysisUsed: perplexityUsedCount,
           totalPrompts: prompts.length,
           llmErrors: llmErrors.length > 0 ? llmErrors : undefined,
         },

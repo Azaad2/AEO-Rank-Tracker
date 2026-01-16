@@ -30,6 +30,11 @@ interface ScanResult {
   geminiCited: boolean;
   geminiResponse: string;
   geminiCompetitors: string[];
+  // Perplexity analysis
+  perplexityMentioned?: boolean;
+  perplexityCited?: boolean;
+  perplexityResponse?: string;
+  perplexityCompetitors?: string[];
 }
 
 interface ScanResponse {

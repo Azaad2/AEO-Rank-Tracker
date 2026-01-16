@@ -15,6 +15,10 @@ interface ScanResult {
   geminiCited: boolean;
   geminiResponse: string;
   geminiCompetitors: string[];
+  perplexityMentioned?: boolean;
+  perplexityCited?: boolean;
+  perplexityResponse?: string;
+  perplexityCompetitors?: string[];
 }
 
 interface ScanResultsModalProps {
@@ -36,6 +40,7 @@ const calculateAIVisibility = (results: ScanResult[]) => {
   if (total === 0) return {
     gemini: { mentions: 0, citations: 0, overall: 0 },
     search: { mentions: 0, citations: 0, overall: 0 },
+    perplexity: { mentions: 0, citations: 0, overall: 0 },
     combined: 0
   };
   
@@ -48,6 +53,11 @@ const calculateAIVisibility = (results: ScanResult[]) => {
   const searchMentions = results.filter(r => r.mentioned).length;
   const searchCitations = results.filter(r => r.cited).length;
   const searchVisibility = Math.round(((searchMentions + searchCitations) / (total * 2)) * 100);
+
+  // Perplexity visibility
+  const perplexityMentions = results.filter(r => r.perplexityMentioned).length;
+  const perplexityCitations = results.filter(r => r.perplexityCited).length;
+  const perplexityVisibility = Math.round(((perplexityMentions + perplexityCitations) / (total * 2)) * 100);
   
   return {
     gemini: {
@@ -60,7 +70,12 @@ const calculateAIVisibility = (results: ScanResult[]) => {
       citations: Math.round((searchCitations / total) * 100),
       overall: searchVisibility
     },
-    combined: Math.round((geminiVisibility * 0.6) + (searchVisibility * 0.4))
+    perplexity: {
+      mentions: Math.round((perplexityMentions / total) * 100),
+      citations: Math.round((perplexityCitations / total) * 100),
+      overall: perplexityVisibility
+    },
+    combined: Math.round((geminiVisibility * 0.40) + (searchVisibility * 0.25) + (perplexityVisibility * 0.35))
   };
 };
 
@@ -167,6 +182,29 @@ export function ScanResultsModal({
                 </div>
               </div>
 
+              {/* Perplexity AI */}
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-purple-500" />
+                    <span className="font-medium">Perplexity AI</span>
+                  </div>
+                  <span className={`font-bold ${getScoreColor(visibility.perplexity.overall)}`}>
+                    {visibility.perplexity.overall}%
+                  </span>
+                </div>
+                <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${getProgressColor(visibility.perplexity.overall)} transition-all`}
+                    style={{ width: `${visibility.perplexity.overall}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Mentions: {visibility.perplexity.mentions}%</span>
+                  <span>Citations: {visibility.perplexity.citations}%</span>
+                </div>
+              </div>
+
               {/* Combined Score Bar */}
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
@@ -180,7 +218,7 @@ export function ScanResultsModal({
                 </div>
                 <Progress value={visibility.combined} className="h-3" />
                 <p className="text-xs text-muted-foreground">
-                  Weighted: 60% Gemini + 40% Search/ChatGPT
+                  Weighted: 40% Gemini + 35% Perplexity + 25% Search/ChatGPT
                 </p>
               </div>
             </div>
@@ -210,26 +248,46 @@ export function ScanResultsModal({
                       {idx + 1}. {isLocked ? "Locked prompt content..." : result.prompt}
                     </p>
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-3 text-sm">
                       <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium">Gemini AI</p>
-                        <div className="flex gap-3">
+                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                          Gemini
+                        </p>
+                        <div className="flex flex-col gap-0.5 text-xs">
                           <span className={result.geminiMentioned ? "text-green-500" : "text-muted-foreground"}>
-                            {result.geminiMentioned ? "✓ Mentioned" : "✗ Not Mentioned"}
+                            {result.geminiMentioned ? "✓ Mentioned" : "✗ No mention"}
                           </span>
                           <span className={result.geminiCited ? "text-green-500" : "text-muted-foreground"}>
-                            {result.geminiCited ? "✓ Cited" : "✗ Not Cited"}
+                            {result.geminiCited ? "✓ Cited" : "✗ No citation"}
                           </span>
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium">ChatGPT / Search</p>
-                        <div className="flex gap-3">
+                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-purple-500" />
+                          Perplexity
+                        </p>
+                        <div className="flex flex-col gap-0.5 text-xs">
+                          <span className={result.perplexityMentioned ? "text-green-500" : "text-muted-foreground"}>
+                            {result.perplexityMentioned ? "✓ Mentioned" : "✗ No mention"}
+                          </span>
+                          <span className={result.perplexityCited ? "text-green-500" : "text-muted-foreground"}>
+                            {result.perplexityCited ? "✓ Cited" : "✗ No citation"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          ChatGPT/Search
+                        </p>
+                        <div className="flex flex-col gap-0.5 text-xs">
                           <span className={result.mentioned ? "text-green-500" : "text-muted-foreground"}>
-                            {result.mentioned ? "✓ Mentioned" : "✗ Not Mentioned"}
+                            {result.mentioned ? "✓ Mentioned" : "✗ No mention"}
                           </span>
                           <span className={result.cited ? "text-green-500" : "text-muted-foreground"}>
-                            {result.cited ? "✓ Cited" : "✗ Not Cited"}
+                            {result.cited ? "✓ Cited" : "✗ No citation"}
                           </span>
                         </div>
                       </div>

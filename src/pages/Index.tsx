@@ -15,6 +15,7 @@ import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
 import { Header } from "@/components/Header";
+import { ScanResultsModal } from "@/components/ScanResultsModal";
 import logo from "@/assets/logo-light.png";
 
 interface ScanResult {
@@ -55,6 +56,7 @@ const Index = () => {
   const [unlockedEmail, setUnlockedEmail] = useState<string | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
   
@@ -155,6 +157,8 @@ const Index = () => {
       if (data.scanId) {
         setScanId(data.scanId);
       }
+      // Auto-open results modal
+      setShowResultsModal(true);
       
       // Track successful scan completion
       trackEvent('scan_completed', {
@@ -615,6 +619,19 @@ const Index = () => {
             </div>
           </div>
         )}
+
+        {/* Scan Results Modal */}
+        <ScanResultsModal
+          open={showResultsModal}
+          onOpenChange={setShowResultsModal}
+          scanData={scanData}
+          isUnlocked={isUnlocked}
+          onUnlock={() => {
+            setShowResultsModal(false);
+            openEmailModal();
+          }}
+          freePreviewCount={FREE_PREVIEW_COUNT}
+        />
 
         {/* Email Capture Modal */}
         <EmailCaptureModal

@@ -36,6 +36,12 @@ export const Header = () => {
               Free Scan
             </a>
             <Link 
+              to="/blog" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Blog
+            </Link>
+            <Link 
               to="/tools" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >

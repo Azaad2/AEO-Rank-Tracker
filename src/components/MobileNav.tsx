@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Search, Users, Eye, BarChart3, Lightbulb, MessageSquare, Mail, PenLine, Code, Zap, FileText, Target, Globe, Type, AlignLeft, X } from "lucide-react";
+import { ChevronDown, Search, Users, Eye, BarChart3, Lightbulb, MessageSquare, Mail, PenLine, Code, Zap, FileText, Target, Globe, Type, AlignLeft, X, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo-light.png";
@@ -124,13 +124,26 @@ export const MobileNav = () => {
         </div>
 
         {/* View All Link */}
-        <div className="px-4 mt-6">
+        <div className="px-4 mt-4">
           <SheetClose asChild>
             <Link
               to="/tools"
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
             >
               View All 16 Free Tools
+            </Link>
+          </SheetClose>
+        </div>
+
+        {/* Blog Link */}
+        <div className="px-4 mt-2">
+          <SheetClose asChild>
+            <Link
+              to="/blog"
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              Blog & Guides
             </Link>
           </SheetClose>
         </div>

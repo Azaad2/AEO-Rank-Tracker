@@ -20,6 +20,7 @@ interface BlogLayoutProps {
   children: React.ReactNode;
   faqs?: { question: string; answer: string }[];
   relatedPosts?: { title: string; slug: string; category: string }[];
+  author?: string;
 }
 
 export const BlogLayout = ({
@@ -33,6 +34,7 @@ export const BlogLayout = ({
   children,
   faqs = [],
   relatedPosts = [],
+  author,
 }: BlogLayoutProps) => {
   useEffect(() => {
     // Update document title
@@ -52,11 +54,16 @@ export const BlogLayout = ({
       description: description,
       datePublished: publishDate,
       dateModified: publishDate,
-      author: {
-        "@type": "Organization",
-        name: "AI Visibility Checker",
-        url: "https://domain-signal-check.lovable.app",
-      },
+      author: author
+        ? {
+            "@type": "Person",
+            name: author,
+          }
+        : {
+            "@type": "Organization",
+            name: "AI Visibility Checker",
+            url: "https://domain-signal-check.lovable.app",
+          },
       publisher: {
         "@type": "Organization",
         name: "AI Visibility Checker",
@@ -117,7 +124,7 @@ export const BlogLayout = ({
       document.getElementById(faqScriptId)?.remove();
       document.title = "AI Visibility Checker";
     };
-  }, [title, description, publishDate, faqs]);
+  }, [title, description, publishDate, faqs, author]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,7 +149,12 @@ export const BlogLayout = ({
                 {title}
               </h1>
               <p className="text-lg text-muted-foreground mb-6">{description}</p>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                {author && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-foreground">{author}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
                   <span>{publishDate}</span>

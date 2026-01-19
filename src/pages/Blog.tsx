@@ -12,9 +12,19 @@ const categories = [
   "AI Generators",
   "Content Tools",
   "SEO Tools",
+  "GEO",
 ];
 
 const blogPosts = [
+  {
+    title: "AI Visibility Tools 2026: Why AImentionyou Beats Semrush, Peec AI & Profound",
+    description: "Complete comparison of top 9 AI visibility tools. AImentionyou crushes on price (Free-$19), free technical tools, and developer workflows.",
+    slug: "ai-visibility-tools-comparison-2026",
+    category: "AI Visibility",
+    readTime: "12 min",
+    publishDate: "January 19, 2026",
+    featured: true,
+  },
   {
     title: "How to Check If AI Mentions Your Website: Complete Guide",
     description: "Discover whether ChatGPT, Gemini, and Perplexity mention your brand when users ask relevant questions. Learn how to improve your AI search visibility.",

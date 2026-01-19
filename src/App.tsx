@@ -40,6 +40,7 @@ import AIKeywordResearch from "./pages/blog/AIKeywordResearch";
 import SERPPreviewTool from "./pages/blog/SERPPreviewTool";
 import SEOTitleGenerator from "./pages/blog/SEOTitleGenerator";
 import MetaDescriptionGenerator from "./pages/blog/MetaDescriptionGenerator";
+import AIVisibilityToolsComparison from "./pages/blog/AIVisibilityToolsComparison";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/tools" element={<Tools />} />
           <Route path="/blog" element={<Blog />} />
           {/* Blog posts */}
+          <Route path="/blog/ai-visibility-tools-comparison-2026" element={<AIVisibilityToolsComparison />} />
           <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
           <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />
           <Route path="/blog/ai-brand-monitoring" element={<AIBrandMonitoring />} />

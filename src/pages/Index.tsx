@@ -365,8 +365,8 @@ const Index = () => {
     }
   };
 
-  // Number of free preview results
-  const FREE_PREVIEW_COUNT = 2;
+  // Number of free preview results - reduced to 1 to increase email capture
+  const FREE_PREVIEW_COUNT = 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -629,12 +629,9 @@ const Index = () => {
         <ScanResultsModal
           open={showResultsModal}
           onOpenChange={setShowResultsModal}
-          scanData={scanData}
+          scanData={scanData ? { ...scanData, scanId: scanId || undefined } : null}
           isUnlocked={isUnlocked}
-          onUnlock={() => {
-            setShowResultsModal(false);
-            openEmailModal();
-          }}
+          onUnlock={handleEmailSuccess}
           freePreviewCount={FREE_PREVIEW_COUNT}
         />
 

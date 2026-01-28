@@ -17,20 +17,69 @@ const tools = [
         badge: "Featured",
       },
       {
+        title: "Perplexity Rank Tracker",
+        description: "Track your visibility in Perplexity AI search. Monitor citations and mentions.",
+        href: "/tools/perplexity-rank-tracker",
+        icon: Search,
+        isPopular: true,
+      },
+      {
+        title: "ChatGPT Mention Tracker",
+        description: "Monitor how ChatGPT mentions your brand. Track visibility and sentiment.",
+        href: "/tools/chatgpt-mention-tracker",
+        icon: MessageSquare,
+      },
+      {
+        title: "Claude Rank Tracker",
+        description: "Track your visibility in Claude AI responses and recommendations.",
+        href: "/tools/claude-rank-tracker",
+        icon: Users,
+      },
+      {
+        title: "AI Overviews Tracker",
+        description: "Monitor your visibility in Google AI Overviews and AI Mode.",
+        href: "/tools/ai-overviews-tracker",
+        icon: Globe,
+      },
+      {
+        title: "Copilot Rank Tracker",
+        description: "Track visibility in Microsoft Copilot across Bing and Windows.",
+        href: "/tools/copilot-rank-tracker",
+        icon: Eye,
+      },
+      {
+        title: "LLM Rank Tracker",
+        description: "Track visibility across all major LLMs in one unified view.",
+        href: "/tools/llm-rank-tracker",
+        icon: BarChart3,
+      },
+      {
+        title: "GEO Optimization Checker",
+        description: "Check your Generative Engine Optimization score for AI search.",
+        href: "/tools/geo-optimization-checker",
+        icon: Target,
+      },
+      {
+        title: "AI Citation Tracker",
+        description: "Monitor when AI assistants cite your website as a source.",
+        href: "/tools/ai-citation-tracker",
+        icon: Zap,
+      },
+      {
         title: "Competitor AI Analyzer",
-        description: "Compare your AI visibility against competitors. See who gets mentioned more in AI responses.",
+        description: "Compare your AI visibility against competitors.",
         href: "/tools/competitor-analyzer",
         icon: Users,
       },
       {
         title: "Brand Monitor",
-        description: "Track where your brand appears in AI-generated responses and monitor sentiment.",
+        description: "Track where your brand appears in AI-generated responses.",
         href: "/tools/brand-monitor",
         icon: Eye,
       },
       {
         title: "LLM Readiness Score",
-        description: "Get a score on how AI-friendly your website is. Check schema markup, content structure, and more.",
+        description: "Get a score on how AI-friendly your website is.",
         href: "/tools/llm-readiness",
         icon: BarChart3,
       },
@@ -145,7 +194,7 @@ const Tools = () => {
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              16 Free Tools
+              24 Free Tools
             </span>
             <span className="text-border">•</span>
             <span>No signup required</span>

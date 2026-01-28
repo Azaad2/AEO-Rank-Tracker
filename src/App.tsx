@@ -22,6 +22,14 @@ import DescriptionGenerator from "./pages/tools/DescriptionGenerator";
 import CompetitorAnalyzer from "./pages/tools/CompetitorAnalyzer";
 import BrandMonitor from "./pages/tools/BrandMonitor";
 import LLMReadinessScore from "./pages/tools/LLMReadinessScore";
+import PerplexityRankTracker from "./pages/tools/PerplexityRankTracker";
+import ChatGPTMentionTracker from "./pages/tools/ChatGPTMentionTracker";
+import ClaudeRankTracker from "./pages/tools/ClaudeRankTracker";
+import AIOverviewsTracker from "./pages/tools/AIOverviewsTracker";
+import CopilotRankTracker from "./pages/tools/CopilotRankTracker";
+import LLMRankTracker from "./pages/tools/LLMRankTracker";
+import GEOOptimizationChecker from "./pages/tools/GEOOptimizationChecker";
+import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
@@ -41,6 +49,14 @@ import SERPPreviewTool from "./pages/blog/SERPPreviewTool";
 import SEOTitleGenerator from "./pages/blog/SEOTitleGenerator";
 import MetaDescriptionGenerator from "./pages/blog/MetaDescriptionGenerator";
 import AIVisibilityToolsComparison from "./pages/blog/AIVisibilityToolsComparison";
+import PerplexityRankTrackerGuide from "./pages/blog/PerplexityRankTrackerGuide";
+import ChatGPTMentionTrackingGuide from "./pages/blog/ChatGPTMentionTrackingGuide";
+import ClaudeRankTrackerGuide from "./pages/blog/ClaudeRankTrackerGuide";
+import AIOverviewsTrackingGuide from "./pages/blog/AIOverviewsTrackingGuide";
+import CopilotSEOTrackingGuide from "./pages/blog/CopilotSEOTrackingGuide";
+import LLMRankTrackingGuide from "./pages/blog/LLMRankTrackingGuide";
+import GEOOptimizationGuide from "./pages/blog/GEOOptimizationGuide";
+import AICitationTrackingGuide from "./pages/blog/AICitationTrackingGuide";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +105,23 @@ const App = () => (
           <Route path="/tools/competitor-analyzer" element={<CompetitorAnalyzer />} />
           <Route path="/tools/brand-monitor" element={<BrandMonitor />} />
           <Route path="/tools/llm-readiness-score" element={<LLMReadinessScore />} />
+          <Route path="/tools/perplexity-rank-tracker" element={<PerplexityRankTracker />} />
+          <Route path="/tools/chatgpt-mention-tracker" element={<ChatGPTMentionTracker />} />
+          <Route path="/tools/claude-rank-tracker" element={<ClaudeRankTracker />} />
+          <Route path="/tools/ai-overviews-tracker" element={<AIOverviewsTracker />} />
+          <Route path="/tools/copilot-rank-tracker" element={<CopilotRankTracker />} />
+          <Route path="/tools/llm-rank-tracker" element={<LLMRankTracker />} />
+          <Route path="/tools/geo-optimization-checker" element={<GEOOptimizationChecker />} />
+          <Route path="/tools/ai-citation-tracker" element={<AICitationTracker />} />
+          {/* New blog posts */}
+          <Route path="/blog/perplexity-rank-tracker-guide" element={<PerplexityRankTrackerGuide />} />
+          <Route path="/blog/chatgpt-mention-tracking-guide" element={<ChatGPTMentionTrackingGuide />} />
+          <Route path="/blog/claude-rank-tracker-guide" element={<ClaudeRankTrackerGuide />} />
+          <Route path="/blog/ai-overviews-tracking-guide" element={<AIOverviewsTrackingGuide />} />
+          <Route path="/blog/copilot-seo-tracking-guide" element={<CopilotSEOTrackingGuide />} />
+          <Route path="/blog/llm-rank-tracking-guide" element={<LLMRankTrackingGuide />} />
+          <Route path="/blog/geo-optimization-guide" element={<GEOOptimizationGuide />} />
+          <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

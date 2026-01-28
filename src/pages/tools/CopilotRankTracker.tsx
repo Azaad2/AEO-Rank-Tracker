@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ToolLayout from "@/components/tools/ToolLayout";
+import ToolShareButtons from "@/components/tools/ToolShareButtons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,6 +232,12 @@ const CopilotRankTracker = () => {
             <li><strong>Productivity context:</strong> Users often seek work-related information</li>
           </ul>
         </div>
+
+        {/* Share Buttons */}
+        <ToolShareButtons 
+          toolName="Copilot Rank Tracker" 
+          description="Track your visibility in Microsoft Copilot AI."
+        />
 
         {/* Internal Links */}
         <div className="bg-muted/30 rounded-lg p-6 mt-8">

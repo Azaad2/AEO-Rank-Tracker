@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ToolLayout from "@/components/tools/ToolLayout";
+import ToolShareButtons from "@/components/tools/ToolShareButtons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,6 +239,12 @@ const GEOOptimizationChecker = () => {
             <li><strong>Earn citations:</strong> Get mentioned by authoritative sources</li>
           </ol>
         </div>
+
+        {/* Share Buttons */}
+        <ToolShareButtons 
+          toolName="GEO Optimization Checker" 
+          description="Check your Generative Engine Optimization score."
+        />
 
         {/* Internal Links */}
         <div className="bg-muted/30 rounded-lg p-6 mt-8">

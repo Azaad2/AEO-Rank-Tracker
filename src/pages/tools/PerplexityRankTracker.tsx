@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ToolLayout from "@/components/tools/ToolLayout";
+import ToolShareButtons from "@/components/tools/ToolShareButtons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -234,6 +235,12 @@ const PerplexityRankTracker = () => {
             <li>Monitor and <strong>track your Perplexity visibility</strong> regularly</li>
           </ul>
         </div>
+
+        {/* Share Buttons */}
+        <ToolShareButtons 
+          toolName="Perplexity Rank Tracker" 
+          description="Track your visibility in Perplexity AI search results."
+        />
 
         {/* Internal Links */}
         <div className="bg-muted/30 rounded-lg p-6 mt-8">

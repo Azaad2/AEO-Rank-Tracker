@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ToolLayout from "@/components/tools/ToolLayout";
+import ToolShareButtons from "@/components/tools/ToolShareButtons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,6 +232,12 @@ const ClaudeRankTracker = () => {
             <li><strong>User base:</strong> Different demographics use each platform</li>
           </ul>
         </div>
+
+        {/* Share Buttons */}
+        <ToolShareButtons 
+          toolName="Claude Rank Tracker" 
+          description="Track your visibility in Anthropic's Claude AI."
+        />
 
         {/* Internal Links */}
         <div className="bg-muted/30 rounded-lg p-6 mt-8">

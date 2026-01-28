@@ -13,6 +13,7 @@ const categories = [
   "Content Tools",
   "SEO Tools",
   "GEO",
+  "AI Trackers",
 ];
 
 const blogPosts = [
@@ -152,6 +153,70 @@ const blogPosts = [
     category: "SEO Tools",
     readTime: "6 min",
     publishDate: "December 31, 2024",
+  },
+  {
+    title: "Perplexity Rank Tracker: Complete Guide to Tracking Your AI Visibility",
+    description: "Learn how to track and improve your visibility in Perplexity AI search. Comprehensive guide to Perplexity SEO.",
+    slug: "perplexity-rank-tracker-guide",
+    category: "AI Trackers",
+    readTime: "12 min",
+    publishDate: "January 25, 2026",
+  },
+  {
+    title: "ChatGPT Mention Tracking: Monitor Your Brand in ChatGPT",
+    description: "Complete guide to tracking what ChatGPT says about your brand. Monitor mentions, sentiment, and visibility.",
+    slug: "chatgpt-mention-tracking-guide",
+    category: "AI Trackers",
+    readTime: "11 min",
+    publishDate: "January 24, 2026",
+  },
+  {
+    title: "Claude Rank Tracker Guide: Monitor Your Visibility in Claude AI",
+    description: "Learn Claude SEO strategies, rank tracking, and optimization techniques for Anthropic's Claude.",
+    slug: "claude-rank-tracker-guide",
+    category: "AI Trackers",
+    readTime: "10 min",
+    publishDate: "January 23, 2026",
+  },
+  {
+    title: "AI Overviews Tracking: Complete Guide to Google AI Search",
+    description: "Track and optimize your visibility in Google AI Overviews and AI Mode. Comprehensive ranking guide.",
+    slug: "ai-overviews-tracking-guide",
+    category: "AI Trackers",
+    readTime: "13 min",
+    publishDate: "January 22, 2026",
+  },
+  {
+    title: "Copilot SEO Tracking Guide: Optimize for Microsoft's AI",
+    description: "Complete guide to tracking and improving visibility in Microsoft Copilot and Bing AI.",
+    slug: "copilot-seo-tracking-guide",
+    category: "AI Trackers",
+    readTime: "10 min",
+    publishDate: "January 21, 2026",
+  },
+  {
+    title: "LLM Rank Tracking: Multi-Platform AI Visibility Guide",
+    description: "Track visibility across ChatGPT, Claude, Gemini, and Perplexity. Comprehensive LLM SEO guide.",
+    slug: "llm-rank-tracking-guide",
+    category: "AI Trackers",
+    readTime: "14 min",
+    publishDate: "January 20, 2026",
+  },
+  {
+    title: "GEO Optimization Guide: Mastering Generative Engine Optimization",
+    description: "Complete guide to Generative Engine Optimization. Optimize for AI search engines and AI Overviews.",
+    slug: "geo-optimization-guide",
+    category: "GEO",
+    readTime: "15 min",
+    publishDate: "January 19, 2026",
+  },
+  {
+    title: "AI Citation Tracking: Complete Guide to Getting Cited by AI",
+    description: "Learn how to get cited by Perplexity, Google AI Overviews, and other AI platforms.",
+    slug: "ai-citation-tracking-guide",
+    category: "AI Trackers",
+    readTime: "12 min",
+    publishDate: "January 18, 2026",
   },
 ];
 

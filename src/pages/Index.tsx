@@ -370,12 +370,12 @@ const Index = () => {
   const FREE_PREVIEW_COUNT = 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-black">
       <Header />
       <div className="pt-32 p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8">
           {/* Hero Section with Black Background - Mario Style */}
-          <div className="bg-black py-12 md:py-16 px-6 -mx-4 md:-mx-8 rounded-lg">
+          <div className="py-12 md:py-16 px-6 -mx-4 md:-mx-8">
             <div className="text-center space-y-6">
               <h1 
                 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-relaxed drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"

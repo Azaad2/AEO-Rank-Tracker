@@ -1012,20 +1012,24 @@ const Index = () => {
               <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">Company</h3>
               <ul className="space-y-4">
                 <li>
-                  <span className="text-base text-gray-500">About</span>
-                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
+                  <a href="/about" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
+                    About
+                  </a>
                 </li>
                 <li>
-                  <span className="text-base text-gray-500">Contact</span>
-                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
+                  <a href="/contact" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
+                    Contact
+                  </a>
                 </li>
                 <li>
-                  <span className="text-base text-gray-500">Privacy Policy</span>
-                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
+                  <a href="/privacy" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
+                    Privacy Policy
+                  </a>
                 </li>
                 <li>
-                  <span className="text-base text-gray-500">Terms of Service</span>
-                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
+                  <a href="/terms" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
+                    Terms of Service
+                  </a>
                 </li>
               </ul>
             </div>

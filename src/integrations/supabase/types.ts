@@ -222,6 +222,84 @@ export type Database = {
         }
         Relationships: []
       }
+      slack_alert_history: {
+        Row: {
+          alert_type: string
+          config_id: string | null
+          id: string
+          message_ts: string | null
+          scan_id: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          config_id?: string | null
+          id?: string
+          message_ts?: string | null
+          scan_id?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          config_id?: string | null
+          id?: string
+          message_ts?: string | null
+          scan_id?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slack_alert_history_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "slack_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slack_alert_history_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slack_configs: {
+        Row: {
+          channel_id: string
+          channel_name: string
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          notify_on_scan: boolean | null
+          score_threshold: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel_id: string
+          channel_name: string
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          notify_on_scan?: boolean | null
+          score_threshold?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel_id?: string
+          channel_name?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          notify_on_scan?: boolean | null
+          score_threshold?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_activity: {
         Row: {
           created_at: string

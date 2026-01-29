@@ -404,13 +404,7 @@ const Index = () => {
           </div>
 
         {/* Scan Input Section */}
-        <section id="scan" className="scroll-mt-8">
-          <div className="text-center space-y-2 mb-6">
-            <h2 className="text-3xl font-bold text-white">Check If AI Mentions Your Website</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Run an AI search visibility audit by entering your domain and the prompts or keywords your audience uses. We'll show you exactly where you appear in AI-generated answers.
-            </p>
-          </div>
+        <section id="scan" className="scroll-mt-8 -mt-4">
           <Card className="shadow-lg bg-gray-900 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">Enter Scan Details</CardTitle>
@@ -864,15 +858,15 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Footer - Light themed for visibility */}
-      <footer className="bg-slate-50 border-t mt-16">
+      {/* Footer - Dark themed to match site */}
+      <footer className="bg-gray-900 border-t border-gray-800 mt-16">
         <div className="max-w-6xl mx-auto px-4 py-16">
           {/* Logo and tagline */}
           <div className="flex items-center gap-4 mb-12">
             <img src={logo} alt="AI Visibility Checker" className="w-14 h-14" />
             <div>
-              <p className="font-bold text-xl text-slate-900">AI Visibility Checker</p>
-              <p className="text-base text-slate-600">Free AI SEO Tools for Modern Marketers</p>
+              <p className="font-bold text-xl text-white">AI Visibility Checker</p>
+              <p className="text-base text-gray-400">Free AI SEO Tools for Modern Marketers</p>
             </div>
           </div>
 
@@ -880,25 +874,25 @@ const Index = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-10 mb-12">
             {/* AI Visibility Tools */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Visibility Tools</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">Visibility Tools</h3>
               <ul className="space-y-4">
                 <li>
-                  <a href="#scan" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="#scan" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI Visibility Checker
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/competitor-analyzer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/competitor-analyzer" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Competitor Analyzer
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/brand-monitor" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/brand-monitor" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Brand Monitor
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/llm-readiness" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/llm-readiness" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     LLM Readiness Score
                   </a>
                 </li>
@@ -907,25 +901,25 @@ const Index = () => {
 
             {/* AI Generators */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">AI Generators</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">AI Generators</h3>
               <ul className="space-y-4">
                 <li>
-                  <a href="/tools/ai-prompt-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/ai-prompt-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI Prompt Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/ai-answer-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/ai-answer-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI Answer Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/ai-email-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/ai-email-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI Email Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/ai-blog-outline" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/ai-blog-outline" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI Blog Outline
                   </a>
                 </li>
@@ -934,25 +928,25 @@ const Index = () => {
 
             {/* Content Tools */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Content Tools</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">Content Tools</h3>
               <ul className="space-y-4">
                 <li>
-                  <a href="/tools/ai-faq-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/ai-faq-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     AI FAQ Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/schema-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/schema-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Schema Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/meta-optimizer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/meta-optimizer" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Meta Optimizer
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/content-auditor" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/content-auditor" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Content Auditor
                   </a>
                 </li>
@@ -961,25 +955,25 @@ const Index = () => {
 
             {/* More Tools */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">More Tools</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">More Tools</h3>
               <ul className="space-y-4">
                 <li>
-                  <a href="/tools/keyword-analyzer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/keyword-analyzer" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Keyword Analyzer
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/serp-previewer" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/serp-previewer" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     SERP Previewer
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/title-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/title-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Title Generator
                   </a>
                 </li>
                 <li>
-                  <a href="/tools/description-generator" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools/description-generator" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Description Generator
                   </a>
                 </li>
@@ -988,25 +982,25 @@ const Index = () => {
 
             {/* Resources */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Resources</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">Resources</h3>
               <ul className="space-y-4">
                 <li>
-                  <a href="/tools" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="/tools" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     All 16 Free Tools →
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="#how-it-works" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     How It Works
                   </a>
                 </li>
                 <li>
-                  <a href="#faq" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="#faq" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     FAQ
                   </a>
                 </li>
                 <li>
-                  <a href="#use-cases" className="text-base text-blue-600 hover:text-blue-800 hover:underline transition-colors font-medium">
+                  <a href="#use-cases" className="text-base text-yellow-400 hover:text-yellow-300 hover:underline transition-colors font-medium">
                     Use Cases
                   </a>
                 </li>
@@ -1015,39 +1009,39 @@ const Index = () => {
 
             {/* Company */}
             <div>
-              <h3 className="font-bold text-slate-900 mb-5 text-base uppercase tracking-wide">Company</h3>
+              <h3 className="font-bold text-white mb-5 text-base uppercase tracking-wide">Company</h3>
               <ul className="space-y-4">
                 <li>
-                  <span className="text-base text-slate-500">About</span>
-                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
+                  <span className="text-base text-gray-500">About</span>
+                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-base text-slate-500">Contact</span>
-                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
+                  <span className="text-base text-gray-500">Contact</span>
+                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-base text-slate-500">Privacy Policy</span>
-                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
+                  <span className="text-base text-gray-500">Privacy Policy</span>
+                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
                 </li>
                 <li>
-                  <span className="text-base text-slate-500">Terms of Service</span>
-                  <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Soon</span>
+                  <span className="text-base text-gray-500">Terms of Service</span>
+                  <span className="ml-2 text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded">Soon</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-10 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="pt-10 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col items-center md:items-start gap-1">
-              <p className="text-base text-slate-600">
+              <p className="text-base text-gray-400">
                 © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
               </p>
-              <a href="mailto:hello@aimentionyou.com" className="text-sm text-slate-500 hover:text-primary transition-colors">
+              <a href="mailto:hello@aimentionyou.com" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
                 hello@aimentionyou.com
               </a>
             </div>
-            <p className="text-sm text-slate-500 text-center md:text-right max-w-lg">
+            <p className="text-sm text-gray-500 text-center md:text-right max-w-lg">
               This AI search visibility audit tool estimates visibility using public web results and simulated AI answer generation.
             </p>
           </div>

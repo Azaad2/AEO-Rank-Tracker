@@ -7,6 +7,10 @@ import Index from "./pages/Index";
 import Analytics from "./pages/Analytics";
 import Tools from "./pages/Tools";
 import Blog from "./pages/Blog";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import AIPromptGenerator from "./pages/tools/AIPromptGenerator";
 import AIFAQGenerator from "./pages/tools/AIFAQGenerator";
 import AIAnswerGenerator from "./pages/tools/AIAnswerGenerator";
@@ -71,6 +75,11 @@ const App = () => (
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/tools" element={<Tools />} />
           <Route path="/blog" element={<Blog />} />
+          {/* Company pages */}
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           {/* Blog posts */}
           <Route path="/blog/ai-visibility-tools-comparison-2026" element={<AIVisibilityToolsComparison />} />
           <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />

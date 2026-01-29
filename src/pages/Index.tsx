@@ -376,7 +376,7 @@ const Index = () => {
         <div className="max-w-5xl mx-auto space-y-8">
           {/* Hero Section */}
           <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground">
               Invisible to AI? Fix It in Minutes.
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">

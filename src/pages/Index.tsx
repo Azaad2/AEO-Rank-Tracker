@@ -377,20 +377,20 @@ const Index = () => {
           {/* Hero Section */}
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            {headline}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            This free AI visibility checker simulates AI answers from public web results and shows whether assistants like ChatGPT, Perplexity and Gemini mention and cite your website — plus which competitors appear instead of you.
-          </p>
-          <div className="pt-2">
-            <Button onClick={scrollToScan} size="lg" className="font-semibold">
-              {ctaText}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">
-              Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+              Invisible to AI? Fix It in Minutes.
+            </h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Check if ChatGPT, Perplexity, and Gemini mention your website — then get a personalized optimization plan to boost your visibility.
             </p>
+            <div className="pt-2">
+              <Button onClick={scrollToScan} size="lg" className="font-semibold">
+                {ctaText}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-3">
+                Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+              </p>
+            </div>
           </div>
-        </div>
 
         {/* Scan Input Section */}
         <section id="scan" className="scroll-mt-8">

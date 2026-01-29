@@ -16,6 +16,7 @@ import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
 import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
+import { OptimizationHub } from "@/components/OptimizationHub";
 import logo from "@/assets/logo-light.png";
 
 interface ScanResult {
@@ -623,6 +624,18 @@ const Index = () => {
               />
             </div>
           </div>
+        )}
+
+        {/* Optimization Hub - AI-powered improvement recommendations */}
+        {scanData && (
+          <OptimizationHub 
+            scanData={{
+              project: scanData.project,
+              score: scanData.score,
+              results: scanData.results,
+            }}
+            isUnlocked={isUnlocked}
+          />
         )}
 
         {/* Scan Results Modal */}

@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2 } from "lucide-react";
+import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -556,6 +556,48 @@ export function ScanResultsModal({
                   )}
                 </div>
               ))}
+
+              {/* Optimization CTA - Only show when unlocked and score < 70 */}
+              {isUnlocked && scanData.score < 70 && (
+                <div className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 rounded-xl space-y-4 mt-4">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">Your Score Needs Improvement</span>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">
+                    Your visibility score of <strong className="text-destructive">{scanData.score}</strong> means AI assistants 
+                    aren't recommending you. Get a personalized plan to fix this.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-primary" />
+                      <span>Prompt-specific fixes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <span>Quick wins with tools</span>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => {
+                      onOpenChange(false);
+                      setTimeout(() => {
+                        const optimizationHub = document.getElementById('optimization-hub');
+                        if (optimizationHub) {
+                          optimizationHub.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 100);
+                    }} 
+                    className="w-full"
+                  >
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    Get Your Optimization Plan
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </ScrollArea>

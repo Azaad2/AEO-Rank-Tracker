@@ -183,7 +183,8 @@ export function OptimizationHub({ scanData, isUnlocked }: OptimizationHubProps) 
   // Initial state - show CTA
   if (!plan && !error) {
     return (
-      <Card className="shadow-lg border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
+      <div id="optimization-hub">
+        <Card className="shadow-lg border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
         <CardContent className="py-8 text-center space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
             <Wand2 className="h-8 w-8 text-primary" />
@@ -229,6 +230,7 @@ export function OptimizationHub({ scanData, isUnlocked }: OptimizationHubProps) 
           )}
         </CardContent>
       </Card>
+      </div>
     );
   }
 
@@ -250,9 +252,9 @@ export function OptimizationHub({ scanData, isUnlocked }: OptimizationHubProps) 
     );
   }
 
-  // Plan generated - show full optimization hub
   return (
-    <Card className="shadow-lg">
+    <div id="optimization-hub">
+      <Card className="shadow-lg">
       <CardHeader className="border-b">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -411,5 +413,6 @@ export function OptimizationHub({ scanData, isUnlocked }: OptimizationHubProps) 
         </Tabs>
       </CardContent>
     </Card>
+    </div>
   );
 }

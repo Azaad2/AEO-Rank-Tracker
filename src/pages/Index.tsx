@@ -372,23 +372,34 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header />
-      <div className="pt-28 p-4 md:p-8">
+      <div className="pt-32 p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Hero Section */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-              Invisible to AI? Fix It in Minutes.
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Check if ChatGPT, Perplexity, and Gemini mention your website — then get a personalized optimization plan to boost your visibility.
-            </p>
-            <div className="pt-2">
-              <Button onClick={scrollToScan} size="lg" className="font-semibold">
-                {ctaText}
-              </Button>
-              <p className="text-xs text-muted-foreground mt-3">
-                Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+          {/* Hero Section with Black Background - Mario Style */}
+          <div className="bg-black py-12 md:py-16 px-6 -mx-4 md:-mx-8 rounded-lg">
+            <div className="text-center space-y-6">
+              <h1 
+                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-relaxed drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
+                style={{ fontFamily: "'Press Start 2P', cursive" }}
+              >
+                Invisible to AI?
+                <br />
+                <span className="text-yellow-400">Fix It in Minutes.</span>
+              </h1>
+              <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
+                Check if ChatGPT, Perplexity, and Gemini mention your website — then get a personalized optimization plan to boost your visibility.
               </p>
+              <div className="pt-2">
+                <Button 
+                  onClick={scrollToScan} 
+                  size="lg" 
+                  className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black"
+                >
+                  {ctaText}
+                </Button>
+                <p className="text-xs text-gray-400 mt-3">
+                  Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+                </p>
+              </div>
             </div>
           </div>
 

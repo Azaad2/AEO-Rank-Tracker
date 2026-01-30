@@ -264,20 +264,20 @@ const Blog = () => {
       : blogPosts.filter((post) => post.category === activeCategory);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white">
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-20 pb-12 bg-gradient-to-b from-slate-50 to-background">
+      <section className="pt-20 pb-12 bg-black">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Breadcrumbs
               items={[{ label: "Home", href: "/" }, { label: "Blog" }]}
             />
-            <h1 className="text-4xl md:text-5xl font-bold mt-6 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold mt-6 mb-4 text-white">
               AI Visibility Blog
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Expert guides on AI search visibility, SEO optimization, and
               content strategies. Learn how to get your website mentioned by
               AI assistants.
@@ -287,7 +287,7 @@ const Blog = () => {
       </section>
 
       {/* Category Filters */}
-      <section className="py-6 border-b bg-background sticky top-14 z-40">
+      <section className="py-6 border-b border-gray-800 bg-black sticky top-14 z-40">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
             {categories.map((category) => (
@@ -297,8 +297,8 @@ const Blog = () => {
                 className={cn(
                   "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
                   activeCategory === category
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-slate-100 text-muted-foreground hover:bg-slate-200"
+                    ? "bg-yellow-400 text-black"
+                    : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                 )}
               >
                 {category}
@@ -309,7 +309,7 @@ const Blog = () => {
       </section>
 
       {/* Blog Posts Grid */}
-      <section className="py-12">
+      <section className="py-12 bg-black">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPosts.map((post) => (
@@ -320,20 +320,20 @@ const Blog = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+      <section className="py-16 bg-gray-900 border-t border-gray-800">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4 text-white">
             Ready to Check Your AI Visibility?
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto mb-6">
+          <p className="text-gray-400 max-w-xl mx-auto mb-6">
             Use our free AI Visibility Checker to see if ChatGPT, Gemini, and
             Perplexity mention your website.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500">
               <Link to="/#scan">Check Your AI Visibility</Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline" size="lg" className="border-gray-600 text-white hover:bg-gray-800">
               <Link to="/tools">Explore All Tools</Link>
             </Button>
           </div>
@@ -341,31 +341,49 @@ const Blog = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-50 border-t py-12">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} AI Visibility Checker. All rights
-            reserved.
-          </p>
-          <div className="flex justify-center gap-6 mt-4">
-            <Link
-              to="/"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              to="/blog"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Blog
-            </Link>
-            <Link
-              to="/tools"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Tools
-            </Link>
+      <footer className="bg-gray-900 border-t border-gray-800 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-semibold text-white mb-4">AI Visibility</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/" className="text-yellow-400 hover:text-yellow-300 transition-colors">AI Visibility Checker</Link></li>
+                <li><Link to="/tools/perplexity-rank-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">Perplexity Tracker</Link></li>
+                <li><Link to="/tools/chatgpt-mention-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">ChatGPT Tracker</Link></li>
+                <li><Link to="/tools/claude-rank-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">Claude Tracker</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">AI Generators</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/tools/ai-prompt-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Prompt Generator</Link></li>
+                <li><Link to="/tools/ai-faq-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">FAQ Generator</Link></li>
+                <li><Link to="/tools/schema-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Schema Generator</Link></li>
+                <li><Link to="/tools/ai-email-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Email Generator</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">Resources</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/blog" className="text-yellow-400 hover:text-yellow-300 transition-colors">Blog</Link></li>
+                <li><Link to="/tools" className="text-yellow-400 hover:text-yellow-300 transition-colors">All Tools</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">Company</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/about" className="text-yellow-400 hover:text-yellow-300 transition-colors">About</Link></li>
+                <li><Link to="/contact" className="text-yellow-400 hover:text-yellow-300 transition-colors">Contact</Link></li>
+                <li><Link to="/privacy" className="text-yellow-400 hover:text-yellow-300 transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-yellow-400 hover:text-yellow-300 transition-colors">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 text-center">
+            <p className="text-sm text-gray-400">
+              © {new Date().getFullYear()} AI Visibility Checker. All rights
+              reserved.
+            </p>
           </div>
         </div>
       </footer>

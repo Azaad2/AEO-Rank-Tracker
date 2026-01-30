@@ -178,27 +178,27 @@ const tools = [
 
 const Tools = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white">
       <Header />
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-primary/5 to-background pt-24 pb-16 md:pt-32 md:pb-24">
+      <section className="bg-black pt-24 pb-16 md:pt-32 md:pb-24">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Free AI Visibility Tools
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
             Everything you need to optimize your website for AI search engines. 
             Get discovered by ChatGPT, Gemini, Perplexity, and more.
           </p>
-          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
             <span className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
               24 Free Tools
             </span>
-            <span className="text-border">•</span>
+            <span className="text-gray-600">•</span>
             <span>No signup required</span>
-            <span className="text-border">•</span>
+            <span className="text-gray-600">•</span>
             <span>100% Free</span>
           </div>
         </div>
@@ -208,7 +208,7 @@ const Tools = () => {
       <main className="container mx-auto px-4 py-12 md:py-16">
         {tools.map((category) => (
           <div key={category.category} className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
               {category.category}
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -229,17 +229,17 @@ const Tools = () => {
       </main>
 
       {/* CTA Section */}
-      <section className="border-t bg-muted/30 py-16">
+      <section className="border-t border-gray-800 bg-gray-900 py-16">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">
             Start with the AI Visibility Checker
           </h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+          <p className="text-gray-400 mb-8 max-w-xl mx-auto">
             Our flagship tool analyzes how AI assistants see your website. 
             Get actionable insights to improve your AI search visibility.
           </p>
           <Link to="/">
-            <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2 bg-yellow-400 text-black hover:bg-yellow-500">
               <Search className="h-5 w-5" />
               Check Your AI Visibility
             </Button>
@@ -248,12 +248,50 @@ const Tools = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} AI Visibility Checker. All rights reserved.</p>
-          <a href="mailto:hello@aimentionyou.com" className="hover:text-foreground transition-colors block mt-2">
-            hello@aimentionyou.com
-          </a>
+      <footer className="border-t border-gray-800 bg-gray-900 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-semibold text-white mb-4">AI Visibility</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/" className="text-yellow-400 hover:text-yellow-300 transition-colors">AI Visibility Checker</Link></li>
+                <li><Link to="/tools/perplexity-rank-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">Perplexity Tracker</Link></li>
+                <li><Link to="/tools/chatgpt-mention-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">ChatGPT Tracker</Link></li>
+                <li><Link to="/tools/claude-rank-tracker" className="text-yellow-400 hover:text-yellow-300 transition-colors">Claude Tracker</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">AI Generators</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/tools/ai-prompt-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Prompt Generator</Link></li>
+                <li><Link to="/tools/ai-faq-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">FAQ Generator</Link></li>
+                <li><Link to="/tools/schema-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Schema Generator</Link></li>
+                <li><Link to="/tools/ai-email-generator" className="text-yellow-400 hover:text-yellow-300 transition-colors">Email Generator</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">Resources</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/blog" className="text-yellow-400 hover:text-yellow-300 transition-colors">Blog</Link></li>
+                <li><Link to="/tools" className="text-yellow-400 hover:text-yellow-300 transition-colors">All Tools</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-4">Company</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/about" className="text-yellow-400 hover:text-yellow-300 transition-colors">About</Link></li>
+                <li><Link to="/contact" className="text-yellow-400 hover:text-yellow-300 transition-colors">Contact</Link></li>
+                <li><Link to="/privacy" className="text-yellow-400 hover:text-yellow-300 transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-yellow-400 hover:text-yellow-300 transition-colors">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 text-center">
+            <p className="text-sm text-gray-400">© {new Date().getFullYear()} AI Visibility Checker. All rights reserved.</p>
+            <a href="mailto:hello@aimentionyou.com" className="text-yellow-400 hover:text-yellow-300 transition-colors text-sm block mt-2">
+              hello@aimentionyou.com
+            </a>
+          </div>
         </div>
       </footer>
     </div>

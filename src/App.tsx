@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Analytics from "./pages/Analytics";
 import Tools from "./pages/Tools";
 import Blog from "./pages/Blog";
+import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -76,6 +77,7 @@ const App = () => (
           <Route path="/tools" element={<Tools />} />
           <Route path="/blog" element={<Blog />} />
           {/* Company pages */}
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />

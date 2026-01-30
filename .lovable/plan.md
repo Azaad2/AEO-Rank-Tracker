@@ -4,6 +4,41 @@
 
 ---
 
+## ✅ COMPLETED
+
+### Phase 1: Database Schema ✅
+- Created `plans` table with 4 tiers (Free, Pro, Team, Agency)
+- Created `subscriptions` table with usage tracking
+- Added RLS policies and indexes
+
+### Phase 2: Pricing Page UI ✅
+- Created `/pricing` route with tier comparison cards
+- Added competitor comparison table (vs Otterly, Profound)
+- Added FAQ section and CTA
+- Created Footer component
+- Added "Pricing" link to header navigation
+
+### Phase 3: Subscription Components ✅
+- Created `useSubscription` hook for fetching/managing subscriptions
+- Created `SubscriptionStatus` component for usage display
+- Created `UpgradeModal` component for limit prompts
+
+---
+
+## 🔄 NEXT STEPS
+
+### Phase 4: Razorpay Integration (Requires API Keys)
+- Need RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET secrets
+- Create `create-subscription` edge function
+- Create `razorpay-webhook` edge function
+
+### Phase 5: Wire Up Usage Tracking
+- Integrate `useSubscription` into scan flow
+- Add usage display to ScanResultsModal
+- Implement limit checks before scans
+
+---
+
 ## Current State Analysis
 
 Your project already has:

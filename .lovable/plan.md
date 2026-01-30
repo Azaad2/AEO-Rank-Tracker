@@ -1,251 +1,278 @@
 
-# Slack Integration for AI Visibility Reports & Alerts
-
-## Overview
-
-This integration will allow users to connect their Slack workspace and receive automated AI visibility reports directly in their team channels. Users can get instant alerts when scans complete, schedule recurring reports, and set up threshold-based notifications.
+# Monetization Implementation Plan
+## Build Pricing Page & Subscription System like Otterly.ai/Profound
 
 ---
 
-## Features
+## Current State Analysis
 
-### 1. Slack Connection Setup
-- Users can connect their Slack workspace via the Lovable Slack connector
-- Select which channel(s) to receive reports in
-- Configuration stored per-user/team
-
-### 2. Instant Scan Alerts
-- Automatically send a summary to Slack when a scan completes
-- Rich formatted message with score, key metrics, and quick insights
-
-### 3. Threshold Alerts
-- Set up alerts for score drops (e.g., "Alert me if score drops below 40")
-- Competitor appearance notifications
-
-### 4. Scheduled Reports
-- Daily/weekly visibility summary reports
-- Track score trends over time
+Your project already has:
+- Email capture flow with gated results
+- `customers` table with Stripe fields (`stripe_customer_id`, `stripe_session_id`, `paid_at`)
+- `scans` table tracking usage
+- PDF report generation ($9 one-time upsell concept)
+- Razorpay designated as payment processor (per project memory)
 
 ---
 
-## Architecture
+## Proposed Pricing Tiers (10x Cheaper Strategy)
 
-```text
-+-------------------+      +----------------------+      +------------------+
-|   Frontend        |      |   Edge Functions     |      |   Slack API      |
-|   (React UI)      +----->+   send-slack-alert   +----->+   (via Gateway)  |
-+-------------------+      +----------------------+      +------------------+
-         |                          |
-         |                          v
-         |                 +------------------+
-         +---------------->+   Database       |
-                           +------------------+
-                           | slack_configs    |
-                           | alert_history    |
-                           +------------------+
-```
+| Tier | Price | Scans/mo | Prompts | Key Features |
+|------|-------|----------|---------|--------------|
+| **Free** | $0 | 1/day | 5 | Email-gated results, 1 prompt visible |
+| **Pro** | $19/mo | 10 | 50 | Full results, CSV export, Slack alerts, API access |
+| **Team** | $49/mo | 30 | 150 | Everything + white-label reports, priority support |
+| **Agency** | $149/mo | Unlimited | 500 | Multi-domain dashboard, custom branding |
+
+**Add-ons:**
+- $9 one-time PDF report (keep existing)
+- $0.15/extra prompt over limit
 
 ---
 
-## Implementation Plan
+## Implementation Phases
 
-### Phase 1: Database Schema
+### Phase 1: Database Schema Updates
 
-Create tables to store Slack configuration:
+Create subscription tracking tables:
 
-**Table: `slack_configs`**
+**Table: `subscriptions`**
 | Column | Type | Description |
 |--------|------|-------------|
 | id | uuid | Primary key |
-| email | text | User email (links to customers) |
-| channel_id | text | Slack channel ID |
-| channel_name | text | Channel display name |
-| is_active | boolean | Enable/disable notifications |
-| notify_on_scan | boolean | Send alert after each scan |
-| score_threshold | integer | Alert if score drops below |
+| customer_id | uuid | FK to customers |
+| plan_id | text | free, pro, team, agency |
+| status | text | active, cancelled, past_due |
+| razorpay_subscription_id | text | Razorpay reference |
+| current_period_start | timestamp | Billing period start |
+| current_period_end | timestamp | Billing period end |
+| prompts_used | integer | Monthly prompt counter |
+| scans_used | integer | Monthly scan counter |
 | created_at | timestamp | Creation time |
-| updated_at | timestamp | Last update |
 
-**Table: `slack_alert_history`**
+**Table: `plans`**
 | Column | Type | Description |
 |--------|------|-------------|
-| id | uuid | Primary key |
-| config_id | uuid | FK to slack_configs |
-| scan_id | uuid | FK to scans |
-| alert_type | text | scan_complete, threshold_alert |
-| message_ts | text | Slack message timestamp |
-| sent_at | timestamp | When sent |
+| id | text | free, pro, team, agency |
+| name | text | Display name |
+| price_monthly | integer | Price in cents |
+| scans_limit | integer | Monthly scans |
+| prompts_limit | integer | Monthly prompts |
+| features | jsonb | Feature flags |
 
 ---
 
-### Phase 2: Edge Function - `send-slack-alert`
+### Phase 2: Pricing Page Component
 
-New edge function that:
-1. Accepts scan results and config
-2. Formats a rich Slack message with Block Kit
-3. Sends to the configured channel via Slack API
+Create `src/pages/Pricing.tsx`:
 
-**Message Format (Block Kit)**:
 ```text
-+------------------------------------------------+
-| AI VISIBILITY REPORT                    Score  |
-|                                          75    |
-+------------------------------------------------+
-| Domain: example.com                            |
-| Prompts Analyzed: 10                           |
-+------------------------------------------------+
-| Platform Breakdown:                            |
-| Gemini:     65%                               |
-| Perplexity: 80%                               |
-| ChatGPT:    72%                               |
-+------------------------------------------------+
-| Top Competitors Appearing:                     |
-| competitor1.com, competitor2.com              |
-+------------------------------------------------+
-| [View Full Report]                            |
-+------------------------------------------------+
++----------------------------------------------------------+
+|              Choose Your AI Visibility Plan               |
+|        10x cheaper than Otterly.ai & Profound            |
++----------------------------------------------------------+
+
++------------+  +------------+  +------------+  +------------+
+|   FREE     |  |   PRO      |  |   TEAM     |  |  AGENCY    |
+|   $0/mo    |  |   $19/mo   |  |   $49/mo   |  |  $149/mo   |
+|            |  |   POPULAR  |  |            |  |            |
+| 1 scan/day |  | 10 scans   |  | 30 scans   |  | Unlimited  |
+| 5 prompts  |  | 50 prompts |  | 150 prompts|  | 500 prompts|
+|            |  |            |  |            |  |            |
+| Basic      |  | Full data  |  | White-label|  | Multi-site |
+| results    |  | + Export   |  | + Reports  |  | Dashboard  |
+|            |  | + Slack    |  | + Priority |  | + API      |
+|            |  | + API      |  |            |  | + Branding |
+|            |  |            |  |            |  |            |
+| [Get Free] |  | [Upgrade]  |  | [Upgrade]  |  | [Contact]  |
++------------+  +------------+  +------------+  +------------+
+
++----------------------------------------------------------+
+|          Why We're 10x Cheaper                            |
+|----------------------------------------------------------|
+| Us: $19/mo for 50 prompts                                |
+| Otterly: $49/mo for 30 prompts                           |
+| Profound: $99/mo for 100 queries                         |
++----------------------------------------------------------+
 ```
 
 ---
 
-### Phase 3: Frontend UI Components
+### Phase 3: Usage Tracking System
 
-**A. Slack Settings Card** (on results page)
-- Connect to Slack button
-- Channel selector dropdown
-- Toggle for automatic alerts
-- Score threshold input
-- Test notification button
+Update scan logic to:
+1. Check subscription limits before allowing scan
+2. Increment `prompts_used` and `scans_used` counters
+3. Reset counters on billing period change
+4. Show usage in results modal
 
-**B. Slack Notification Toggle** (in scan flow)
-- Quick toggle to send results to Slack after scan
-- Remembers preference
-
----
-
-### Phase 4: Integration Flow
-
-1. **Connect Slack**: Use Lovable Slack connector to authenticate
-2. **Select Channel**: Fetch available channels, user selects one
-3. **Configure Alerts**: Set preferences (on-scan, thresholds)
-4. **Automatic Delivery**: After scan, edge function sends formatted report
-5. **Manual Send**: "Share to Slack" button on any report
+**Add to `ScanResultsModal`:**
+```text
++------------------------------------+
+| Usage: 8/50 prompts | 3/10 scans  |
+| [Upgrade for more]                 |
++------------------------------------+
+```
 
 ---
 
-## Technical Details
+### Phase 4: Razorpay Integration Edge Function
 
-### Files to Create
+Create `supabase/functions/create-subscription/index.ts`:
+- Accept plan selection
+- Create Razorpay subscription
+- Return checkout URL
+- Handle webhook for payment confirmation
+
+Create `supabase/functions/razorpay-webhook/index.ts`:
+- Verify webhook signature
+- Update subscription status
+- Handle renewals/cancellations
+
+---
+
+### Phase 5: Upgrade CTAs Throughout App
+
+Add upgrade prompts in:
+1. **Results Modal** - "Upgrade to see all results"
+2. **Scan Form** - "You've used 5/5 daily prompts"
+3. **Header** - Current plan indicator + "Upgrade" button
+4. **Optimization Hub** - "Pro feature" badges
+
+---
+
+## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `supabase/functions/send-slack-alert/index.ts` | Edge function for Slack API calls |
-| `src/components/SlackIntegration.tsx` | Slack settings UI component |
+| `src/pages/Pricing.tsx` | Main pricing page with tier comparison |
+| `src/components/SubscriptionStatus.tsx` | Usage display component |
+| `src/components/UpgradeModal.tsx` | Upgrade CTA modal |
+| `src/hooks/useSubscription.ts` | Subscription state hook |
+| `supabase/functions/create-subscription/index.ts` | Razorpay checkout |
+| `supabase/functions/razorpay-webhook/index.ts` | Payment webhooks |
 
-### Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/config.toml` | Add send-slack-alert function config |
-| `src/pages/Index.tsx` | Add Slack share button to results section |
-| `src/components/ScanResultsModal.tsx` | Add "Share to Slack" option |
+| `src/App.tsx` | Add /pricing route |
+| `src/components/Header.tsx` | Add pricing link + plan indicator |
+| `src/pages/Index.tsx` | Check subscription limits before scan |
+| `src/components/ScanResultsModal.tsx` | Show usage + upgrade CTAs |
+| `supabase/config.toml` | Add new edge functions |
 
-### Database Migration
+---
+
+## Database Migration SQL
 
 ```sql
--- Create slack_configs table
-CREATE TABLE public.slack_configs (
+-- Plans reference table
+CREATE TABLE public.plans (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  price_monthly integer NOT NULL DEFAULT 0,
+  scans_limit integer NOT NULL DEFAULT 1,
+  prompts_limit integer NOT NULL DEFAULT 5,
+  features jsonb DEFAULT '{}',
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Insert default plans
+INSERT INTO public.plans (id, name, price_monthly, scans_limit, prompts_limit, features) VALUES
+  ('free', 'Free', 0, 1, 5, '{"csv_export": false, "slack_alerts": false, "api_access": false}'),
+  ('pro', 'Pro', 1900, 10, 50, '{"csv_export": true, "slack_alerts": true, "api_access": true}'),
+  ('team', 'Team', 4900, 30, 150, '{"csv_export": true, "slack_alerts": true, "api_access": true, "white_label": true}'),
+  ('agency', 'Agency', 14900, -1, 500, '{"csv_export": true, "slack_alerts": true, "api_access": true, "white_label": true, "multi_site": true}');
+
+-- Subscriptions table
+CREATE TABLE public.subscriptions (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  email text NOT NULL,
-  channel_id text NOT NULL,
-  channel_name text NOT NULL,
-  is_active boolean DEFAULT true,
-  notify_on_scan boolean DEFAULT true,
-  score_threshold integer DEFAULT 40,
+  customer_id uuid REFERENCES public.customers(id) ON DELETE CASCADE,
+  plan_id text REFERENCES public.plans(id) DEFAULT 'free',
+  status text DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'past_due', 'trialing')),
+  razorpay_subscription_id text,
+  current_period_start timestamp with time zone DEFAULT now(),
+  current_period_end timestamp with time zone,
+  prompts_used integer DEFAULT 0,
+  scans_used integer DEFAULT 0,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now()
 );
 
--- Create slack_alert_history table
-CREATE TABLE public.slack_alert_history (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  config_id uuid REFERENCES public.slack_configs(id) ON DELETE CASCADE,
-  scan_id uuid REFERENCES public.scans(id) ON DELETE SET NULL,
-  alert_type text NOT NULL,
-  message_ts text,
-  sent_at timestamp with time zone DEFAULT now()
-);
+-- Indexes
+CREATE INDEX idx_subscriptions_customer ON public.subscriptions(customer_id);
+CREATE INDEX idx_subscriptions_razorpay ON public.subscriptions(razorpay_subscription_id);
 
--- Enable RLS
-ALTER TABLE public.slack_configs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.slack_alert_history ENABLE ROW LEVEL SECURITY;
+-- RLS policies
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
--- Public insert/select for now (no auth required)
-CREATE POLICY "Allow public insert on slack_configs" 
-ON public.slack_configs FOR INSERT 
-WITH CHECK (true);
-
-CREATE POLICY "Allow public select on slack_configs" 
-ON public.slack_configs FOR SELECT 
-USING (true);
-
-CREATE POLICY "Allow public update on slack_configs" 
-ON public.slack_configs FOR UPDATE 
-USING (true);
-
-CREATE POLICY "Allow public insert on slack_alert_history" 
-ON public.slack_alert_history FOR INSERT 
-WITH CHECK (true);
-
-CREATE POLICY "Allow public select on slack_alert_history" 
-ON public.slack_alert_history FOR SELECT 
-USING (true);
+CREATE POLICY "Plans are public readable" ON public.plans FOR SELECT USING (true);
+CREATE POLICY "Subscriptions public insert" ON public.subscriptions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Subscriptions public select" ON public.subscriptions FOR SELECT USING (true);
+CREATE POLICY "Subscriptions public update" ON public.subscriptions FOR UPDATE USING (true);
 ```
 
 ---
 
-## Edge Function: send-slack-alert
+## User Flow
 
-The function will:
-
-1. **Accept payload** with scan data and channel info
-2. **Format message** using Slack Block Kit for rich formatting
-3. **Call Slack API** via connector gateway
-4. **Log result** to alert_history table
-
-**Key Features**:
-- Score color coding (green/yellow/red based on thresholds)
-- Platform breakdown with visual indicators
-- Competitor list
-- Direct link to full report
-- Handles errors gracefully
+```text
+1. User runs free scan
+   |
+   v
+2. Email captured -> Free subscription created
+   |
+   v
+3. Results modal shows usage (0/5 prompts, 0/1 scan)
+   |
+   v
+4. User hits limit -> Upgrade modal appears
+   |
+   v
+5. Click "Upgrade to Pro"
+   |
+   v
+6. Razorpay checkout opens
+   |
+   v
+7. Payment success -> Webhook updates subscription
+   |
+   v
+8. User returns with Pro access
+```
 
 ---
 
-## User Experience Flow
+## Comparison Table (Homepage Section)
 
-1. User completes a scan
-2. Results modal shows with new "Share to Slack" button
-3. First time: Prompts to connect Slack workspace
-4. User selects channel from dropdown
-5. Click "Send to Slack" to share report
-6. Optional: Enable auto-send for future scans
+Add a comparison section to showcase competitive advantage:
 
----
-
-## Summary of Changes
-
-| Category | Items |
-|----------|-------|
-| Database | 2 new tables (slack_configs, slack_alert_history) |
-| Edge Functions | 1 new function (send-slack-alert) |
-| Components | 1 new component (SlackIntegration.tsx) |
-| Modified Files | Index.tsx, ScanResultsModal.tsx, config.toml |
+| Feature | AImentionyou | Otterly.ai | Profound |
+|---------|--------------|------------|----------|
+| Starting Price | **$19/mo** | $49/mo | $99/mo |
+| Prompts at $19 | 50 | N/A | N/A |
+| AI Platforms | 3 | 4 | 3 |
+| Free Tier | Yes | No | No |
+| Slack Alerts | Pro+ | Business | Enterprise |
 
 ---
 
 ## Prerequisites
 
-- Slack connector needs to be connected to the project
-- SLACK_API_KEY and LOVABLE_API_KEY environment variables required
+Before implementation:
+1. Razorpay account and API keys
+2. RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET secrets to be added
 
+---
+
+## Implementation Order
+
+1. Database schema (plans + subscriptions tables)
+2. Pricing page UI
+3. Subscription hook + status component
+4. Usage tracking in scan flow
+5. Razorpay edge functions (requires API keys)
+6. Upgrade modals + CTAs
+7. Homepage comparison section

@@ -9,8 +9,8 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="AI Visibility Checker" className="h-6 w-6" />
-              <span className="font-semibold text-foreground">AI Visibility Checker</span>
+              <img src={logo} alt="AI Mention You" className="h-6 w-6" />
+              <span className="font-semibold text-foreground">AI Mention You</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Track how AI assistants mention your brand across ChatGPT, Gemini, and Perplexity.
@@ -96,7 +96,7 @@ export const Footer = () => {
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
+            © {new Date().getFullYear()} AI Mention You. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">

@@ -139,6 +139,41 @@ export type Database = {
           },
         ]
       }
+      guest_scans: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          ip_address: string | null
+          scan_date: string
+          scan_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          id?: string
+          ip_address?: string | null
+          scan_date?: string
+          scan_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          ip_address?: string | null
+          scan_date?: string
+          scan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_scans_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string | null
@@ -166,6 +201,33 @@ export type Database = {
           price_monthly?: number
           prompts_limit?: number
           scans_limit?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -343,6 +405,7 @@ export type Database = {
           scans_used: number | null
           status: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -356,6 +419,7 @@ export type Database = {
           scans_used?: number | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -369,6 +433,7 @@ export type Database = {
           scans_used?: number | null
           status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -419,7 +484,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_guest_scan_limit: {
+        Args: { p_fingerprint: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Search, Users, Eye, BarChart3, Lightbulb, MessageSquare, Mail, PenLine, Code, Zap, FileText, Target, Globe, Type, AlignLeft, X, BookOpen } from "lucide-react";
+import { ChevronDown, Search, Users, Eye, BarChart3, Lightbulb, MessageSquare, Mail, PenLine, Code, Zap, FileText, Target, Globe, Type, AlignLeft, X, BookOpen, LogIn, LogOut, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SheetClose } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo-light.png";
 
 const toolCategories = [
@@ -46,6 +47,7 @@ const toolCategories = [
 
 export const MobileNav = () => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>("AI Visibility");
+  const { user, signOut } = useAuth();
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -64,6 +66,40 @@ export const MobileNav = () => {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-4">
+        {/* Auth Section */}
+        <div className="px-4 mb-4">
+          {user ? (
+            <div className="space-y-2">
+              <SheetClose asChild>
+                <Link
+                  to="/dashboard"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-400 text-black font-medium"
+                >
+                  <LayoutDashboard className="h-5 w-5" />
+                  Dashboard
+                </Link>
+              </SheetClose>
+              <button
+                onClick={signOut}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg border w-full text-left hover:bg-muted transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <SheetClose asChild>
+              <Link
+                to="/auth"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg bg-yellow-400 text-black font-medium"
+              >
+                <LogIn className="h-5 w-5" />
+                Sign In / Sign Up
+              </Link>
+            </SheetClose>
+          )}
+        </div>
+
         {/* Quick Links */}
         <div className="px-4 mb-4">
           <SheetClose asChild>

@@ -44,7 +44,7 @@ export const Header = () => {
               to="/integrations" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Integration
+              Integrations
             </Link>
             <Link 
               to="/pricing" 

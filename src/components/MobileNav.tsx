@@ -47,7 +47,7 @@ export const MobileNav = () => {
               to="/integrations"
               className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
             >
-              Integration
+              Integrations
             </Link>
           </SheetClose>
           <SheetClose asChild>

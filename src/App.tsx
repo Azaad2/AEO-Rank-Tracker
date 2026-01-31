@@ -38,6 +38,7 @@ import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Integrations from "./pages/Integrations";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";
@@ -87,6 +88,7 @@ const App = () => (
           {/* Auth pages */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/integrations" element={<Integrations />} />
           {/* Blog posts */}
           <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
           <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />

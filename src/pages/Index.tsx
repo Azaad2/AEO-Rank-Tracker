@@ -10,10 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
+import { useAuth } from "@/hooks/useAuth";
+import { useGuestScans } from "@/hooks/useGuestScans";
 import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
+import { GuestLimitModal } from "@/components/GuestLimitModal";
 import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
 import { OptimizationHub } from "@/components/OptimizationHub";
@@ -63,12 +66,22 @@ const Index = () => {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+  
+  // Auth and guest scan tracking
+  const { user } = useAuth();
+  const { canScan, recordGuestScan, resetForNewDay } = useGuestScans();
   
   // A/B Testing for headlines and CTAs
   const { variant: headlineVariant, trackConversion: trackHeadlineConversion } = useABTest('headline');
   const { variant: ctaVariant, trackConversion: trackCtaConversion } = useABTest('cta');
+  
+  // Reset guest scan counter at start of new day
+  useEffect(() => {
+    resetForNewDay();
+  }, [resetForNewDay]);
   
   // Default values while loading
   const headline = headlineVariant?.value || 'AI Search Visibility Checker';
@@ -133,12 +146,22 @@ const Index = () => {
       return;
     }
 
+    // Check guest scan limit (only for non-authenticated users)
+    if (!user && !canScan()) {
+      setShowGuestLimitModal(true);
+      trackEvent('guest_limit_reached', {
+        domain: domain.trim(),
+      });
+      return;
+    }
+
     const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
     
     // Track scan initiation
     trackEvent('scan_initiated', {
       domain: domain.trim(),
       prompt_count: promptCount,
+      is_authenticated: !!user,
     });
 
     setIsScanning(true);
@@ -162,6 +185,10 @@ const Index = () => {
       // Store scan ID if returned from function
       if (data.scanId) {
         setScanId(data.scanId);
+        // Record guest scan for limit tracking (only for non-authenticated users)
+        if (!user) {
+          recordGuestScan(data.scanId);
+        }
       }
       // Auto-open results modal
       setShowResultsModal(true);
@@ -1051,6 +1078,12 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Guest Limit Modal */}
+      <GuestLimitModal 
+        open={showGuestLimitModal} 
+        onOpenChange={setShowGuestLimitModal} 
+      />
       </div>
     </div>
   );

@@ -36,6 +36,8 @@ import LLMRankTracker from "./pages/tools/LLMRankTracker";
 import GEOOptimizationChecker from "./pages/tools/GEOOptimizationChecker";
 import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";
@@ -82,8 +84,10 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          {/* Auth pages */}
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           {/* Blog posts */}
-          <Route path="/blog/ai-visibility-tools-comparison-2026" element={<AIVisibilityToolsComparison />} />
           <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
           <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />
           <Route path="/blog/ai-brand-monitoring" element={<AIBrandMonitoring />} />

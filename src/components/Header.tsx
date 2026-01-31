@@ -28,22 +28,24 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <ToolsDropdown />
-            <a 
-              href="#scan" 
+            <Link 
+              to="/" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              onClick={(e) => {
-                e.preventDefault();
-                const scanSection = document.getElementById('scan');
-                if (scanSection) {
-                  scanSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                  window.location.href = '/#scan';
-                }
-              }}
             >
-              Free Scan
-            </a>
+              Home
+            </Link>
+            <Link 
+              to="/tools" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Tools
+            </Link>
+            <Link 
+              to="/integrations" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Integration
+            </Link>
             <Link 
               to="/pricing" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -55,12 +57,6 @@ export const Header = () => {
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Blog
-            </Link>
-            <Link 
-              to="/tools" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              All Tools
             </Link>
 
             {/* Auth Section */}

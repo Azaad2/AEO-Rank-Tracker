@@ -890,9 +890,9 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4 py-16">
           {/* Logo and tagline */}
           <div className="flex items-center gap-4 mb-12">
-            <img src={logo} alt="AI Visibility Checker" className="w-14 h-14" />
+            <img src={logo} alt="AI Mention You" className="w-14 h-14" />
             <div>
-              <p className="font-bold text-xl text-white">AI Visibility Checker</p>
+              <p className="font-bold text-xl text-white">AI Mention You</p>
               <p className="text-base text-gray-400">Free AI SEO Tools for Modern Marketers</p>
             </div>
           </div>
@@ -1066,7 +1066,7 @@ const Index = () => {
           <div className="pt-10 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-base text-gray-400">
-                © {new Date().getFullYear()} AI Visibility Checker. All rights reserved.
+                © {new Date().getFullYear()} AI Mention You. All rights reserved.
               </p>
               <a href="mailto:hello@aimentionyou.com" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
                 hello@aimentionyou.com

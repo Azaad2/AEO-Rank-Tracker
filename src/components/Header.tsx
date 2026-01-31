@@ -22,8 +22,8 @@ export const Header = () => {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="AI Visibility Checker" className="h-6 w-6" />
-            <span className="font-semibold text-base hidden sm:inline">AI Visibility Checker</span>
+            <img src={logo} alt="AI Mention You" className="h-6 w-6" />
+            <span className="font-semibold text-base hidden sm:inline">AI Mention You</span>
           </Link>
 
           {/* Desktop Navigation */}

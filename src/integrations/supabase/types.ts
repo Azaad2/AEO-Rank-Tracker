@@ -182,6 +182,7 @@ export type Database = {
           name: string
           price_monthly: number
           prompts_limit: number
+          razorpay_plan_id: string | null
           scans_limit: number
         }
         Insert: {
@@ -191,6 +192,7 @@ export type Database = {
           name: string
           price_monthly?: number
           prompts_limit?: number
+          razorpay_plan_id?: string | null
           scans_limit?: number
         }
         Update: {
@@ -200,6 +202,7 @@ export type Database = {
           name?: string
           price_monthly?: number
           prompts_limit?: number
+          razorpay_plan_id?: string | null
           scans_limit?: number
         }
         Relationships: []

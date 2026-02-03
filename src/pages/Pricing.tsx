@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Zap, Users, Building2, ArrowRight } from "lucide-react";
+import { Check, Zap, Users, Building2, ArrowRight, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useRazorpay } from "@/hooks/useRazorpay";
+import { toast } from "sonner";
 
 const plans = [
   {
@@ -103,6 +106,45 @@ const comparisonData = [
 
 export default function Pricing() {
   const [billingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const { initiateCheckout, isLoading } = useRazorpay({
+    onSuccess: () => {
+      setLoadingPlan(null);
+      navigate('/dashboard');
+    },
+    onError: () => {
+      setLoadingPlan(null);
+    },
+  });
+
+  const handlePlanSelect = async (planId: string) => {
+    // Free plan - just go to scan
+    if (planId === 'free') {
+      navigate('/#scan');
+      return;
+    }
+
+    // Agency plan - contact sales
+    if (planId === 'agency') {
+      navigate('/contact');
+      return;
+    }
+
+    // Paid plans - check if user is logged in
+    if (!user) {
+      toast.info('Please sign in to upgrade your plan');
+      navigate('/auth?redirect=/pricing');
+      return;
+    }
+
+    setLoadingPlan(planId);
+    
+    // Initiate Razorpay checkout
+    await initiateCheckout(planId, user.email || '', user.id);
+  };
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -131,66 +173,78 @@ export default function Pricing() {
         <section className="py-8 px-4">
           <div className="container mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-              {plans.map((plan) => (
-                <Card 
-                  key={plan.id}
-                  className={`relative bg-gray-900 border-gray-700 hover:border-yellow-400/50 transition-all duration-300 ${
-                    plan.popular ? "ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/20" : ""
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-yellow-400 text-black font-semibold">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  <CardHeader className="text-center pb-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-yellow-400/20 flex items-center justify-center mb-3">
-                      <plan.icon className="w-6 h-6 text-yellow-400" />
-                    </div>
-                    <CardTitle className="text-xl text-white">{plan.name}</CardTitle>
-                    <CardDescription className="text-gray-400">
-                      {plan.description}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="text-center">
-                    <div className="mb-6">
-                      <span className="text-4xl font-bold text-white">
-                        ${plan.price}
-                      </span>
-                      <span className="text-gray-400">{plan.period}</span>
-                    </div>
+              {plans.map((plan) => {
+                const isPlanLoading = loadingPlan === plan.id || (isLoading && loadingPlan === plan.id);
+                
+                return (
+                  <Card 
+                    key={plan.id}
+                    className={`relative bg-gray-900 border-gray-700 hover:border-yellow-400/50 transition-all duration-300 ${
+                      plan.popular ? "ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/20" : ""
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-yellow-400 text-black font-semibold">
+                          Most Popular
+                        </Badge>
+                      </div>
+                    )}
                     
-                    <div className="space-y-3 text-left">
-                      {plan.features.map((feature, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <Check className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-400">{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      className={`w-full ${
-                        plan.popular 
-                          ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold" 
-                          : "bg-gray-800 hover:bg-gray-700 text-white"
-                      }`}
-                      asChild
-                    >
-                      <Link to={plan.id === "agency" ? "/contact" : "/#scan"}>
-                        {plan.cta}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    <CardHeader className="text-center pb-4">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-yellow-400/20 flex items-center justify-center mb-3">
+                        <plan.icon className="w-6 h-6 text-yellow-400" />
+                      </div>
+                      <CardTitle className="text-xl text-white">{plan.name}</CardTitle>
+                      <CardDescription className="text-gray-400">
+                        {plan.description}
+                      </CardDescription>
+                    </CardHeader>
+                    
+                    <CardContent className="text-center">
+                      <div className="mb-6">
+                        <span className="text-4xl font-bold text-white">
+                          ${plan.price}
+                        </span>
+                        <span className="text-gray-400">{plan.period}</span>
+                      </div>
+                      
+                      <div className="space-y-3 text-left">
+                        {plan.features.map((feature, index) => (
+                          <div key={index} className="flex items-start gap-2">
+                            <Check className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                            <span className="text-sm text-gray-400">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter>
+                      <Button 
+                        className={`w-full ${
+                          plan.popular 
+                            ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold" 
+                            : "bg-gray-800 hover:bg-gray-700 text-white"
+                        }`}
+                        onClick={() => handlePlanSelect(plan.id)}
+                        disabled={isPlanLoading}
+                      >
+                        {isPlanLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            {plan.cta}
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </section>

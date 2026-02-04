@@ -33,7 +33,7 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    price: 1900,
+    price: 19,
     period: "/month",
     description: "For marketers who need regular AI visibility insights",
     scans: "10/month",
@@ -54,7 +54,7 @@ const plans = [
   {
     id: "team",
     name: "Team",
-    price: 4900,
+    price: 49,
     period: "/month",
     description: "For teams tracking multiple brands",
     scans: "30/month",
@@ -74,7 +74,7 @@ const plans = [
   {
     id: "agency",
     name: "Agency",
-    price: 14900,
+    price: 149,
     period: "/month",
     description: "For agencies managing client AI visibility",
     scans: "Unlimited",
@@ -95,7 +95,7 @@ const plans = [
 ];
 
 const comparisonData = [
-  { feature: "Starting Price", us: "₹1,900/mo", otterly: "$49/mo", profound: "$99/mo" },
+  { feature: "Starting Price", us: "$19/mo", otterly: "$49/mo", profound: "$99/mo" },
   { feature: "Prompts at Entry Tier", us: "50", otterly: "30", profound: "100" },
   { feature: "AI Platforms Tracked", us: "3", otterly: "4", profound: "3" },
   { feature: "Free Tier", us: "✓", otterly: "✗", profound: "✗" },
@@ -204,7 +204,7 @@ export default function Pricing() {
                     <CardContent className="text-center">
                       <div className="mb-6">
                         <span className="text-4xl font-bold text-white">
-                          {plan.price === 0 ? '₹0' : `₹${plan.price.toLocaleString('en-IN')}`}
+                          ${plan.price}
                         </span>
                         <span className="text-gray-400">{plan.period}</span>
                       </div>

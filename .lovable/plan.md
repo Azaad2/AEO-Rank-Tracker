@@ -1,180 +1,92 @@
 
-# Razorpay Payment Integration Plan
+# Fix Razorpay Integration: Currency Display and Checkout Flow
 
-## Overview
-Integrate Razorpay subscription payments to enable users to upgrade from the Free tier to Pro, Team, or Agency plans. This will include:
-- Creating Razorpay plans that mirror your existing database plans
-- Checkout flow for subscription purchases
-- Webhook handling for payment events
-- Subscription management in the dashboard
+## Problems Identified
+
+### 1. Currency Mismatch
+The pricing page displays USD ($19, $49, $149) but Razorpay plans and database are configured in INR (₹1,900, ₹4,900, ₹14,900). This needs to be consistent.
+
+### 2. "Hosted page is not available" Error
+The Razorpay checkout fails because:
+- The `VITE_RAZORPAY_KEY_ID` environment variable is missing from `.env`
+- Without it, the system falls back to the hosted page URL, which is showing an error
+- This error typically occurs when:
+  - The Razorpay account isn't activated for hosted payments
+  - The subscription/plan configuration in Razorpay Dashboard is incomplete
 
 ---
 
-## Architecture
+## Solution
+
+### Part 1: Fix Currency Display (Frontend)
+Update the pricing page to show INR instead of USD, matching the actual Razorpay plan prices:
+
+| Plan | Current Display | Should Display |
+|------|-----------------|----------------|
+| Pro | $19/month | ₹1,900/month |
+| Team | $49/month | ₹4,900/month |
+| Agency | $149/month | ₹14,900/month |
+
+Also update the comparison table to show INR pricing.
+
+### Part 2: Fix Razorpay Checkout Popup
+Add the `VITE_RAZORPAY_KEY_ID` environment variable so the inline Razorpay checkout popup works instead of redirecting to the hosted page:
+
+1. Add `VITE_RAZORPAY_KEY_ID` to the project's environment variables
+2. This allows the inline checkout popup to open directly on your site
+
+### Part 3: Ensure Razorpay Dashboard Configuration
+You'll need to verify in your Razorpay Dashboard that:
+- Your account is properly activated (even in test mode, some features require activation)
+- The subscription plans have valid configurations
+- Hosted pages are enabled if you want to use them as fallback
+
+---
+
+## Implementation Details
+
+### Files to Modify
+
+**1. `src/pages/Pricing.tsx`**
+- Change `$` to `₹` in price displays
+- Update price values: 19 → 1900, 49 → 4900, 149 → 14900
+- Format prices with commas for readability (₹1,900 instead of ₹1900)
+- Update comparison table to show INR
+
+**2. Environment Variable**
+- Add `VITE_RAZORPAY_KEY_ID` to enable the inline checkout popup
+
+### Code Changes Summary
 
 ```text
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   Pricing Page  │────▶│  create-subscription │────▶│   Razorpay API  │
-│   (Frontend)    │     │   (Edge Function)    │     │                 │
-└─────────────────┘     └──────────────────────┘     └────────┬────────┘
-                                                              │
-┌─────────────────┐     ┌──────────────────────┐              │
-│   Database      │◀────│  razorpay-webhook    │◀─────────────┘
-│  subscriptions  │     │   (Edge Function)    │   (Payment Events)
-└─────────────────┘     └──────────────────────┘
+Pricing.tsx:
+- Line 36: price: 19 → price: 1900
+- Line 56: price: 49 → price: 4900  
+- Line 76: price: 149 → price: 14900
+- Line 98: comparisonData pricing values to INR
+- Line 206-207: Format price with ₹ symbol and comma formatting
 ```
 
 ---
 
-## Implementation Steps
+## User Actions Required
 
-### Phase 1: Setup & Configuration
+After I implement the code changes, you'll need to:
 
-**1.1 Add Razorpay API Secrets**
-- `RAZORPAY_KEY_ID` - Your Razorpay API Key ID
-- `RAZORPAY_KEY_SECRET` - Your Razorpay API Secret
+1. **Add the Razorpay Key ID as an environment variable** - I'll prompt you to add `VITE_RAZORPAY_KEY_ID` using the secrets tool
 
-**1.2 Database Migration**
-Add a `razorpay_plan_id` column to the `plans` table to store the corresponding Razorpay plan IDs:
-```sql
-ALTER TABLE plans ADD COLUMN razorpay_plan_id text;
-```
+2. **Verify Razorpay Dashboard settings:**
+   - Go to Razorpay Dashboard → Settings → API Keys
+   - Copy your Key ID (starts with `rzp_test_` or `rzp_live_`)
+   - Ensure your account has subscription payments enabled
+   - Verify the plans (Pro, Team, Agency) are active and properly configured
 
 ---
 
-### Phase 2: Edge Functions
+## Testing Plan
 
-**2.1 Create Subscription Edge Function (`create-razorpay-subscription`)**
-- Receives: `planId`, `customerEmail`, `userId` (optional)
-- Creates or retrieves Razorpay customer
-- Creates Razorpay subscription
-- Returns `subscription_id` for checkout popup
-
-**2.2 Razorpay Webhook Handler (`razorpay-webhook`)**
-Handles these events:
-- `subscription.authenticated` - Subscription created, pending first payment
-- `subscription.activated` - First payment successful
-- `subscription.charged` - Recurring payment successful
-- `subscription.cancelled` - User cancelled subscription
-- `subscription.paused` / `subscription.resumed`
-
-**2.3 Verify Payment Edge Function (`verify-razorpay-payment`)**
-- Verifies payment signature after checkout
-- Updates subscription status in database
-
----
-
-### Phase 3: Frontend Integration
-
-**3.1 Load Razorpay Checkout SDK**
-Add the Razorpay script to `index.html`:
-```html
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-```
-
-**3.2 Create `useRazorpay` Hook**
-Custom hook for:
-- Opening Razorpay checkout popup
-- Handling payment success/failure callbacks
-- Verifying payment with backend
-
-**3.3 Update Pricing Page**
-- Replace placeholder CTAs with actual checkout buttons
-- Show loading states during checkout
-- Handle success/failure redirects
-
-**3.4 Dashboard Subscription Management**
-- Display current plan and billing period
-- Add cancel subscription option
-- Show payment history (future enhancement)
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/create-razorpay-subscription/index.ts` | Creates Razorpay subscription |
-| `supabase/functions/razorpay-webhook/index.ts` | Handles payment events |
-| `supabase/functions/verify-razorpay-payment/index.ts` | Verifies payment signature |
-| `src/hooks/useRazorpay.ts` | Frontend checkout logic |
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `index.html` | Add Razorpay SDK script |
-| `src/pages/Pricing.tsx` | Add checkout functionality to plan buttons |
-| `src/components/dashboard/UserProfile.tsx` | Add subscription management |
-| `src/hooks/useSubscription.ts` | Add upgrade/cancel methods |
-
----
-
-## Technical Details
-
-### Razorpay Checkout Options
-```javascript
-{
-  key: "RAZORPAY_KEY_ID",
-  subscription_id: "sub_xxxxx",
-  name: "AI Mention You",
-  description: "Pro Plan - Monthly",
-  prefill: {
-    email: "user@example.com"
-  },
-  handler: function(response) {
-    // Verify payment with backend
-  }
-}
-```
-
-### Webhook Signature Verification
-```javascript
-const crypto = require('crypto');
-const generated_signature = crypto
-  .createHmac('sha256', webhookSecret)
-  .update(JSON.stringify(payload))
-  .digest('hex');
-
-if (generated_signature === razorpay_signature) {
-  // Valid webhook
-}
-```
-
----
-
-## Security Considerations
-
-1. **Never expose `RAZORPAY_KEY_SECRET`** - Only use in edge functions
-2. **Verify all webhook signatures** - Prevent fake payment events
-3. **Verify payment client-side** - Double-check with backend after checkout
-4. **Use HTTPS** - All communication with Razorpay must be secure
-
----
-
-## Testing Flow
-
-1. Use Razorpay test mode credentials
-2. Test card: `4111 1111 1111 1111` (any future date, any CVV)
-3. Test the full flow:
-   - Click upgrade → Checkout opens → Complete payment → Webhook fires → Subscription activated
-
----
-
-## Prerequisites Before Implementation
-
-1. **Razorpay Account Required** - You'll need to sign up at razorpay.com
-2. **Create Plans in Razorpay Dashboard** - Create corresponding plans for Pro ($19), Team ($49), Agency ($149)
-3. **Get API Keys** - From Razorpay Dashboard → Settings → API Keys
-4. **Configure Webhook URL** - Set to your edge function URL in Razorpay Dashboard
-
----
-
-## Post-Implementation
-
-After setup, you'll need to:
-1. Add Razorpay plan IDs to your database `plans` table
-2. Configure webhook URL in Razorpay Dashboard
-3. Test in sandbox mode before going live
+After implementation:
+1. Visit the Pricing page and verify ₹ currency is displayed
+2. Click "Upgrade to Pro" button
+3. Verify the Razorpay popup opens inline (not redirecting to hosted page)
+4. Complete a test payment using test card: 4111 1111 1111 1111

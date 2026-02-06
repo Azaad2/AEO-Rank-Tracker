@@ -157,6 +157,7 @@ serve(async (req) => {
         shortUrl: subscriptionData.short_url,
         status: subscriptionData.status,
         customerId: razorpayCustomerId,
+        keyId: RAZORPAY_KEY_ID,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

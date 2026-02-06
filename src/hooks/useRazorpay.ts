@@ -40,8 +40,8 @@ export function useRazorpay(options: UseRazorpayOptions = {}) {
         throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
       }
 
-      // Get Razorpay key from environment
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      // Get Razorpay key from API response
+      const razorpayKey = data.keyId;
       
       if (!razorpayKey) {
         // Fallback: show short URL for payment

@@ -1,92 +1,64 @@
 
-# Fix Razorpay Integration: Currency Display and Checkout Flow
 
-## Problems Identified
+# Fix Razorpay Inline Checkout Popup
 
-### 1. Currency Mismatch
-The pricing page displays USD ($19, $49, $149) but Razorpay plans and database are configured in INR (₹1,900, ₹4,900, ₹14,900). This needs to be consistent.
+## Problem
 
-### 2. "Hosted page is not available" Error
-The Razorpay checkout fails because:
-- The `VITE_RAZORPAY_KEY_ID` environment variable is missing from `.env`
-- Without it, the system falls back to the hosted page URL, which is showing an error
-- This error typically occurs when:
-  - The Razorpay account isn't activated for hosted payments
-  - The subscription/plan configuration in Razorpay Dashboard is incomplete
+The Razorpay checkout fails because the frontend cannot access the `VITE_RAZORPAY_KEY_ID` environment variable. This causes the system to fall back to opening the `shortUrl`, which shows "Hosted page not available" error.
 
----
+The subscription is being created correctly by the edge function - the issue is only with opening the checkout popup.
 
 ## Solution
 
-### Part 1: Fix Currency Display (Frontend)
-Update the pricing page to show INR instead of USD, matching the actual Razorpay plan prices:
+Return the Razorpay Key ID from the edge function so the frontend can use it to initialize the inline checkout popup. The Key ID is a **public key** (meant to be used in browsers), so this is completely safe.
 
-| Plan | Current Display | Should Display |
-|------|-----------------|----------------|
-| Pro | $19/month | ₹1,900/month |
-| Team | $49/month | ₹4,900/month |
-| Agency | $149/month | ₹14,900/month |
+## Changes Required
 
-Also update the comparison table to show INR pricing.
+### 1. Edge Function: `create-razorpay-subscription`
 
-### Part 2: Fix Razorpay Checkout Popup
-Add the `VITE_RAZORPAY_KEY_ID` environment variable so the inline Razorpay checkout popup works instead of redirecting to the hosted page:
+Add `keyId` to the response:
 
-1. Add `VITE_RAZORPAY_KEY_ID` to the project's environment variables
-2. This allows the inline checkout popup to open directly on your site
+| Line | Current | New |
+|------|---------|-----|
+| 154-161 | Returns `subscriptionId`, `shortUrl`, `status`, `customerId` | Add `keyId: RAZORPAY_KEY_ID` to response |
 
-### Part 3: Ensure Razorpay Dashboard Configuration
-You'll need to verify in your Razorpay Dashboard that:
-- Your account is properly activated (even in test mode, some features require activation)
-- The subscription plans have valid configurations
-- Hosted pages are enabled if you want to use them as fallback
+### 2. Frontend Hook: `useRazorpay.ts`
 
----
+Use the key from the API response instead of environment variable:
 
-## Implementation Details
+| Line | Current | New |
+|------|---------|-----|
+| 44 | `const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID` | `const razorpayKey = data.keyId` |
 
-### Files to Modify
-
-**1. `src/pages/Pricing.tsx`**
-- Change `$` to `₹` in price displays
-- Update price values: 19 → 1900, 49 → 4900, 149 → 14900
-- Format prices with commas for readability (₹1,900 instead of ₹1900)
-- Update comparison table to show INR
-
-**2. Environment Variable**
-- Add `VITE_RAZORPAY_KEY_ID` to enable the inline checkout popup
-
-### Code Changes Summary
+## How It Will Work After Fix
 
 ```text
-Pricing.tsx:
-- Line 36: price: 19 → price: 1900
-- Line 56: price: 49 → price: 4900  
-- Line 76: price: 149 → price: 14900
-- Line 98: comparisonData pricing values to INR
-- Line 206-207: Format price with ₹ symbol and comma formatting
+1. User clicks "Upgrade to Pro"
+   ↓
+2. Edge function creates subscription via Razorpay API
+   ↓
+3. Returns: subscriptionId, shortUrl, keyId (NEW!)
+   ↓
+4. Frontend uses keyId to initialize Razorpay SDK
+   ↓
+5. Inline checkout popup opens ✓
+   ↓
+6. User completes payment
+   ↓
+7. Webhook updates subscription in database
 ```
 
----
+## Why This Works
 
-## User Actions Required
+- The `RAZORPAY_KEY_ID` is already available in the edge function (line 9)
+- It's a public key designed for client-side use
+- No security risk - Razorpay explicitly designs this key to be exposed
+- The secret key (`RAZORPAY_KEY_SECRET`) stays server-side only
 
-After I implement the code changes, you'll need to:
+## Files Modified
 
-1. **Add the Razorpay Key ID as an environment variable** - I'll prompt you to add `VITE_RAZORPAY_KEY_ID` using the secrets tool
+| File | Change |
+|------|--------|
+| `supabase/functions/create-razorpay-subscription/index.ts` | Add `keyId` to response JSON |
+| `src/hooks/useRazorpay.ts` | Use `data.keyId` instead of environment variable |
 
-2. **Verify Razorpay Dashboard settings:**
-   - Go to Razorpay Dashboard → Settings → API Keys
-   - Copy your Key ID (starts with `rzp_test_` or `rzp_live_`)
-   - Ensure your account has subscription payments enabled
-   - Verify the plans (Pro, Team, Agency) are active and properly configured
-
----
-
-## Testing Plan
-
-After implementation:
-1. Visit the Pricing page and verify ₹ currency is displayed
-2. Click "Upgrade to Pro" button
-3. Verify the Razorpay popup opens inline (not redirecting to hosted page)
-4. Complete a test payment using test card: 4111 1111 1111 1111

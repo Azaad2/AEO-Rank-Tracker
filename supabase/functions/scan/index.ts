@@ -623,6 +623,146 @@ serve(async (req) => {
       throw new Error('Failed to save results');
     }
 
+    // --- Issue 1: Increment credit usage ---
+    if (userId) {
+      try {
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('id, prompts_used, scans_used')
+          .eq('user_id', userId)
+          .single();
+
+        if (sub) {
+          await supabase
+            .from('subscriptions')
+            .update({
+              prompts_used: (sub.prompts_used || 0) + prompts.length,
+              scans_used: (sub.scans_used || 0) + 1,
+            })
+            .eq('id', sub.id);
+          console.log('✅ Credit usage updated for user:', userId);
+        }
+      } catch (creditErr) {
+        console.error('⚠️ Failed to update credits:', creditErr);
+      }
+
+      // --- Issue 2: Auto-generate optimization tasks ---
+      try {
+        // Clear previous pending tasks
+        await supabase
+          .from('optimization_tasks')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'pending');
+
+        const tasks: any[] = [];
+
+        // Check Gemini mentions
+        const anyGeminiMentioned = rows.some(r => r.geminiMentioned);
+        const anyGeminiCited = rows.some(r => r.geminiCited);
+        const anyCited = rows.some(r => r.cited);
+        const anyMentioned = rows.some(r => r.mentioned);
+        const allCompetitors = rows.flatMap(r => r.geminiCompetitors);
+        const hasCompetitors = allCompetitors.length > 0;
+        const anyPerplexityCited = rows.some(r => r.perplexityCited);
+
+        if (!anyGeminiMentioned) {
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Improve content structure for AI citability',
+            description: 'Your brand is not being mentioned by Gemini AI. Add clear, factual statements about your expertise and unique value propositions.',
+            priority: 'high',
+            status: 'pending',
+            tool_link: '/tools/content-auditor',
+          });
+        }
+
+        if (!anyGeminiCited && !anyCited) {
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Add FAQ schema markup to key pages',
+            description: 'AI systems are not citing your website. Add structured FAQ schema to help AI understand and reference your content.',
+            priority: 'high',
+            status: 'pending',
+            tool_link: '/tools/schema-generator',
+          });
+        }
+
+        if (score < 40) {
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Optimize SEO titles for AI discovery',
+            description: 'Your AI visibility score is low. Improve your page titles to be more descriptive and keyword-rich for AI crawlers.',
+            priority: 'high',
+            status: 'pending',
+            tool_link: '/tools/title-generator',
+          });
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Rewrite meta descriptions for AI context',
+            description: 'Update meta descriptions with clear, concise summaries that AI systems can use as source context.',
+            priority: 'medium',
+            status: 'pending',
+            tool_link: '/tools/description-generator',
+          });
+        }
+
+        if (hasCompetitors) {
+          const topComp = allCompetitors[0];
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: `Analyze competitor: ${topComp}`,
+            description: `${topComp} appears frequently in AI answers for your queries. Analyze their strategy to find gaps you can exploit.`,
+            priority: 'medium',
+            status: 'pending',
+            tool_link: '/tools/competitor-analyzer',
+          });
+        }
+
+        if (!anyPerplexityCited) {
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Create citation-building content',
+            description: 'Perplexity is not citing your site. Create comprehensive, well-sourced articles that Perplexity prefers to reference.',
+            priority: 'medium',
+            status: 'pending',
+            tool_link: '/tools/ai-blog-outline',
+          });
+        }
+
+        if (!anyMentioned && anyGeminiMentioned) {
+          tasks.push({
+            user_id: userId,
+            scan_id: scan.id,
+            title: 'Improve Google search presence',
+            description: 'Your brand appears in Gemini but not in Google search-based AI answers. Strengthen your traditional SEO foundation.',
+            priority: 'medium',
+            status: 'pending',
+            tool_link: '/tools/keyword-analyzer',
+          });
+        }
+
+        if (tasks.length > 0) {
+          const { error: tasksError } = await supabase
+            .from('optimization_tasks')
+            .insert(tasks);
+          if (tasksError) {
+            console.error('⚠️ Failed to insert optimization tasks:', tasksError);
+          } else {
+            console.log(`✅ Created ${tasks.length} optimization tasks`);
+          }
+        }
+      } catch (taskErr) {
+        console.error('⚠️ Failed to generate optimization tasks:', taskErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         scanId: scan.id,

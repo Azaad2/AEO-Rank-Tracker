@@ -16,7 +16,11 @@ interface QuickResult {
   promptsCount: number;
 }
 
-export function QuickScan() {
+interface QuickScanProps {
+  onScanComplete?: () => void;
+}
+
+export function QuickScan({ onScanComplete }: QuickScanProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [domain, setDomain] = useState('');
@@ -53,6 +57,7 @@ export function QuickScan() {
       });
 
       toast({ title: `Scan complete — Score: ${data.score}` });
+      onScanComplete?.();
     } catch (error) {
       console.error('Quick scan error:', error);
       toast({

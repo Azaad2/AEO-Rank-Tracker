@@ -462,7 +462,7 @@ serve(async (req) => {
   }
 
   try {
-    const { domain, promptsText, market = 'en-US' }: ScanRequest = await req.json();
+    const { domain, promptsText, market = 'en-US', userId }: ScanRequest & { userId?: string } = await req.json();
 
     if (!domain || !promptsText) {
       return new Response(
@@ -578,14 +578,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const scanInsert: any = {
+      project_domain: targetDomain,
+      prompts,
+      market,
+      score,
+    };
+    if (userId) {
+      scanInsert.user_id = userId;
+    }
+
     const { data: scan, error: scanError } = await supabase
       .from('scans')
-      .insert({
-        project_domain: targetDomain,
-        prompts,
-        market,
-        score,
-      })
+      .insert(scanInsert)
       .select()
       .single();
 

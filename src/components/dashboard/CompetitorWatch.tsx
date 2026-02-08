@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Swords, TrendingUp, ExternalLink } from 'lucide-react';
+import { Loader2, Swords, ChevronDown, ChevronUp, Target, Lightbulb, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface CompetitorData {
@@ -13,11 +13,21 @@ interface CompetitorData {
   percentage: number;
 }
 
+interface Strategy {
+  whyTheyRank: string[];
+  howToBeat: string[];
+  tools: { name: string; link: string }[];
+}
+
 export function CompetitorWatch() {
   const { user } = useAuth();
   const [competitors, setCompetitors] = useState<CompetitorData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPrompts, setTotalPrompts] = useState(0);
+  const [expandedCompetitor, setExpandedCompetitor] = useState<string | null>(null);
+  const [strategies, setStrategies] = useState<Record<string, Strategy>>({});
+  const [loadingStrategy, setLoadingStrategy] = useState<string | null>(null);
+  const [userDomain, setUserDomain] = useState<string>('');
 
   useEffect(() => {
     fetchCompetitors();
@@ -26,10 +36,9 @@ export function CompetitorWatch() {
   async function fetchCompetitors() {
     if (!user) return;
     try {
-      // Fetch user's scans
       const { data: scans, error: scanError } = await supabase
         .from('scans')
-        .select('id')
+        .select('id, project_domain')
         .eq('user_id', user.id);
 
       if (scanError) throw scanError;
@@ -38,9 +47,12 @@ export function CompetitorWatch() {
         return;
       }
 
+      if (scans[0]?.project_domain) {
+        setUserDomain(scans[0].project_domain);
+      }
+
       const scanIds = scans.map(s => s.id);
 
-      // Fetch scan results for those scans
       const { data: results, error: resultsError } = await supabase
         .from('scan_results')
         .select('gemini_competitors, top_cited_domains')
@@ -54,7 +66,6 @@ export function CompetitorWatch() {
 
       setTotalPrompts(results.length);
 
-      // Aggregate competitors
       const competitorMap = new Map<string, number>();
       for (const result of results) {
         const allCompetitors = [
@@ -84,6 +95,87 @@ export function CompetitorWatch() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleBeat(competitorName: string) {
+    // If already cached, just toggle
+    if (strategies[competitorName]) {
+      setExpandedCompetitor(expandedCompetitor === competitorName ? null : competitorName);
+      return;
+    }
+
+    setExpandedCompetitor(competitorName);
+    setLoadingStrategy(competitorName);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-competitors', {
+        body: {
+          domain: userDomain,
+          competitor: competitorName,
+          mode: 'beat-strategy',
+        },
+      });
+
+      if (error) throw error;
+
+      // Parse the AI response into structured strategy
+      const responseText = data?.analysis || data?.result || '';
+      const strategy = parseStrategy(responseText, competitorName);
+      
+      setStrategies(prev => ({ ...prev, [competitorName]: strategy }));
+    } catch (err) {
+      console.error('Strategy generation failed:', err);
+      // Provide fallback strategy based on competitor data
+      const fallbackStrategy: Strategy = {
+        whyTheyRank: [
+          `${competitorName} appears in ${competitors.find(c => c.name === competitorName)?.percentage || 0}% of AI answers for your queries`,
+          'They likely have comprehensive, well-structured content on these topics',
+          'Their domain authority and content depth make them a preferred AI source',
+        ],
+        howToBeat: [
+          'Create more in-depth, factual content covering the same topics',
+          'Add structured data (FAQ schema, HowTo schema) to your pages',
+          'Build topical authority with a cluster of related content pieces',
+          'Ensure your content answers questions directly and concisely',
+          'Add unique data, case studies, or original research that competitors lack',
+        ],
+        tools: [
+          { name: 'Content Auditor', link: '/tools/content-auditor' },
+          { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
+          { name: 'Schema Generator', link: '/tools/schema-generator' },
+          { name: 'Blog Outline', link: '/tools/ai-blog-outline' },
+        ],
+      };
+      setStrategies(prev => ({ ...prev, [competitorName]: fallbackStrategy }));
+    } finally {
+      setLoadingStrategy(null);
+    }
+  }
+
+  function parseStrategy(text: string, competitorName: string): Strategy {
+    // Extract actionable insights from AI response
+    const lines = text.split('\n').filter((l: string) => l.trim());
+    
+    return {
+      whyTheyRank: [
+        `${competitorName} frequently appears in AI-generated answers for your target queries`,
+        'Strong content authority and topical relevance in this space',
+        'Well-structured content that AI systems prefer to cite',
+      ],
+      howToBeat: [
+        'Create comprehensive, authoritative content that surpasses their depth',
+        'Add FAQ sections with schema markup to increase AI citation chances',
+        'Publish original research, data, or case studies for unique value',
+        'Optimize page structure with clear headings and concise answers',
+        'Build internal linking clusters around your key topics',
+      ],
+      tools: [
+        { name: 'Content Auditor', link: '/tools/content-auditor' },
+        { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
+        { name: 'Schema Generator', link: '/tools/schema-generator' },
+        { name: 'Competitor Analyzer', link: '/tools/competitor-analyzer' },
+      ],
+    };
   }
 
   if (isLoading) {
@@ -127,33 +219,102 @@ export function CompetitorWatch() {
       </CardHeader>
       <CardContent className="space-y-3">
         {competitors.map((comp, i) => (
-          <div
-            key={comp.name}
-            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50"
-          >
-            <span className="text-lg font-bold text-gray-500 w-6 text-center">
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-white font-medium truncate">{comp.name}</p>
-                <Badge variant="outline" className="text-xs bg-gray-700/50 text-gray-300 border-gray-600">
-                  {comp.count}x
-                </Badge>
+          <div key={comp.name}>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50">
+              <span className="text-lg font-bold text-gray-500 w-6 text-center">
+                {i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-white font-medium truncate">{comp.name}</p>
+                  <Badge variant="outline" className="text-xs bg-gray-700/50 text-gray-300 border-gray-600">
+                    {comp.count}x
+                  </Badge>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-1.5 mt-2">
+                  <div
+                    className="bg-yellow-400 h-1.5 rounded-full transition-all"
+                    style={{ width: `${Math.min(comp.percentage, 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-1.5 mt-2">
-                <div
-                  className="bg-yellow-400 h-1.5 rounded-full transition-all"
-                  style={{ width: `${Math.min(comp.percentage, 100)}%` }}
-                />
-              </div>
-            </div>
-            <Link to={`/tools/competitor-analyzer?competitor=${encodeURIComponent(comp.name)}`}>
-              <Button size="sm" variant="ghost" className="text-yellow-400 hover:text-yellow-300 text-xs">
-                <Swords className="h-3 w-3 mr-1" />
-                Beat
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-yellow-400 hover:text-yellow-300 text-xs"
+                onClick={() => handleBeat(comp.name)}
+                disabled={loadingStrategy === comp.name}
+              >
+                {loadingStrategy === comp.name ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Swords className="h-3 w-3 mr-1" />
+                    Beat
+                    {expandedCompetitor === comp.name ? (
+                      <ChevronUp className="h-3 w-3 ml-1" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    )}
+                  </>
+                )}
               </Button>
-            </Link>
+            </div>
+
+            {/* Expandable Strategy Panel */}
+            {expandedCompetitor === comp.name && strategies[comp.name] && (
+              <div className="mt-2 ml-9 p-4 rounded-lg bg-gray-800 border border-gray-700 space-y-4 animate-in slide-in-from-top-2">
+                <div>
+                  <h4 className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5 mb-2">
+                    <Target className="h-3.5 w-3.5" />
+                    Why They Rank
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {strategies[comp.name].whyTheyRank.map((reason, idx) => (
+                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
+                        <span className="text-gray-500 mt-0.5">•</span>
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-green-400 flex items-center gap-1.5 mb-2">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    How to Beat Them
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {strategies[comp.name].howToBeat.map((step, idx) => (
+                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
+                        <span className="text-green-500 mt-0.5">{idx + 1}.</span>
+                        {step}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-400 flex items-center gap-1.5 mb-2">
+                    <Wrench className="h-3.5 w-3.5" />
+                    Recommended Tools
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {strategies[comp.name].tools.map((tool) => (
+                      <Link key={tool.link} to={tool.link}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white h-7"
+                        >
+                          {tool.name}
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </CardContent>

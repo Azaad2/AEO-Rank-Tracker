@@ -268,7 +268,7 @@ const Blog = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-20 pb-12 bg-black">
+      <section className="pt-28 pb-12 bg-black">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Breadcrumbs

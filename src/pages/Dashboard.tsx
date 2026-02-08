@@ -35,47 +35,47 @@ function DashboardContent() {
   const [plan, setPlan] = useState<PlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchUserData() {
-      if (!user) return;
+  const fetchUserData = async () => {
+    if (!user) return;
 
-      try {
-        const { data: subData, error: subError } = await supabase
-          .from('subscriptions')
-          .select('plan_id, prompts_used, scans_used')
-          .eq('user_id', user.id)
-          .single();
+    try {
+      const { data: subData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('plan_id, prompts_used, scans_used')
+        .eq('user_id', user.id)
+        .single();
 
-        if (subError && subError.code !== 'PGRST116') {
-          console.error('Subscription fetch error:', subError);
-        }
-
-        const userSubscription = subData || {
-          plan_id: 'free',
-          prompts_used: 0,
-          scans_used: 0,
-        };
-        setSubscription(userSubscription);
-
-        const { data: planData, error: planError } = await supabase
-          .from('plans')
-          .select('name, price_monthly, prompts_limit, scans_limit')
-          .eq('id', userSubscription.plan_id)
-          .single();
-
-        if (planError) {
-          console.error('Plan fetch error:', planError);
-          setPlan({ name: 'Free', price_monthly: 0, prompts_limit: 5, scans_limit: 1 });
-        } else {
-          setPlan(planData);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setIsLoading(false);
+      if (subError && subError.code !== 'PGRST116') {
+        console.error('Subscription fetch error:', subError);
       }
-    }
 
+      const userSubscription = subData || {
+        plan_id: 'free',
+        prompts_used: 0,
+        scans_used: 0,
+      };
+      setSubscription(userSubscription);
+
+      const { data: planData, error: planError } = await supabase
+        .from('plans')
+        .select('name, price_monthly, prompts_limit, scans_limit')
+        .eq('id', userSubscription.plan_id)
+        .single();
+
+      if (planError) {
+        console.error('Plan fetch error:', planError);
+        setPlan({ name: 'Free', price_monthly: 0, prompts_limit: 5, scans_limit: 1 });
+      } else {
+        setPlan(planData);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
   }, [user]);
 
@@ -126,7 +126,7 @@ function DashboardContent() {
             scansLimit={plan?.scans_limit || 1}
           />
           <div className="grid gap-6 lg:grid-cols-2">
-            <QuickScan />
+            <QuickScan onScanComplete={() => fetchUserData()} />
             <ScanHistory />
           </div>
         </TabsContent>
@@ -156,7 +156,7 @@ export default function Dashboard() {
     <AuthGuard>
       <div className="min-h-screen bg-black">
         <Header />
-        <div className="pt-24 p-4 md:p-8">
+        <div className="pt-32 p-4 md:p-8">
           <div className="max-w-5xl mx-auto">
             <h1 
               className="text-2xl md:text-3xl font-bold text-white mb-8"

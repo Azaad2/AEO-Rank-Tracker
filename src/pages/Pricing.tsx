@@ -150,7 +150,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-black flex flex-col">
       <Header />
       
-      <main className="flex-1 pt-20">
+      <main className="flex-1 pt-28">
         {/* Hero Section */}
         <section className="py-16 px-4">
           <div className="container mx-auto text-center max-w-4xl">

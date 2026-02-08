@@ -10,7 +10,7 @@ const Terms = () => {
   return (
     <div className="min-h-screen bg-black">
       <Header />
-      <div className="pt-24 pb-16 px-4">
+      <div className="pt-32 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
           {/* Hero */}
           <div className="text-center mb-12">

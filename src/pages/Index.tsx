@@ -176,6 +176,7 @@ const Index = () => {
           domain: domain.trim(),
           promptsText: promptsText.trim(),
           market: 'en-US',
+          userId: user?.id,
         },
       });
 

@@ -174,6 +174,53 @@ export type Database = {
           },
         ]
       }
+      optimization_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: string
+          scan_id: string | null
+          status: string
+          title: string
+          tool_link: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          scan_id?: string | null
+          status?: string
+          title: string
+          tool_link?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          scan_id?: string | null
+          status?: string
+          title?: string
+          tool_link?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_tasks_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string | null
@@ -231,6 +278,27 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -298,6 +366,7 @@ export type Database = {
           project_domain: string
           prompts: string[]
           score: number | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -306,6 +375,7 @@ export type Database = {
           project_domain: string
           prompts: string[]
           score?: number | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -314,6 +384,7 @@ export type Database = {
           project_domain?: string
           prompts?: string[]
           score?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }

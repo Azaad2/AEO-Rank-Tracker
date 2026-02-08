@@ -1,149 +1,98 @@
 
 
-# Enhance User Dashboard with AI Optimization Features
+# Fix Dashboard Issues: Credits, Action Plan, Header, and Competitor Strategy
 
-## Overview
+## Issue 1: Credit Usage Not Updating After Scan
 
-Add powerful AI optimization features inside user accounts to help them improve their AI visibility and rank higher in AI answers. These features build on the existing scan data and tools to create a personalized optimization workspace.
+**Root Cause:** The scan edge function (`supabase/functions/scan/index.ts`) saves the scan to the database but never increments `prompts_used` or `scans_used` in the `subscriptions` table. The QuickScan component also doesn't call any usage increment after a successful scan.
 
-## New Features
+**Fix:**
+- Update the scan edge function to increment usage in the `subscriptions` table after a successful scan (when `userId` is provided)
+- Add the increment logic directly in the edge function using the service role client:
+  - Fetch the user's subscription by `user_id`
+  - Update `prompts_used += number_of_prompts` and `scans_used += 1`
+- Also refresh the dashboard data after QuickScan completes by passing a callback from `DashboardContent` to `QuickScan`
 
-### 1. Saved Domains & Tracking Dashboard
+## Issue 2: Action Plan Not Auto-Generating After Scan
 
-A section where users can save their domains and track visibility scores over time.
+**Root Cause:** The `ActionPlan` component reads from `optimization_tasks` table, but nothing ever inserts tasks into it. The scan edge function creates scan results but never generates optimization tasks.
 
-- **Domain Manager**: Save multiple domains to monitor
-- **Score Trend Chart**: Visual chart showing how their AI visibility score changes across scans (using Recharts, already installed)
-- **Comparison View**: See which prompts improved and which declined between scans
+**Fix:**
+- After the scan completes and results are saved, add logic in the scan edge function to auto-generate optimization tasks based on the scan results:
+  - If brand is not mentioned by Gemini: create a "high" priority task like "Improve content structure for AI citability" with link to `/tools/content-auditor`
+  - If brand is not cited: create a "high" priority task like "Add FAQ schema markup" with link to `/tools/schema-generator`
+  - If competitors are found: create a "medium" priority task to analyze competitors with link to `/tools/competitor-analyzer`
+  - If score is below 40: create tasks for SEO title optimization, meta description improvements
+  - If no Perplexity citations: create task for citation-building content
+- Clear previous pending tasks for the same user before inserting new ones (to avoid duplicates)
 
-### 2. AI Content Optimizer (Dashboard Widget)
+## Issue 3: Sticky Header Obscuring Dashboard Content
 
-A built-in content optimization tool accessible directly from the dashboard.
+**Root Cause:** The header is `fixed` with `h-14` (56px height) and the Dashboard page uses `pt-24` (96px top padding) which should be enough, but the `Press Start 2P` font with its unique rendering plus the header's background may clip the title. The screenshot shows the "Dashboard" title is hidden behind the header.
 
-- **Paste your content** → get AI suggestions on how to make it more citable by ChatGPT, Gemini, Perplexity
-- Uses the existing `generate-optimization-plan` edge function pattern
-- Provides actionable rewrites, FAQ suggestions, and schema markup recommendations
+**Fix:**
+- Increase the top padding on the Dashboard page from `pt-24` to `pt-28` or `pt-32`
+- Check all other pages that use the Header component and ensure they have sufficient top padding
+- Pages to check and fix: Dashboard, About, Contact, Analytics, Blog, Pricing, Tools, Integrations, Privacy, Terms
 
-### 3. Personalized Action Plan
+## Issue 4: Competitor "Beat" Button Should Show Strategy Instead of Linking to Tool
 
-An auto-generated, prioritized to-do list based on their latest scan results.
+**Root Cause:** The `CompetitorWatch` component's "Beat" button is a simple `Link` to `/tools/competitor-analyzer?competitor=...`. The user wants an inline strategy display instead.
 
-- Pulls data from scan_results table for the user's scans
-- Groups actions into: "Fix Now" (high impact), "Improve Soon" (medium), "Nice to Have" (low)
-- Each action links directly to the relevant tool (FAQ Generator, Schema Generator, etc.)
-- Progress tracking: mark items as done
+**Fix:**
+- Replace the Link/navigate behavior with an expandable strategy panel
+- When user clicks "Beat", call the existing `analyze-competitors` edge function (or create a new `beat-competitor` function) to generate a strategy
+- Display the strategy inline below the competitor row, showing:
+  - Key factors making the competitor rank (extracted from scan data)
+  - Specific actionable steps the user can take
+  - Links to relevant tools for each step
+- Use a loading state while the strategy is being generated
+- Cache the strategy so clicking "Beat" again doesn't re-fetch
 
-### 4. Competitor Watch
+## Technical Details
 
-A persistent competitor tracking panel.
+### Files to Modify
 
-- Based on `gemini_competitors` and `top_cited_domains` from scan results
-- Shows which competitors appear most frequently across their prompts
-- "Beat this competitor" button that links to the Competitor Analyzer tool with pre-filled data
+| File | Changes |
+|------|---------|
+| `supabase/functions/scan/index.ts` | Add subscription usage increment + auto-generate optimization tasks after scan |
+| `src/components/dashboard/QuickScan.tsx` | Accept `onScanComplete` callback to refresh dashboard data |
+| `src/pages/Dashboard.tsx` | Pass refresh callback to QuickScan, increase `pt-24` to `pt-32` |
+| `src/components/dashboard/CompetitorWatch.tsx` | Replace "Beat" link with expandable inline strategy panel using AI |
+| `src/pages/About.tsx` | Fix top padding |
+| `src/pages/Contact.tsx` | Fix top padding |
+| `src/pages/Analytics.tsx` | Fix top padding |
+| `src/pages/Blog.tsx` | Fix top padding |
+| `src/pages/Pricing.tsx` | Fix top padding |
+| `src/pages/Tools.tsx` | Fix top padding |
+| `src/pages/Integrations.tsx` | Fix top padding |
+| `src/pages/Privacy.tsx` | Fix top padding |
+| `src/pages/Terms.tsx` | Fix top padding |
 
-### 5. Quick Scan Widget
+### Scan Edge Function - New Logic After Saving Results
 
-A lightweight scan input directly on the dashboard (no need to go back to homepage).
-
-- Reuses existing scan edge function
-- Shows inline results summary
-- Automatically links to full results
-
-## Database Changes
-
-### New Table: `saved_domains`
-
-```sql
-CREATE TABLE saved_domains (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  domain TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, domain)
-);
-
-ALTER TABLE saved_domains ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users manage own domains"
-  ON saved_domains FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+```text
+After scan results are saved:
+1. If userId is provided:
+   a. Fetch subscription WHERE user_id = userId
+   b. Increment: prompts_used += prompts.length, scans_used += 1
+   c. Delete existing pending optimization_tasks for this user
+   d. Generate new tasks based on results:
+      - Score < 40 → "Fix Now" tasks for content/SEO basics
+      - Not mentioned by Gemini → "Fix Now" task for AI visibility
+      - Not cited → "Improve Soon" task for schema/structured data
+      - Competitors found → "Nice to Have" task for competitor analysis
 ```
 
-### New Table: `optimization_tasks`
+### Competitor Strategy Panel Behavior
 
-```sql
-CREATE TABLE optimization_tasks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  scan_id UUID REFERENCES scans(id),
-  title TEXT NOT NULL,
-  description TEXT,
-  priority TEXT DEFAULT 'medium',
-  status TEXT DEFAULT 'pending',
-  tool_link TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  completed_at TIMESTAMPTZ
-);
-
-ALTER TABLE optimization_tasks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users manage own tasks"
-  ON optimization_tasks FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+```text
+User clicks "Beat" on competitor row:
+  → Show loading spinner
+  → Call edge function with competitor name + user's domain + scan context
+  → Display expandable panel with:
+     - "Why they rank" section (based on scan data analysis)
+     - "How to beat them" section (actionable steps)
+     - Quick action buttons linking to specific tools
+  → Cache result to avoid repeat API calls
 ```
-
-### Modify `scans` table
-
-Add a `user_id` column so scans can be linked to authenticated users:
-
-```sql
-ALTER TABLE scans ADD COLUMN user_id UUID REFERENCES auth.users(id);
-```
-
-## Code Changes
-
-### New Components
-
-| Component | Purpose |
-|-----------|---------|
-| `src/components/dashboard/ScoreTrend.tsx` | Recharts line chart showing score history per domain |
-| `src/components/dashboard/SavedDomains.tsx` | Domain manager with add/remove and quick-scan |
-| `src/components/dashboard/ActionPlan.tsx` | Prioritized optimization tasks with progress tracking |
-| `src/components/dashboard/CompetitorWatch.tsx` | Competitor frequency analysis from scan results |
-| `src/components/dashboard/QuickScan.tsx` | Inline scan widget for dashboard |
-| `src/components/dashboard/ContentOptimizer.tsx` | AI-powered content optimization suggestions |
-
-### Modified Files
-
-| File | Change |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Add tab navigation for all new sections |
-| `src/pages/Index.tsx` | Pass `user.id` when creating scans for authenticated users |
-| `supabase/functions/scan/index.ts` | Accept optional `userId` and save to scans table |
-
-## Dashboard Layout
-
-The enhanced dashboard will use a tabbed layout:
-
-- **Overview** (default): Score summary, credit usage, quick scan
-- **My Domains**: Saved domains with score trends
-- **Action Plan**: Prioritized optimization tasks
-- **Competitors**: Competitor tracking and analysis
-- **Content Optimizer**: AI content optimization tool
-
-## Implementation Order
-
-1. Database migrations (tables + RLS policies + scans user_id column)
-2. Update scan flow to save user_id for authenticated users
-3. Build SavedDomains component with score trend chart
-4. Build ActionPlan component with task management
-5. Build CompetitorWatch component
-6. Build ContentOptimizer component
-7. Build QuickScan widget
-8. Restructure Dashboard.tsx with tabs
-9. Test end-to-end flow
-

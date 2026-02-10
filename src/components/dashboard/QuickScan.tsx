@@ -56,7 +56,10 @@ export function QuickScan({ onScanComplete }: QuickScanProps) {
         promptsCount: data.promptsCount,
       });
 
-      toast({ title: `Scan complete — Score: ${data.score}` });
+      toast({ 
+        title: `Scan complete — Score: ${data.score}`,
+        description: 'Your optimization package is being generated automatically!',
+      });
       onScanComplete?.();
     } catch (error) {
       console.error('Quick scan error:', error);

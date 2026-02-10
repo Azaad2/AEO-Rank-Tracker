@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.optimize-content]
 verify_jwt = false
+
+[functions.auto-optimize]
+verify_jwt = false

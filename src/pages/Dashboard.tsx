@@ -8,7 +8,7 @@ import { SavedDomains } from '@/components/dashboard/SavedDomains';
 import { ActionPlan } from '@/components/dashboard/ActionPlan';
 import { CompetitorWatch } from '@/components/dashboard/CompetitorWatch';
 import { QuickScan } from '@/components/dashboard/QuickScan';
-import { ContentOptimizer } from '@/components/dashboard/ContentOptimizer';
+import { AutoFixResults } from '@/components/dashboard/AutoFixResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -112,9 +112,9 @@ function DashboardContent() {
             <Swords className="h-3.5 w-3.5" />
             Competitors
           </TabsTrigger>
-          <TabsTrigger value="optimizer" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <TabsTrigger value="auto-fix" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
             <Sparkles className="h-3.5 w-3.5" />
-            Content Optimizer
+            Auto-Fix Results
           </TabsTrigger>
         </TabsList>
 
@@ -143,8 +143,8 @@ function DashboardContent() {
           <CompetitorWatch />
         </TabsContent>
 
-        <TabsContent value="optimizer" className="mt-6">
-          <ContentOptimizer />
+        <TabsContent value="auto-fix" className="mt-6">
+          <AutoFixResults />
         </TabsContent>
       </Tabs>
     </div>

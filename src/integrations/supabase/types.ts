@@ -95,6 +95,50 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_optimizations: {
+        Row: {
+          blog_outlines: Json | null
+          content_suggestions: Json | null
+          created_at: string
+          faq_schema: string | null
+          id: string
+          meta_rewrites: Json | null
+          scan_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          blog_outlines?: Json | null
+          content_suggestions?: Json | null
+          created_at?: string
+          faq_schema?: string | null
+          id?: string
+          meta_rewrites?: Json | null
+          scan_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          blog_outlines?: Json | null
+          content_suggestions?: Json | null
+          created_at?: string
+          faq_schema?: string | null
+          id?: string
+          meta_rewrites?: Json | null
+          scan_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_optimizations_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string

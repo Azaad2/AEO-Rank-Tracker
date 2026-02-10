@@ -763,6 +763,40 @@ serve(async (req) => {
       }
     }
 
+    // --- Auto-optimize: trigger in background ---
+    if (userId) {
+      try {
+        const autoOptUrl = `${supabaseUrl}/functions/v1/auto-optimize`;
+        fetch(autoOptUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            scanId: scan.id,
+            userId,
+            domain: targetDomain,
+            score,
+            scanResults: rows.map(r => ({
+              prompt: r.prompt,
+              mentioned: r.mentioned,
+              cited: r.cited,
+              geminiMentioned: r.geminiMentioned,
+              geminiCited: r.geminiCited,
+              geminiResponse: r.geminiResponse,
+              geminiCompetitors: r.geminiCompetitors,
+              perplexityMentioned: r.perplexityMentioned,
+              perplexityCited: r.perplexityCited,
+            })),
+          }),
+        }).then(() => console.log('✅ Auto-optimize triggered'))
+          .catch(err => console.error('⚠️ Auto-optimize trigger failed:', err));
+      } catch (autoErr) {
+        console.error('⚠️ Failed to trigger auto-optimize:', autoErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         scanId: scan.id,

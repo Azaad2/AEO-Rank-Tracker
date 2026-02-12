@@ -28,10 +28,18 @@ export function ScanHistory() {
   useEffect(() => {
     async function fetchOpportunities() {
       try {
-        // Get latest scan
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setNoScanYet(true);
+          return;
+        }
+
+        // Get latest scan for this user
         const { data: scanData, error: scanError } = await supabase
           .from('scans')
           .select('id, project_domain')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();

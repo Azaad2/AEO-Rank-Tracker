@@ -1,71 +1,39 @@
 
 
-# Replace "Recent Scans" with "Ranking Opportunities"
+# Fix: Show Only the Logged-In User's Scan Data
 
-## What Changes
+## The Problem
 
-Remove the "Recent Scans" card entirely from the Overview tab. Replace it with a new **"Ranking Opportunities"** card that shows:
+The Ranking Opportunities card currently fetches the latest scan from the **entire** `scans` table without filtering by user. This means a logged-in user sees scan results from other users' domains (e.g., "foxtale.com") instead of their own.
 
-1. **Prompts where the user is NOT ranking** -- pulled from their latest scan's `scan_results`, filtered to prompts where `mentioned = false` or `gemini_mentioned = false`. These are opportunities to improve.
-2. **Competitor prompts** -- prompts where competitors ARE ranking (from `gemini_competitors` and `top_cited_domains` data). Shows which competitors appear and on which prompts.
+## The Fix
 
-This gives users immediate, actionable insight instead of a boring history table.
-
-## New Card Layout
-
-The card will have two sections:
-
-- **"You're Missing On"** -- List of prompts where the user's domain was NOT mentioned/cited, with red indicators. Each prompt shows which AI engines missed them (Gemini, Perplexity).
-- **"Competitors Ranking Here"** -- For each of those prompts, show which competitor domains ARE being cited, so the user knows who to beat.
-
-If no scan data exists yet, show a prompt to run their first scan.
+Filter the scans query by the authenticated user's ID so only their own scan data appears.
 
 ## Technical Details
 
 ### File to Modify
 
-**`src/components/dashboard/ScanHistory.tsx`** -- Complete rewrite into a new component
+**`src/components/dashboard/ScanHistory.tsx`**
 
-- Rename the component conceptually (keep same file to avoid Dashboard import changes)
-- Query: Fetch the user's latest scan, then fetch its `scan_results` with all fields
-- Filter results to show prompts where `mentioned = false` OR `gemini_mentioned = false`
-- For each prompt, display:
-  - The prompt text
-  - Status icons: Gemini (mentioned/not), Perplexity (cited/not)
-  - Competitors found on that prompt (from `gemini_competitors` array)
-- If ALL prompts show mentions, display a success message instead
+1. Get the current user's ID using `supabase.auth.getUser()` before querying scans
+2. Add `.eq('user_id', userId)` filter to the scans query so it only returns the logged-in user's scans
+3. If the user has no scans, show the "Run your first scan" empty state (existing behavior)
 
-### Data Query
+### Change Summary
 
-```text
-1. Get latest scan: supabase.from('scans').select('id, project_domain').order('created_at', { ascending: false }).limit(1)
-2. Get its results: supabase.from('scan_results').select('*').eq('scan_id', latestScanId)
-3. Filter client-side: show prompts where mentioned=false OR gemini_mentioned=false
-4. Extract competitors from gemini_competitors and top_cited_domains arrays
+The scans query changes from:
+
+```
+supabase.from('scans').select('id, project_domain').order('created_at', { ascending: false }).limit(1).single()
 ```
 
-### UI Structure
+To:
 
-```text
-+--------------------------------------------------+
-| Ranking Opportunities                             |
-| Based on your latest scan for youtube.com         |
-+--------------------------------------------------+
-| "Best video platforms"                            |
-|   Gemini: Not mentioned  |  Perplexity: Cited    |
-|   Competitors: vimeo.com, dailymotion.com         |
-|                                                   |
-| "How to share videos online"                      |
-|   Gemini: Mentioned      |  Perplexity: Not cited|
-|   Competitors: streamable.com                     |
-|                                                   |
-| "Top streaming services"                          |
-|   Gemini: Not mentioned  |  Perplexity: Not cited|
-|   Competitors: netflix.com, hulu.com              |
-+--------------------------------------------------+
+```
+const { data: { user } } = await supabase.auth.getUser()
+supabase.from('scans').select('id, project_domain').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).single()
 ```
 
-### No changes needed to Dashboard.tsx
-
-The `ScanHistory` component import stays the same -- only the internal implementation changes.
+This is a small but critical fix -- one line added to get the user, one filter added to the query. No UI changes needed.
 

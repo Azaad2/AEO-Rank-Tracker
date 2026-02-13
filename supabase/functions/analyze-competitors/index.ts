@@ -11,18 +11,108 @@ serve(async (req) => {
   }
 
   try {
-    const { yourDomain, competitors, industry } = await req.json();
+    const body = await req.json();
+    const { mode } = body;
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    // Beat strategy mode - personalized competitor analysis
+    if (mode === 'beat-strategy') {
+      const { yourDomain, competitor, promptsWhereTheyRank } = body;
+
+      if (!yourDomain || !competitor) {
+        return new Response(
+          JSON.stringify({ error: 'yourDomain and competitor are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const prompts = promptsWhereTheyRank?.length > 0
+        ? promptsWhereTheyRank.join('", "')
+        : 'various AI queries';
+
+      const beatPrompt = `You are an AI visibility strategist. Analyze why the competitor "${competitor}" ranks in AI-generated answers and how "${yourDomain}" can outrank them.
+
+The competitor "${competitor}" appears in AI responses for these specific queries: ["${prompts}"]
+
+Provide a detailed, PERSONALIZED analysis. Do NOT give generic advice. Reference the specific competitor and queries above.
+
+Return ONLY valid JSON with this exact structure:
+{
+  "whyTheyRank": ["Specific reason 1 about ${competitor} and these queries...", "Specific reason 2...", "Specific reason 3..."],
+  "howToBeat": ["Specific actionable step 1 for ${yourDomain}...", "Step 2...", "Step 3...", "Step 4...", "Step 5..."],
+  "tools": [{"name": "Tool name", "link": "/tools/tool-slug"}]
+}
+
+For "tools", only suggest from these available tools:
+- Content Auditor (/tools/content-auditor)
+- FAQ Generator (/tools/ai-faq-generator)  
+- Schema Generator (/tools/schema-generator)
+- Blog Outline (/tools/ai-blog-outline)
+- Competitor Analyzer (/tools/competitor-analyzer)
+- AI Answer Generator (/tools/ai-answer-generator)
+- Keyword Analyzer (/tools/keyword-analyzer)
+- Description Generator (/tools/description-generator)
+- Title Generator (/tools/title-generator)
+
+Pick 3-4 most relevant tools for beating this specific competitor on these specific queries.`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'user', content: beatPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw new Error(`AI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      let parsed;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch {
+        parsed = { error: 'Failed to parse AI response', raw: content };
+      }
+
+      return new Response(
+        JSON.stringify(parsed),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Default mode - full competitive analysis
+    const { yourDomain, competitors, industry } = body;
 
     if (!yourDomain) {
       return new Response(
         JSON.stringify({ error: 'Your domain is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const systemPrompt = `You are an AI visibility and competitive analysis expert.

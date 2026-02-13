@@ -99,6 +99,20 @@ serve(async (req) => {
       case 'subscription.activated':
         console.log('Subscription activated:', razorpaySubscriptionId);
         
+        // Deactivate all existing active subscriptions for this user
+        if (userId) {
+          const { error: deactivateError } = await supabase
+            .from('subscriptions')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .eq('status', 'active');
+          if (deactivateError) {
+            console.error('Error deactivating old subscriptions:', deactivateError);
+          } else {
+            console.log('Deactivated old active subscriptions for user:', userId);
+          }
+        }
+
         // Create or update subscription in database
         const { error: activateError } = await supabase
           .from('subscriptions')

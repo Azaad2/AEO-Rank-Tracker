@@ -84,6 +84,16 @@ serve(async (req) => {
         console.error('Error updating subscription:', updateError);
       }
     } else {
+      // Deactivate all existing active subscriptions for this user before creating new one
+      if (userId) {
+        await supabase
+          .from('subscriptions')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('user_id', userId)
+          .eq('status', 'active');
+        console.log('Deactivated old active subscriptions for user:', userId);
+      }
+
       // Create new subscription
       const { error: createError } = await supabase
         .from('subscriptions')

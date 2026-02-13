@@ -28,6 +28,7 @@ export function CompetitorWatch() {
   const [strategies, setStrategies] = useState<Record<string, Strategy>>({});
   const [loadingStrategy, setLoadingStrategy] = useState<string | null>(null);
   const [userDomain, setUserDomain] = useState<string>('');
+  const [competitorPrompts, setCompetitorPrompts] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetchCompetitors();
@@ -66,8 +67,15 @@ export function CompetitorWatch() {
 
       setTotalPrompts(results.length);
 
+      // Also fetch prompts to know which queries each competitor appears in
+      const { data: resultsWithPrompts } = await supabase
+        .from('scan_results')
+        .select('prompt, gemini_competitors, top_cited_domains')
+        .in('scan_id', scanIds);
+
       const competitorMap = new Map<string, number>();
-      for (const result of results) {
+      const promptsMap: Record<string, string[]> = {};
+      for (const result of (resultsWithPrompts || results)) {
         const allCompetitors = [
           ...(result.gemini_competitors || []),
           ...(result.top_cited_domains || []),
@@ -76,9 +84,15 @@ export function CompetitorWatch() {
           const name = c.trim();
           if (name) {
             competitorMap.set(name, (competitorMap.get(name) || 0) + 1);
+            if (!promptsMap[name]) promptsMap[name] = [];
+            if ((result as any).prompt && !promptsMap[name].includes((result as any).prompt)) {
+              promptsMap[name].push((result as any).prompt);
+            }
           }
         }
       }
+
+      setCompetitorPrompts(promptsMap);
 
       const sorted = Array.from(competitorMap.entries())
         .map(([name, count]) => ({
@@ -108,19 +122,25 @@ export function CompetitorWatch() {
     setLoadingStrategy(competitorName);
 
     try {
+      const promptsForCompetitor = competitorPrompts[competitorName] || [];
+      
       const { data, error } = await supabase.functions.invoke('analyze-competitors', {
         body: {
-          domain: userDomain,
+          yourDomain: userDomain,
           competitor: competitorName,
+          promptsWhereTheyRank: promptsForCompetitor,
           mode: 'beat-strategy',
         },
       });
 
       if (error) throw error;
 
-      // Parse the AI response into structured strategy
-      const responseText = data?.analysis || data?.result || '';
-      const strategy = parseStrategy(responseText, competitorName);
+      // Parse the structured JSON response from AI
+      const strategy: Strategy = {
+        whyTheyRank: data?.whyTheyRank || ['Analysis unavailable'],
+        howToBeat: data?.howToBeat || ['Analysis unavailable'],
+        tools: data?.tools || [{ name: 'Content Auditor', link: '/tools/content-auditor' }],
+      };
       
       setStrategies(prev => ({ ...prev, [competitorName]: strategy }));
     } catch (err) {
@@ -152,31 +172,7 @@ export function CompetitorWatch() {
     }
   }
 
-  function parseStrategy(text: string, competitorName: string): Strategy {
-    // Extract actionable insights from AI response
-    const lines = text.split('\n').filter((l: string) => l.trim());
-    
-    return {
-      whyTheyRank: [
-        `${competitorName} frequently appears in AI-generated answers for your target queries`,
-        'Strong content authority and topical relevance in this space',
-        'Well-structured content that AI systems prefer to cite',
-      ],
-      howToBeat: [
-        'Create comprehensive, authoritative content that surpasses their depth',
-        'Add FAQ sections with schema markup to increase AI citation chances',
-        'Publish original research, data, or case studies for unique value',
-        'Optimize page structure with clear headings and concise answers',
-        'Build internal linking clusters around your key topics',
-      ],
-      tools: [
-        { name: 'Content Auditor', link: '/tools/content-auditor' },
-        { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
-        { name: 'Schema Generator', link: '/tools/schema-generator' },
-        { name: 'Competitor Analyzer', link: '/tools/competitor-analyzer' },
-      ],
-    };
-  }
+  // parseStrategy removed - now using direct JSON response from AI
 
   if (isLoading) {
     return (

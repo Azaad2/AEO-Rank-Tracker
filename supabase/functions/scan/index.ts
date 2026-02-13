@@ -486,6 +486,45 @@ serve(async (req) => {
       );
     }
 
+    // === Subscription limit enforcement ===
+    if (userId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+      const { data: sub } = await adminClient
+        .from('subscriptions')
+        .select('scans_used, prompts_used, plan_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (sub) {
+        const { data: plan } = await adminClient
+          .from('plans')
+          .select('scans_limit, prompts_limit')
+          .eq('id', sub.plan_id)
+          .single();
+
+        if (plan) {
+          if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
+            return new Response(
+              JSON.stringify({ error: 'Scan limit reached. Please upgrade your plan.' }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          if ((sub.prompts_used ?? 0) + prompts.length > plan.prompts_limit) {
+            return new Response(
+              JSON.stringify({ error: `Prompt limit reached. You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.` }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+      }
+    }
+
     const rows: RowResult[] = [];
     let llmUsedCount = 0;
     let geminiUsedCount = 0;

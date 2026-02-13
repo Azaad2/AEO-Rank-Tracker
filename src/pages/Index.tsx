@@ -155,6 +155,36 @@ const Index = () => {
       return;
     }
 
+    // Check subscription limits for logged-in users
+    if (user) {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('scans_used, prompts_used, plan_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (sub) {
+        const { data: plan } = await supabase
+          .from('plans')
+          .select('scans_limit, prompts_limit')
+          .eq('id', sub.plan_id)
+          .single();
+        if (plan) {
+          const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
+          if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
+            toast({ title: 'Scan limit reached', description: 'Please upgrade your plan to continue scanning.', variant: 'destructive' });
+            return;
+          }
+          if ((sub.prompts_used ?? 0) + promptCount > plan.prompts_limit) {
+            toast({ title: 'Prompt limit reached', description: `You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.`, variant: 'destructive' });
+            return;
+          }
+        }
+      }
+    }
+
     const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
     
     // Track scan initiation

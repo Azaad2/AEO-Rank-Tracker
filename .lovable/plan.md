@@ -1,78 +1,81 @@
 
+# Fix: Upgrade Unlocks More Scans + Personalized Competitor Insights
 
-# Fix: Enforce Subscription Limits Before Scanning
+## Issue 1: Upgraded Users Can't Scan More
 
-## The Problem
+**Root cause**: When a user upgrades via Razorpay, the webhook creates a new subscription row but does NOT deactivate the old "free" subscription. Both remain `status = 'active'`. While the scan function picks the latest one (which should be the paid one), stale data or race conditions can cause the old free sub to be picked.
 
-Users on the Free plan (5 prompts, 1 scan) can run unlimited scans because **nothing checks their usage limits** before processing a scan. The limit counters increment but never block further usage.
+**Fix**: In the `razorpay-webhook` edge function, when `subscription.activated` fires, deactivate ALL other active subscriptions for that user before creating the new one.
 
-## The Fix
+### File: `supabase/functions/razorpay-webhook/index.ts`
 
-Add limit enforcement in **two places** for defense in depth:
+In the `subscription.activated` case (around line 99-131), before the upsert, add:
 
-### 1. Server-Side (Edge Function) -- Primary Guard
-
-**File: `supabase/functions/scan/index.ts`**
-
-Before processing the scan, if a `userId` is provided:
-1. Query the user's active subscription to get `prompts_used` and `scans_used`
-2. Query the associated plan to get `prompts_limit` and `scans_limit`
-3. If `scans_used >= scans_limit` (and limit is not -1 for unlimited), return a 403 error with a clear message
-4. If `prompts_used + number_of_prompts > prompts_limit`, return a 403 error
-
-This goes right after the prompts parsing, before any API calls are made.
-
-### 2. Client-Side (QuickScan) -- UX Guard
-
-**File: `src/components/dashboard/QuickScan.tsx`**
-
-Before calling the scan function:
-1. Fetch the user's subscription and plan limits
-2. If at limit, show a toast error and block the scan
-3. Optionally disable the "Run Scan" button when at limit
-
-This prevents unnecessary network calls and gives instant feedback.
-
-### 3. Client-Side (Index Page) -- Guest + Logged-in Guard
-
-**File: `src/pages/Index.tsx`**
-
-The main scan form on the homepage also needs the same check for logged-in users before invoking the scan edge function.
-
-## Technical Details
-
-### Edge Function Change (scan/index.ts)
-
-After parsing prompts and before processing, add:
-
-```text
+```
+// Deactivate old subscriptions for this user
 if (userId) {
-  // Fetch subscription + plan
-  const { data: sub } = await supabase.from('subscriptions')
-    .select('scans_used, prompts_used, plan_id')
-    .eq('user_id', userId).eq('status', 'active').single();
-  
-  if (sub) {
-    const { data: plan } = await supabase.from('plans')
-      .select('scans_limit, prompts_limit')
-      .eq('id', sub.plan_id).single();
-    
-    if (plan) {
-      if (plan.scans_limit !== -1 && sub.scans_used >= plan.scans_limit) {
-        return 403 "Scan limit reached. Upgrade your plan."
-      }
-      if (sub.prompts_used + prompts.length > plan.prompts_limit) {
-        return 403 "Prompt limit reached. Upgrade your plan."
-      }
-    }
-  }
+  await supabase
+    .from('subscriptions')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('status', 'active');
 }
 ```
 
-### QuickScan Component Change
+This ensures only the new paid subscription is active, so the scan limit check picks the correct plan limits.
 
-Add a pre-scan check that fetches current usage and compares to limits. If at limit, show a toast with an upgrade link instead of running the scan.
+---
 
-### Index Page Change
+## Issue 2: "Beat" Button Shows Generic/Same Response for All Competitors
 
-Same pre-scan check for logged-in users before calling the scan edge function.
+**Root cause (3 bugs)**:
+
+1. `CompetitorWatch.tsx` calls the `analyze-competitors` edge function with `{ domain, competitor, mode: 'beat-strategy' }`, but the edge function expects `{ yourDomain, competitors, industry }` -- parameter mismatch, so the call fails silently.
+2. The fallback strategy (lines 129-148) is hardcoded generic text, identical for every competitor.
+3. `parseStrategy()` (lines 155-178) completely ignores the AI response and returns hardcoded text.
+
+**Fix**: Rewrite the "Beat" flow to send the correct data (including the specific prompts where that competitor ranks) and properly use the AI response.
+
+### File: `supabase/functions/analyze-competitors/index.ts`
+
+Update the edge function to accept a `beat-strategy` mode that takes:
+- `yourDomain`: the user's domain
+- `competitor`: single competitor domain name
+- `promptsWhereTheyRank`: list of specific prompts where this competitor was cited
+
+Update the AI prompt to ask for a personalized analysis of WHY this specific competitor ranks on those specific prompts and HOW to beat them.
+
+Return structured JSON:
+```json
+{
+  "whyTheyRank": ["Specific reason based on their prompts..."],
+  "howToBeat": ["Specific actionable step..."],
+  "tools": [{ "name": "...", "link": "..." }]
+}
+```
+
+### File: `src/components/dashboard/CompetitorWatch.tsx`
+
+1. Store the prompts where each competitor appears (already available from `scan_results` data -- `gemini_competitors` and `top_cited_domains`).
+2. Pass correct params to the edge function: `{ yourDomain, competitor, promptsWhereTheyRank, mode: 'beat-strategy' }`.
+3. Replace `parseStrategy()` with proper JSON parsing of the AI response so the actual personalized insights are displayed.
+4. Keep the fallback strategy only as a last resort if the API call truly fails.
+
+### Data Flow Change
+
+Currently:
+```
+Click "Beat" -> wrong params -> API fails -> generic fallback shown
+```
+
+After fix:
+```
+Click "Beat" -> send domain + competitor + their prompts -> AI analyzes WHY they rank on those specific prompts -> personalized strategy shown
+```
+
+### Example of Personalized Output
+
+For competitor "vimeo.com" ranking on prompts ["best video hosting", "video sharing platforms"]:
+
+- **Why They Rank**: "Vimeo appears in 'best video hosting' queries because they offer dedicated hosting with no ads, which AI models cite as a differentiator. For 'video sharing platforms', their professional-grade tools get mentioned alongside YouTube."
+- **How to Beat**: "Create a comparison page titled 'YouTube vs Vimeo for Business' targeting the exact queries where they appear. Add FAQ schema covering hosting features."

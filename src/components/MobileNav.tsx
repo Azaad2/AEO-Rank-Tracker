@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { X, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { X, LogIn, LogOut, LayoutDashboard, HelpCircle } from "lucide-react";
 import { SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo-light.png";
@@ -26,14 +26,26 @@ export const MobileNav = () => {
       <div className="flex-1 overflow-y-auto py-4">
         {/* Main Navigation Links */}
         <div className="px-4 space-y-2 mb-4">
-          <SheetClose asChild>
-            <Link
-              to="/"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
-            >
-              Home
-            </Link>
-          </SheetClose>
+          {user ? (
+            <SheetClose asChild>
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </Link>
+            </SheetClose>
+          ) : (
+            <SheetClose asChild>
+              <Link
+                to="/"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                Home
+              </Link>
+            </SheetClose>
+          )}
           <SheetClose asChild>
             <Link
               to="/tools"
@@ -50,14 +62,26 @@ export const MobileNav = () => {
               Integrations
             </Link>
           </SheetClose>
-          <SheetClose asChild>
-            <Link
-              to="/pricing"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
-            >
-              Pricing
-            </Link>
-          </SheetClose>
+          {user ? (
+            <SheetClose asChild>
+              <a
+                href="mailto:hello@aimentionyou.com"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                <HelpCircle className="h-5 w-5" />
+                Help
+              </a>
+            </SheetClose>
+          ) : (
+            <SheetClose asChild>
+              <Link
+                to="/pricing"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                Pricing
+              </Link>
+            </SheetClose>
+          )}
           <SheetClose asChild>
             <Link
               to="/blog"

@@ -28,12 +28,21 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link 
-              to="/" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Home
-            </Link>
+            {user ? (
+              <Link 
+                to="/dashboard" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link 
+                to="/" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Home
+              </Link>
+            )}
             <Link 
               to="/tools" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -46,12 +55,21 @@ export const Header = () => {
             >
               Integrations
             </Link>
-            <Link 
-              to="/pricing" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Pricing
-            </Link>
+            {user ? (
+              <a 
+                href="mailto:hello@aimentionyou.com" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Help
+              </a>
+            ) : (
+              <Link 
+                to="/pricing" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Pricing
+              </Link>
+            )}
             <Link 
               to="/blog" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

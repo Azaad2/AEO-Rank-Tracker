@@ -12,14 +12,16 @@ import { AutoFixResults } from '@/components/dashboard/AutoFixResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles } from 'lucide-react';
+import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { AIAssistant } from '@/components/dashboard/AIAssistant';
 
 interface SubscriptionData {
   plan_id: string;
   prompts_used: number;
   scans_used: number;
+  chat_messages_used: number;
 }
 
 interface PlanData {
@@ -27,6 +29,7 @@ interface PlanData {
   price_monthly: number;
   prompts_limit: number;
   scans_limit: number;
+  chat_limit: number;
 }
 
 function DashboardContent() {
@@ -41,7 +44,7 @@ function DashboardContent() {
     try {
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
-        .select('plan_id, prompts_used, scans_used')
+        .select('plan_id, prompts_used, scans_used, chat_messages_used')
         .eq('user_id', user.id)
         .single();
 
@@ -53,18 +56,19 @@ function DashboardContent() {
         plan_id: 'free',
         prompts_used: 0,
         scans_used: 0,
+        chat_messages_used: 0,
       };
       setSubscription(userSubscription);
 
       const { data: planData, error: planError } = await supabase
         .from('plans')
-        .select('name, price_monthly, prompts_limit, scans_limit')
+        .select('name, price_monthly, prompts_limit, scans_limit, chat_limit')
         .eq('id', userSubscription.plan_id)
         .single();
 
       if (planError) {
         console.error('Plan fetch error:', planError);
-        setPlan({ name: 'Free', price_monthly: 0, prompts_limit: 5, scans_limit: 1 });
+        setPlan({ name: 'Free', price_monthly: 0, prompts_limit: 5, scans_limit: 1, chat_limit: 10 });
       } else {
         setPlan(planData);
       }
@@ -116,6 +120,10 @@ function DashboardContent() {
             <Sparkles className="h-3.5 w-3.5" />
             Auto-Fix Results
           </TabsTrigger>
+          <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+            <Bot className="h-3.5 w-3.5" />
+            AI Assistant
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
@@ -145,6 +153,14 @@ function DashboardContent() {
 
         <TabsContent value="auto-fix" className="mt-6">
           <AutoFixResults />
+        </TabsContent>
+
+        <TabsContent value="ai-assistant" className="mt-6">
+          <AIAssistant
+            chatMessagesUsed={subscription?.chat_messages_used || 0}
+            chatLimit={plan?.chat_limit ?? 10}
+            onMessageSent={() => fetchUserData()}
+          />
         </TabsContent>
       </Tabs>
     </div>

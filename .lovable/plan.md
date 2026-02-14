@@ -1,81 +1,99 @@
 
-# Fix: Upgrade Unlocks More Scans + Personalized Competitor Insights
 
-## Issue 1: Upgraded Users Can't Scan More
+# Add AI Assistant to Dashboard
 
-**Root cause**: When a user upgrades via Razorpay, the webhook creates a new subscription row but does NOT deactivate the old "free" subscription. Both remain `status = 'active'`. While the scan function picks the latest one (which should be the paid one), stale data or race conditions can cause the old free sub to be picked.
+## Overview
 
-**Fix**: In the `razorpay-webhook` edge function, when `subscription.activated` fires, deactivate ALL other active subscriptions for that user before creating the new one.
+Add an "AI Assistant" tab to the dashboard where users can chat with an AI that can trigger all app features through conversation -- run scans, generate content (titles, descriptions, FAQs, blog outlines), analyze competitors, and provide optimization advice. Usage is tracked with per-plan monthly message limits.
 
-### File: `supabase/functions/razorpay-webhook/index.ts`
+## What Users Will See
 
-In the `subscription.activated` case (around line 99-131), before the upsert, add:
+- A new **"AI Assistant"** tab in the dashboard with a chat interface
+- Users type natural language requests like:
+  - "Scan example.com for AI visibility"
+  - "Generate SEO titles for my website"
+  - "Who are my competitors for 'best CRM software'?"
+  - "Create FAQ schema for my landing page"
+- The assistant responds with results inline and can trigger the existing edge functions behind the scenes
+- A message counter showing remaining messages for the month
 
-```
-// Deactivate old subscriptions for this user
-if (userId) {
-  await supabase
-    .from('subscriptions')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('status', 'active');
-}
-```
+## Plan Limits
 
-This ensures only the new paid subscription is active, so the scan limit check picks the correct plan limits.
+| Plan     | Messages/Month |
+|----------|---------------|
+| Free     | 10            |
+| Pro      | 100           |
+| Team     | 500           |
+| Agency   | Unlimited     |
 
----
+## Implementation
 
-## Issue 2: "Beat" Button Shows Generic/Same Response for All Competitors
+### 1. Database Changes
 
-**Root cause (3 bugs)**:
-
-1. `CompetitorWatch.tsx` calls the `analyze-competitors` edge function with `{ domain, competitor, mode: 'beat-strategy' }`, but the edge function expects `{ yourDomain, competitors, industry }` -- parameter mismatch, so the call fails silently.
-2. The fallback strategy (lines 129-148) is hardcoded generic text, identical for every competitor.
-3. `parseStrategy()` (lines 155-178) completely ignores the AI response and returns hardcoded text.
-
-**Fix**: Rewrite the "Beat" flow to send the correct data (including the specific prompts where that competitor ranks) and properly use the AI response.
-
-### File: `supabase/functions/analyze-competitors/index.ts`
-
-Update the edge function to accept a `beat-strategy` mode that takes:
-- `yourDomain`: the user's domain
-- `competitor`: single competitor domain name
-- `promptsWhereTheyRank`: list of specific prompts where this competitor was cited
-
-Update the AI prompt to ask for a personalized analysis of WHY this specific competitor ranks on those specific prompts and HOW to beat them.
-
-Return structured JSON:
-```json
-{
-  "whyTheyRank": ["Specific reason based on their prompts..."],
-  "howToBeat": ["Specific actionable step..."],
-  "tools": [{ "name": "...", "link": "..." }]
-}
+**Add `chat_messages_used` column to `subscriptions` table:**
+```sql
+ALTER TABLE subscriptions ADD COLUMN chat_messages_used integer DEFAULT 0;
 ```
 
-### File: `src/components/dashboard/CompetitorWatch.tsx`
-
-1. Store the prompts where each competitor appears (already available from `scan_results` data -- `gemini_competitors` and `top_cited_domains`).
-2. Pass correct params to the edge function: `{ yourDomain, competitor, promptsWhereTheyRank, mode: 'beat-strategy' }`.
-3. Replace `parseStrategy()` with proper JSON parsing of the AI response so the actual personalized insights are displayed.
-4. Keep the fallback strategy only as a last resort if the API call truly fails.
-
-### Data Flow Change
-
-Currently:
-```
-Click "Beat" -> wrong params -> API fails -> generic fallback shown
+**Add `chat_limit` column to `plans` table:**
+```sql
+ALTER TABLE plans ADD COLUMN chat_limit integer DEFAULT 10;
 ```
 
-After fix:
-```
-Click "Beat" -> send domain + competitor + their prompts -> AI analyzes WHY they rank on those specific prompts -> personalized strategy shown
-```
+**Update plan limits:**
+- Free: 10, Pro: 100, Team: 500, Agency: -1 (unlimited)
 
-### Example of Personalized Output
+**Create `chat_messages` table** to store conversation history per user:
+- `id`, `user_id`, `role` (user/assistant), `content`, `created_at`
+- RLS: users can only access their own messages
 
-For competitor "vimeo.com" ranking on prompts ["best video hosting", "video sharing platforms"]:
+### 2. New Edge Function: `supabase/functions/ai-assistant/index.ts`
 
-- **Why They Rank**: "Vimeo appears in 'best video hosting' queries because they offer dedicated hosting with no ads, which AI models cite as a differentiator. For 'video sharing platforms', their professional-grade tools get mentioned alongside YouTube."
-- **How to Beat**: "Create a comparison page titled 'YouTube vs Vimeo for Business' targeting the exact queries where they appear. Add FAQ schema covering hosting features."
+A streaming edge function that:
+1. Checks the user's `chat_messages_used` vs `chat_limit` (returns 403 if exceeded)
+2. Increments `chat_messages_used` on each user message
+3. Receives the conversation history + new message
+4. Uses a system prompt that understands all app capabilities
+5. Uses tool calling to detect intent (scan, generate titles, analyze competitors, etc.)
+6. Calls the appropriate existing edge functions internally when needed
+7. Streams the response back to the user
+
+The system prompt will instruct the AI about available actions:
+- **Scan**: Extract domain and prompts, call the scan function
+- **Generate titles/descriptions**: Extract topic, call generate-titles/generate-description
+- **Generate FAQs**: Extract content, call generate-faqs
+- **Blog outlines**: Extract topic, call generate-blog-outline
+- **Competitor analysis**: Extract domain, call analyze-competitors
+- **General advice**: Answer directly from AI knowledge
+
+### 3. New Component: `src/components/dashboard/AIAssistant.tsx`
+
+A chat UI component with:
+- Message list with markdown rendering
+- Input box at the bottom
+- Streaming token-by-token display
+- Message counter badge showing "X/Y messages used"
+- Upgrade prompt when limit is reached
+
+### 4. Dashboard Update: `src/pages/Dashboard.tsx`
+
+- Add a new "AI Assistant" tab with a bot icon
+- Pass subscription data for limit display
+
+### 5. Pricing Page Update: `src/pages/Pricing.tsx`
+
+- Add "AI Assistant messages" to each plan's feature list
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `subscriptions` table | Add `chat_messages_used` column |
+| `plans` table | Add `chat_limit` column + update values |
+| `chat_messages` table | Create new table with RLS |
+| `supabase/functions/ai-assistant/index.ts` | Create streaming chat function |
+| `src/components/dashboard/AIAssistant.tsx` | Create chat UI component |
+| `src/pages/Dashboard.tsx` | Add AI Assistant tab |
+| `src/pages/Pricing.tsx` | Add chat limits to plan features |
+| `supabase/config.toml` | Add ai-assistant function config |
+

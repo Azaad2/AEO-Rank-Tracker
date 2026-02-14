@@ -139,6 +139,30 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string
@@ -267,6 +291,7 @@ export type Database = {
       }
       plans: {
         Row: {
+          chat_limit: number | null
           created_at: string | null
           features: Json | null
           id: string
@@ -277,6 +302,7 @@ export type Database = {
           scans_limit: number
         }
         Insert: {
+          chat_limit?: number | null
           created_at?: string | null
           features?: Json | null
           id: string
@@ -287,6 +313,7 @@ export type Database = {
           scans_limit?: number
         }
         Update: {
+          chat_limit?: number | null
           created_at?: string | null
           features?: Json | null
           id?: string
@@ -512,6 +539,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          chat_messages_used: number | null
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
@@ -526,6 +554,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          chat_messages_used?: number | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
@@ -540,6 +569,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          chat_messages_used?: number | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null

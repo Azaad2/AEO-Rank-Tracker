@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.ai-assistant]
 verify_jwt = false
+
+[functions.suggest-prompts]
+verify_jwt = false

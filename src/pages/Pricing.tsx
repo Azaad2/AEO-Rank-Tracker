@@ -24,6 +24,7 @@ const plans = [
       "5 prompts per scan",
       "Basic AI visibility score",
       "10 AI Assistant messages/month",
+      "No AI prompt suggestions",
       "1 prompt result visible",
       "Email-gated full results",
     ],
@@ -42,6 +43,7 @@ const plans = [
     features: [
       "10 scans per month",
       "50 prompts per month",
+      "5 AI prompt suggestions per scan",
       "100 AI Assistant messages/month",
       "Full AI visibility results",
       "CSV export",
@@ -64,6 +66,7 @@ const plans = [
     features: [
       "30 scans per month",
       "150 prompts per month",
+      "10 AI prompt suggestions per scan",
       "500 AI Assistant messages/month",
       "Everything in Pro",
       "White-label PDF reports",
@@ -85,6 +88,7 @@ const plans = [
     features: [
       "Unlimited scans",
       "500 prompts per month",
+      "20 AI prompt suggestions per scan",
       "Unlimited AI Assistant messages",
       "Everything in Team",
       "Multi-domain dashboard",

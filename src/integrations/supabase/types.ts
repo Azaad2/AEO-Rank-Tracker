@@ -300,6 +300,7 @@ export type Database = {
           prompts_limit: number
           razorpay_plan_id: string | null
           scans_limit: number
+          suggested_prompts_limit: number
         }
         Insert: {
           chat_limit?: number | null
@@ -311,6 +312,7 @@ export type Database = {
           prompts_limit?: number
           razorpay_plan_id?: string | null
           scans_limit?: number
+          suggested_prompts_limit?: number
         }
         Update: {
           chat_limit?: number | null
@@ -322,6 +324,7 @@ export type Database = {
           prompts_limit?: number
           razorpay_plan_id?: string | null
           scans_limit?: number
+          suggested_prompts_limit?: number
         }
         Relationships: []
       }

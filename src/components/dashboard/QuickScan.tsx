@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Zap, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SuggestedPrompts } from './SuggestedPrompts';
 
 interface QuickResult {
   scanId: string;
@@ -134,6 +135,13 @@ export function QuickScan({ onScanComplete }: QuickScanProps) {
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+          disabled={isScanning}
+        />
+        <SuggestedPrompts
+          domain={domain}
+          onAddPrompt={(prompt) => {
+            setPromptsText(prev => prev ? `${prev}\n${prompt}` : prompt);
+          }}
           disabled={isScanning}
         />
         <Textarea

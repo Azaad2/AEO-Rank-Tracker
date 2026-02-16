@@ -46,9 +46,8 @@ export const BlogLayout = ({
       metaDescription.setAttribute("content", description);
     }
 
-    // Add JSON-LD Article schema
+    // Build combined JSON-LD schema using @graph to avoid duplicate structured data
     const articleSchema = {
-      "@context": "https://schema.org",
       "@type": "Article",
       headline: title,
       description: description,
@@ -62,14 +61,14 @@ export const BlogLayout = ({
         : {
             "@type": "Organization",
             name: "AI Visibility Checker",
-            url: "https://domain-signal-check.lovable.app",
+            url: "https://aimentionyou.com",
           },
       publisher: {
         "@type": "Organization",
         name: "AI Visibility Checker",
         logo: {
           "@type": "ImageObject",
-          url: "https://domain-signal-check.lovable.app/favicon.png",
+          url: "https://aimentionyou.com/favicon.png",
         },
       },
       mainEntityOfPage: {
@@ -78,50 +77,40 @@ export const BlogLayout = ({
       },
     };
 
-    // Add FAQPage schema if FAQs exist
-    const faqSchema =
-      faqs.length > 0
-        ? {
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((faq) => ({
-              "@type": "Question",
-              name: faq.question,
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: faq.answer,
-              },
-            })),
-          }
-        : null;
+    const graphItems: Record<string, unknown>[] = [articleSchema];
 
-    // Create script tags
-    const articleScriptId = "blog-article-schema";
-    const faqScriptId = "blog-faq-schema";
-
-    // Remove existing schemas
-    document.getElementById(articleScriptId)?.remove();
-    document.getElementById(faqScriptId)?.remove();
-
-    // Add article schema
-    const articleScript = document.createElement("script");
-    articleScript.id = articleScriptId;
-    articleScript.type = "application/ld+json";
-    articleScript.textContent = JSON.stringify(articleSchema);
-    document.head.appendChild(articleScript);
-
-    // Add FAQ schema if exists
-    if (faqSchema) {
-      const faqScript = document.createElement("script");
-      faqScript.id = faqScriptId;
-      faqScript.type = "application/ld+json";
-      faqScript.textContent = JSON.stringify(faqSchema);
-      document.head.appendChild(faqScript);
+    if (faqs.length > 0) {
+      graphItems.push({
+        "@type": "FAQPage",
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      });
     }
 
+    const combinedSchema = {
+      "@context": "https://schema.org",
+      "@graph": graphItems,
+    };
+
+    // Single script tag for all structured data
+    const schemaScriptId = "blog-structured-data";
+
+    document.getElementById(schemaScriptId)?.remove();
+
+    const schemaScript = document.createElement("script");
+    schemaScript.id = schemaScriptId;
+    schemaScript.type = "application/ld+json";
+    schemaScript.textContent = JSON.stringify(combinedSchema);
+    document.head.appendChild(schemaScript);
+
     return () => {
-      document.getElementById(articleScriptId)?.remove();
-      document.getElementById(faqScriptId)?.remove();
+      document.getElementById(schemaScriptId)?.remove();
       document.title = "AI Visibility Checker";
     };
   }, [title, description, publishDate, faqs, author]);

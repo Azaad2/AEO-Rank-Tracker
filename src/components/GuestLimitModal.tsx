@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Lock, UserPlus, LogIn } from 'lucide-react';
+import { UserPlus, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface GuestLimitModalProps {
@@ -26,16 +26,16 @@ export function GuestLimitModal({ open, onOpenChange }: GuestLimitModalProps) {
       <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
         <DialogHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-yellow-400/20 flex items-center justify-center">
-            <Lock className="h-8 w-8 text-yellow-400" />
+           <UserPlus className="h-8 w-8 text-yellow-400" />
           </div>
           <DialogTitle 
             className="text-xl text-center"
             style={{ fontFamily: "'Press Start 2P', cursive" }}
           >
-            Free Scan Used
+            Sign Up to Scan
           </DialogTitle>
           <DialogDescription className="text-gray-400 text-center pt-2">
-            You've used your free daily scan. Create a free account to continue scanning and track your AI visibility over time.
+            Create a free account to scan your domain and track your AI visibility over time.
           </DialogDescription>
         </DialogHeader>
 

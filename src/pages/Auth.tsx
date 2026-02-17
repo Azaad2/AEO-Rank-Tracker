@@ -37,8 +37,9 @@ export default function Auth() {
       if (!result.error) {
         toast({
           title: "Account created!",
-          description: "Please check your email to verify your account.",
+          description: "Welcome! Redirecting to your dashboard.",
         });
+        navigate('/dashboard');
       }
       return result;
     }

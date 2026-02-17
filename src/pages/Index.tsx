@@ -11,7 +11,7 @@ import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mai
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
 import { useAuth } from "@/hooks/useAuth";
-import { useGuestScans } from "@/hooks/useGuestScans";
+
 import { ImprovementRoadmap } from "@/components/ImprovementRoadmap";
 import { generateEnhancedCSV } from "@/utils/csvExport";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
@@ -73,16 +73,10 @@ const Index = () => {
   
   // Auth and guest scan tracking
   const { user } = useAuth();
-  const { canScan, recordGuestScan, resetForNewDay } = useGuestScans();
   
   // A/B Testing for headlines and CTAs
   const { variant: headlineVariant, trackConversion: trackHeadlineConversion } = useABTest('headline');
   const { variant: ctaVariant, trackConversion: trackCtaConversion } = useABTest('cta');
-  
-  // Reset guest scan counter at start of new day
-  useEffect(() => {
-    resetForNewDay();
-  }, [resetForNewDay]);
   
   // Default values while loading
   const headline = headlineVariant?.value || 'AI Search Visibility Checker';
@@ -147,10 +141,10 @@ const Index = () => {
       return;
     }
 
-    // Check guest scan limit (only for non-authenticated users)
-    if (!user && !canScan()) {
+    // Require signup for unauthenticated users
+    if (!user) {
       setShowGuestLimitModal(true);
-      trackEvent('guest_limit_reached', {
+      trackEvent('signup_prompt_shown', {
         domain: domain.trim(),
       });
       return;
@@ -217,10 +211,6 @@ const Index = () => {
       // Store scan ID if returned from function
       if (data.scanId) {
         setScanId(data.scanId);
-        // Record guest scan for limit tracking (only for non-authenticated users)
-        if (!user) {
-          recordGuestScan(data.scanId);
-        }
       }
       // Auto-open results modal
       setShowResultsModal(true);

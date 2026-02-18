@@ -242,6 +242,30 @@ export type Database = {
           },
         ]
       }
+      monitoring_prompts: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          prompts: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          prompts: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          prompts?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       optimization_tasks: {
         Row: {
           completed_at: string | null
@@ -291,6 +315,7 @@ export type Database = {
       }
       plans: {
         Row: {
+          auto_monitor_limit: number
           chat_limit: number | null
           created_at: string | null
           features: Json | null
@@ -303,6 +328,7 @@ export type Database = {
           suggested_prompts_limit: number
         }
         Insert: {
+          auto_monitor_limit?: number
           chat_limit?: number | null
           created_at?: string | null
           features?: Json | null
@@ -315,6 +341,7 @@ export type Database = {
           suggested_prompts_limit?: number
         }
         Update: {
+          auto_monitor_limit?: number
           chat_limit?: number | null
           created_at?: string | null
           features?: Json | null
@@ -436,6 +463,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_auto_scan: boolean
           market: string
           project_domain: string
           prompts: string[]
@@ -445,6 +473,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_auto_scan?: boolean
           market?: string
           project_domain: string
           prompts: string[]
@@ -454,6 +483,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_auto_scan?: boolean
           market?: string
           project_domain?: string
           prompts?: string[]

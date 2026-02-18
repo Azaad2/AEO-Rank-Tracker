@@ -20,7 +20,7 @@ import { GuestLimitModal } from "@/components/GuestLimitModal";
 import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
 import { OptimizationHub } from "@/components/OptimizationHub";
-import { SuggestedPrompts } from "@/components/dashboard/SuggestedPrompts";
+
 import logo from "@/assets/logo-light.png";
 
 interface ScanResult {
@@ -481,13 +481,6 @@ const Index = () => {
               <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
                 Prompts/Keywords (one per line)
               </label>
-              <SuggestedPrompts
-                domain={domain}
-                onAddPrompt={(prompt) => {
-                  setPromptsText(prev => prev ? `${prev}\n${prompt}` : prompt);
-                }}
-                disabled={isScanning}
-              />
               <Textarea
                 id="prompts"
                 placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"

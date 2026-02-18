@@ -18,6 +18,7 @@ interface SavedDomain {
 interface DomainScan {
   score: number | null;
   created_at: string;
+  is_auto_scan?: boolean;
 }
 
 export function SavedDomains() {
@@ -65,7 +66,7 @@ export function SavedDomains() {
     try {
       const { data, error } = await supabase
         .from('scans')
-        .select('score, created_at')
+        .select('score, created_at, is_auto_scan')
         .eq('project_domain', domain)
         .order('created_at', { ascending: true })
         .limit(20);

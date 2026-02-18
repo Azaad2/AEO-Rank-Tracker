@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Bot } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
 interface ScoreTrendProps {
   domain: string;
-  scans: { score: number | null; created_at: string }[];
+  scans: { score: number | null; created_at: string; is_auto_scan?: boolean }[];
 }
 
 export function ScoreTrend({ domain, scans }: ScoreTrendProps) {
@@ -14,6 +15,7 @@ export function ScoreTrend({ domain, scans }: ScoreTrendProps) {
     .map(s => ({
       date: format(new Date(s.created_at), 'MMM d'),
       score: s.score,
+      isAutoScan: s.is_auto_scan || false,
     }));
 
   if (chartData.length === 0) {
@@ -55,6 +57,11 @@ export function ScoreTrend({ domain, scans }: ScoreTrendProps) {
             )}
           </div>
         </div>
+        {chartData.some(d => d.isAutoScan) && (
+          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs flex items-center gap-1 w-fit mt-2">
+            <Bot className="h-3 w-3" /> Auto-monitored
+          </Badge>
+        )}
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
@@ -72,7 +79,13 @@ export function ScoreTrend({ domain, scans }: ScoreTrendProps) {
               dataKey="score"
               stroke="#FACC15"
               strokeWidth={2}
-              dot={{ fill: '#FACC15', r: 4 }}
+              dot={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (payload.isAutoScan) {
+                  return <circle cx={cx} cy={cy} r={5} fill="#3B82F6" stroke="#1E40AF" strokeWidth={1.5} />;
+                }
+                return <circle cx={cx} cy={cy} r={4} fill="#FACC15" />;
+              }}
               activeDot={{ r: 6 }}
             />
           </LineChart>

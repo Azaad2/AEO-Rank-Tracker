@@ -50,8 +50,8 @@ export function GuestLimitModal({ open, onOpenChange }: GuestLimitModalProps) {
           
           <Button
             onClick={handleSignIn}
-            variant="outline"
-            className="w-full border-gray-600 !text-white hover:bg-gray-800"
+            variant="ghost"
+            className="w-full border border-gray-600 bg-gray-800 text-white hover:bg-gray-700 hover:text-white"
           >
             <LogIn className="mr-2 h-4 w-4" />
             Sign In

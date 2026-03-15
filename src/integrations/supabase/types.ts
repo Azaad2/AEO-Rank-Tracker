@@ -321,6 +321,7 @@ export type Database = {
           features: Json | null
           id: string
           name: string
+          paypal_plan_id: string | null
           price_monthly: number
           prompts_limit: number
           razorpay_plan_id: string | null
@@ -334,6 +335,7 @@ export type Database = {
           features?: Json | null
           id: string
           name: string
+          paypal_plan_id?: string | null
           price_monthly?: number
           prompts_limit?: number
           razorpay_plan_id?: string | null
@@ -347,6 +349,7 @@ export type Database = {
           features?: Json | null
           id?: string
           name?: string
+          paypal_plan_id?: string | null
           price_monthly?: number
           prompts_limit?: number
           razorpay_plan_id?: string | null
@@ -578,6 +581,7 @@ export type Database = {
           current_period_start: string | null
           customer_id: string | null
           id: string
+          paypal_subscription_id: string | null
           plan_id: string | null
           prompts_used: number | null
           razorpay_subscription_id: string | null
@@ -593,6 +597,7 @@ export type Database = {
           current_period_start?: string | null
           customer_id?: string | null
           id?: string
+          paypal_subscription_id?: string | null
           plan_id?: string | null
           prompts_used?: number | null
           razorpay_subscription_id?: string | null
@@ -608,6 +613,7 @@ export type Database = {
           current_period_start?: string | null
           customer_id?: string | null
           id?: string
+          paypal_subscription_id?: string | null
           plan_id?: string | null
           prompts_used?: number | null
           razorpay_subscription_id?: string | null

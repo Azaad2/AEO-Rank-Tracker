@@ -22,6 +22,7 @@ export interface Subscription {
   plan_id: string;
   status: "active" | "cancelled" | "past_due" | "trialing";
   razorpay_subscription_id: string | null;
+  paypal_subscription_id: string | null;
   current_period_start: string;
   current_period_end: string | null;
   prompts_used: number;

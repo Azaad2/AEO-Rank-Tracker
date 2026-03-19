@@ -140,6 +140,7 @@ const App = () => (
           <Route path="/blog/llm-rank-tracking-guide" element={<LLMRankTrackingGuide />} />
           <Route path="/blog/geo-optimization-guide" element={<GEOOptimizationGuide />} />
           <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
+          <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

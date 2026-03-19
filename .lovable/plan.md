@@ -1,19 +1,36 @@
 
 
-# Remove Suggest Prompts from Homepage + Fix Sign In Button Visibility
+# Add Blog Post: "7 Best Online LLM Rank Trackers for AI Visibility in 2026"
 
-## Changes
+## Overview
+Create a new blog post page following the existing BlogLayout pattern, register it in the router, add it to the blog listing, and update the sitemap.
 
-### 1. Remove "Suggest Prompts" button from homepage
-The `SuggestedPrompts` component is currently rendered in the scan form on the homepage (`Index.tsx`, line 484-490). It will be removed from there -- this feature is already available in the dashboard for signed-in users.
+## Files to Create
 
-**File:** `src/pages/Index.tsx`
-- Remove the `SuggestedPrompts` import (line 23)
-- Remove the `<SuggestedPrompts>` component from the scan form (lines 484-490)
+### 1. `src/pages/blog/BestOnlineLLMRankTracker.tsx`
+New blog post component using `BlogLayout` with:
+- **Title**: "7 Best Online LLM Rank Trackers for AI Visibility in 2026 (Tested and Compared)"
+- **Meta description**: "Tracking your brand in AI search results is the new SEO. We tested the best LLM rank tracker tools in 2026 — here's what each one does and who it's for."
+- **Category**: "AI Visibility"
+- **Read time**: "14 min"
+- **Publish date**: "March 19, 2026"
+- **Tool link**: `/tools/llm-rank-tracker`
+- Full article content with all 7 tools, comparison table (using HTML table elements styled with Tailwind), FAQ section, and CTA
+- FAQs from the provided content (4 questions)
+- Related posts linking to existing articles (LLM Rank Tracking Guide, AI Visibility Tools Comparison, GEO Optimization Guide)
 
-### 2. Fix Sign In button visibility on signup popup
-The Sign In button in the `GuestLimitModal` uses `variant="outline"` which applies default shadcn styles that can conflict with the custom `text-white` class (the outline variant may set its own foreground color that overrides white). The fix is to use `variant="ghost"` or apply inline style to ensure the text is always visible against the dark modal background.
+## Files to Modify
 
-**File:** `src/components/GuestLimitModal.tsx`
-- Change the Sign In button styling to ensure white text is visible: use `!text-white` (important modifier) or switch to a more explicit styling approach with proper contrast
+### 2. `src/App.tsx`
+- Add import for `BestOnlineLLMRankTracker`
+- Add route: `/blog/best-online-llm-rank-tracker`
+
+### 3. `src/pages/Blog.tsx`
+- Add new blog post entry to the `blogPosts` array with `featured: true` flag (or without, depending on desired prominence)
+
+### 4. `public/sitemap.xml`
+- Add new URL entry: `https://aimentionyou.com/blog/best-online-llm-rank-tracker`
+
+## Content Structure
+The post follows the exact structure provided: Introduction → What Is an LLM Rank Tracker → What to Look For → 7 Tools (each with details) → Comparison Table → Decision Guide → FAQs → CTA. Internal links to `/tools/llm-rank-tracker` and `aimentionyou.com` homepage throughout.
 

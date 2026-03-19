@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "7 Best Online LLM Rank Trackers for AI Visibility in 2026 (Tested and Compared)",
+    description: "Tracking your brand in AI search results is the new SEO. We tested the best LLM rank tracker tools in 2026 — here's what each one does and who it's for.",
+    slug: "best-online-llm-rank-tracker",
+    category: "AI Visibility",
+    readTime: "14 min",
+    publishDate: "March 19, 2026",
+    featured: true,
+  },
+  {
     title: "AI Visibility Tools 2026: Why AImentionyou Beats Semrush, Peec AI & Profound",
     description: "Complete comparison of top 9 AI visibility tools. AImentionyou crushes on price (Free-$19), free technical tools, and developer workflows.",
     slug: "ai-visibility-tools-comparison-2026",

@@ -5,19 +5,19 @@ const BestOnlineLLMRankTracker = () => {
   const faqs = [
     {
       question: "What is LLM rank tracking?",
-      answer: "LLM rank tracking is the practice of monitoring how your brand appears in AI-generated answers from large language models like ChatGPT, Perplexity, Claude, and Gemini. Unlike traditional SEO rank tracking (which measures where your webpage appears in search results), LLM rank tracking measures whether AI models mention your brand, how often, in what context, and with what sentiment.",
+      answer: "LLM rank tracking is the practice of monitoring how — and how often — your brand appears inside AI-generated answers from large language models like ChatGPT, Perplexity, Claude, and Gemini. Think of it as Google Search Console for the AI world. Instead of tracking where your page ranks in search results, it tells you whether AI models mention your brand, how often, in what context, and with what sentiment. Tools like AIMentionYou automate this process across all major AI platforms.",
     },
     {
       question: "Is LLM rank tracking different from SEO rank tracking?",
-      answer: "Yes. Traditional SEO trackers measure your position in search engine results pages. LLM rank trackers measure your visibility inside conversational AI answers — a fundamentally different signal. A brand can rank #1 on Google and be completely absent from ChatGPT recommendations, and vice versa. Both matter in 2026.",
+      answer: "Yes — they are fundamentally different. Traditional SEO trackers measure your position in search engine results pages (SERPs). LLM rank trackers measure your visibility inside conversational AI answers — a completely different signal. A brand can rank #1 on Google and be entirely absent from ChatGPT recommendations, and vice versa. As AI search grows, tracking both has become essential for any brand focused on organic visibility.",
     },
     {
       question: "How often do AI search rankings change?",
-      answer: "More frequently than traditional rankings. Because LLMs are probabilistic — they predict the most likely response rather than applying deterministic rules — answers can shift within days or weeks. Research suggests a significant proportion of AI citation rankings can change within an 8-week period, which is why daily or weekly monitoring is recommended.",
+      answer: "More frequently than traditional search rankings. Because large language models are probabilistic — they generate the most likely response rather than applying fixed rules — AI answers can shift within days or weeks. A brand mentioned consistently in ChatGPT today may appear less frequently after a model update or as new content enters the web. This is why regular monitoring with an LLM rank tracker is recommended, ideally on a weekly basis.",
     },
     {
       question: "Can I improve my LLM rank?",
-      answer: "Yes. While you can't directly control what AI models say, you can influence it. The primary levers are: being cited by trusted third-party sources (publications, reviews, forums), having structured and clearly-written content that AI crawlers can parse, maintaining accurate brand information across the web, and creating content that directly answers the questions your customers ask AI.",
+      answer: "Yes. While you cannot directly control what AI models say, you can influence it through Answer Engine Optimization (AEO). The primary levers are: being cited by trusted third-party sources such as publications, review sites, and forums; having clearly structured, crawlable content that AI systems can parse; maintaining consistent brand mentions across the web including unlinked mentions; and creating content that directly and concisely answers the questions your customers ask AI. Tools like AIMentionYou track your current LLM rank and surface specific optimisation tasks to improve it.",
     },
   ];
 

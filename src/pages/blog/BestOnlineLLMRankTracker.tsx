@@ -349,6 +349,19 @@ const BestOnlineLLMRankTracker = () => {
       <p>
         <Link to="/" className="text-primary hover:underline font-semibold">Try it free at aimentionyou.com →</Link>
       </p>
+
+      {/* FAQ Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 text-white">Frequently Asked Questions</h2>
+        <div className="space-y-6">
+          {faqs.map((faq, index) => (
+            <div key={index} className="p-6 bg-gray-900 rounded-lg border border-gray-800">
+              <h3 className="text-lg font-semibold mb-2 text-white">{faq.question}</h3>
+              <p className="text-gray-400">{faq.answer}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </BlogLayout>
   );
 };

@@ -1,7 +1,45 @@
 import { useEffect } from "react";
 import BlogLayout from "@/components/blog/BlogLayout";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet";
+
+const faqSchemaData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is LLM rank tracking?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "LLM rank tracking is the practice of monitoring how — and how often — your brand appears inside AI-generated answers from large language models like ChatGPT, Perplexity, Claude, and Gemini. Think of it as Google Search Console for the AI world. Instead of tracking where your page ranks in search results, it tells you whether AI models mention your brand, how often, in what context, and with what sentiment. Tools like AIMentionYou automate this process across all major AI platforms."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is LLM rank tracking different from SEO rank tracking?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — they are fundamentally different. Traditional SEO trackers measure your position in search engine results pages (SERPs). LLM rank trackers measure your visibility inside conversational AI answers — a completely different signal. A brand can rank #1 on Google and be entirely absent from ChatGPT recommendations, and vice versa. As AI search grows, tracking both has become essential for any brand focused on organic visibility."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How often do AI search rankings change?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "More frequently than traditional search rankings. Because large language models are probabilistic — they generate the most likely response rather than applying fixed rules — AI answers can shift within days or weeks. A brand mentioned consistently in ChatGPT today may appear less frequently after a model update or as new content enters the web. This is why regular monitoring with an LLM rank tracker is recommended, ideally on a weekly basis."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I improve my LLM rank?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. While you cannot directly control what AI models say, you can influence it through Answer Engine Optimization (AEO). The primary levers are: being cited by trusted third-party sources such as publications, review sites, and forums; having clearly structured, crawlable content that AI systems can parse; maintaining consistent brand mentions across the web including unlinked mentions; and creating content that directly answers the questions your customers ask AI. Tools like AIMentionYou track your current LLM rank and surface specific optimisation tasks to improve it."
+      }
+    }
+  ]
+};
 
 const BestOnlineLLMRankTracker = () => {
   const faqs = [
@@ -23,6 +61,18 @@ const BestOnlineLLMRankTracker = () => {
     },
   ];
 
+  // Add standalone FAQPage schema - separate from BlogLayout's Article schema
+  useEffect(() => {
+    const scriptId = "best-llm-rank-tracker-faq-schema";
+    document.getElementById(scriptId)?.remove();
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(faqSchemaData);
+    document.head.appendChild(script);
+    return () => { document.getElementById(scriptId)?.remove(); };
+  }, []);
+
   const relatedPosts = [
     { title: "LLM Rank Tracking: Complete Guide to Multi-Platform AI Visibility", slug: "llm-rank-tracking-guide", category: "AI Visibility" },
     { title: "AI Visibility Tools 2026: Why AImentionyou Beats Semrush, Peec AI & Profound", slug: "ai-visibility-tools-comparison-2026", category: "AI Visibility" },
@@ -38,7 +88,7 @@ const BestOnlineLLMRankTracker = () => {
       category="AI Visibility"
       toolLink="/tools/llm-rank-tracker"
       toolName="LLM Rank Tracker"
-      faqs={faqs}
+      faqs={[]}
       relatedPosts={relatedPosts}
     >
       <h2 id="introduction">Google Rankings Don't Tell You If ChatGPT Is Recommending Your Brand</h2>

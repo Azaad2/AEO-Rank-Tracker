@@ -61,16 +61,32 @@ const BestOnlineLLMRankTracker = () => {
     },
   ];
 
-  // Add standalone FAQPage schema - separate from BlogLayout's Article schema
+  // Single combined schema — remove ALL existing ld+json first to prevent duplicates
   useEffect(() => {
-    const scriptId = "best-llm-rank-tracker-faq-schema";
-    document.getElementById(scriptId)?.remove();
+    document.querySelectorAll('script[type="application/ld+json"]').forEach((el) => el.remove());
+
+    const combinedSchema = [
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "7 Best Online LLM Rank Trackers for AI Visibility in 2026 (Tested and Compared)",
+        "description": "Tracking your brand in AI search results is the new SEO. We tested the best LLM rank tracker tools in 2026 — here's what each one does and who it's for.",
+        "url": "https://aimentionyou.com/blog/best-online-llm-rank-tracker",
+        "datePublished": "2026-03-19",
+        "dateModified": "2026-03-19",
+        "author": { "@type": "Person", "name": "AIMentionYou Founder" },
+        "publisher": { "@type": "Organization", "name": "AIMentionYou", "url": "https://aimentionyou.com" }
+      },
+      faqSchemaData
+    ];
+
     const script = document.createElement("script");
-    script.id = scriptId;
+    script.id = "best-llm-rank-tracker-schema";
     script.type = "application/ld+json";
-    script.textContent = JSON.stringify(faqSchemaData);
+    script.textContent = JSON.stringify(combinedSchema);
     document.head.appendChild(script);
-    return () => { document.getElementById(scriptId)?.remove(); };
+
+    return () => { document.getElementById("best-llm-rank-tracker-schema")?.remove(); };
   }, []);
 
   const relatedPosts = [

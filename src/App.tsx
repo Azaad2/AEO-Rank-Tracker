@@ -66,6 +66,7 @@ import LLMRankTrackingGuide from "./pages/blog/LLMRankTrackingGuide";
 import GEOOptimizationGuide from "./pages/blog/GEOOptimizationGuide";
 import AICitationTrackingGuide from "./pages/blog/AICitationTrackingGuide";
 import BestOnlineLLMRankTracker from "./pages/blog/BestOnlineLLMRankTracker";
+import AEOGuide from "./pages/blog/AEOGuide";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
           <Route path="/blog/geo-optimization-guide" element={<GEOOptimizationGuide />} />
           <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
           <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
+          <Route path="/blog/what-is-answer-engine-optimization-aeo-guide" element={<AEOGuide />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "What is Answer Engine Optimization (AEO)? Complete Guide for 2026",
+    description: "Answer Engine Optimization (AEO) is the new SEO. Learn what it is, how it differs from traditional SEO, and how to track and improve your AEO performance in 2026.",
+    slug: "what-is-answer-engine-optimization-aeo-guide",
+    category: "AI Visibility",
+    readTime: "15 min",
+    publishDate: "March 26, 2026",
+    featured: true,
+  },
+  {
     title: "7 Best Online LLM Rank Trackers for AI Visibility in 2026 (Tested and Compared)",
     description: "Tracking your brand in AI search results is the new SEO. We tested the best LLM rank tracker tools in 2026 — here's what each one does and who it's for.",
     slug: "best-online-llm-rank-tracker",

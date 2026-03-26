@@ -66,6 +66,7 @@ import LLMRankTrackingGuide from "./pages/blog/LLMRankTrackingGuide";
 import GEOOptimizationGuide from "./pages/blog/GEOOptimizationGuide";
 import AICitationTrackingGuide from "./pages/blog/AICitationTrackingGuide";
 import BestOnlineLLMRankTracker from "./pages/blog/BestOnlineLLMRankTracker";
+import AEOGuide from "./pages/blog/AEOGuide";
 
 const queryClient = new QueryClient();
 

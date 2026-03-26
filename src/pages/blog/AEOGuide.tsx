@@ -17,9 +17,9 @@ const jsonLdSchema = [
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: title,
-    description,
-    url: canonicalUrl,
+    headline: "What is Answer Engine Optimization (AEO)? Complete Guide for 2026",
+    description: "Answer Engine Optimization (AEO) is the new SEO. Learn what it is, how it differs from traditional SEO, and how to track and improve your AEO performance in 2026.",
+    url: "https://aimentionyou.com/blog/what-is-answer-engine-optimization-aeo-guide",
     datePublished: "2026-03-26",
     dateModified: "2026-03-26",
     author: { "@type": "Person", name: "AIMentionYou Founder" },
@@ -34,7 +34,7 @@ const jsonLdSchema = [
         name: "How long does AEO take to show results?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Initial AI citations typically appear within 2 to 4 months of implementing AEO best practices. This is faster than traditional SEO because AI systems update their retrieval more frequently than search engine crawl cycles allow. Schema markup changes can be picked up within days of Google recrawling your page.",
+          text: "Initial AI citations typically appear within 2 to 4 months of implementing AEO best practices. This is faster than traditional SEO because AI systems update their retrieval more frequently than search engine crawl cycles allow.",
         },
       },
       {
@@ -42,7 +42,7 @@ const jsonLdSchema = [
         name: "Does AEO replace SEO?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "No. AEO and SEO are complementary strategies. Strong SEO gets your content indexed, discovered, and trusted — which is the prerequisite for AI systems to find and cite it. AEO adds the structural and entity-level optimisation layer that makes your content citable by AI once it has been found. You need both for complete search visibility in 2026.",
+          text: "No. AEO and SEO are complementary strategies. Strong SEO gets your content indexed and trusted, which is the prerequisite for AI systems to find and cite it. AEO adds the structural layer that makes your content citable by AI once it has been found.",
         },
       },
       {
@@ -50,7 +50,7 @@ const jsonLdSchema = [
         name: "Which AI platform should I prioritise for AEO?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Start with all four major platforms: ChatGPT, Perplexity, Google AI Overviews, and Gemini. Each has a different user base and different retrieval behaviour. Track all four and identify which one your specific audience uses most.",
+          text: "Start with all four major platforms: ChatGPT, Perplexity, Google AI Overviews, and Gemini. Each has a different user base and retrieval behaviour. Track all four and identify which one your specific audience uses most.",
         },
       },
       {
@@ -58,7 +58,7 @@ const jsonLdSchema = [
         name: "Can small brands compete with large brands in AEO?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Yes — and in some ways more effectively than in traditional SEO. AI systems weight content quality, structure, and relevance more heavily than raw domain authority. A well-structured, highly specific page from a small brand can outperform a generic page from a large brand for specific query types.",
+          text: "Yes. AI systems weight content quality, structure, and relevance more heavily than raw domain authority. A well-structured, specific page from a small brand can outperform a generic page from a large brand for specific query types.",
         },
       },
       {
@@ -66,7 +66,7 @@ const jsonLdSchema = [
         name: "How is AEO different from featured snippet optimisation?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Featured snippets are an early form of AEO — Google extracting a direct answer from a webpage to display above organic results. Modern AEO extends this to conversational AI platforms that do not show traditional search results at all. The content principles are similar but the distribution is broader. A page optimised for featured snippets is already partway to being AEO-ready.",
+          text: "Featured snippets are an early form of AEO. Modern AEO extends this to conversational AI platforms that do not show traditional search results at all. A page optimised for featured snippets is already partway to being AEO-ready.",
         },
       },
     ],

@@ -95,9 +95,11 @@ const AEOGuide = () => {
     }
     canonical.href = canonicalUrl;
 
-    // Single JSON-LD
+    // Remove ALL existing JSON-LD scripts first
+    document.querySelectorAll('script[type="application/ld+json"]').forEach((el) => el.remove());
+
+    // Add ONE single JSON-LD block
     const schemaId = "aeo-guide-schema";
-    document.getElementById(schemaId)?.remove();
     const script = document.createElement("script");
     script.id = schemaId;
     script.type = "application/ld+json";

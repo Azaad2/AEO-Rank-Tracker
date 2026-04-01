@@ -4,7 +4,13 @@ import { useEffect } from "react";
 
 const Terms = () => {
   useEffect(() => {
-    document.title = "Terms of Service | AI Visibility Checker";
+    document.title = "Terms of Service | AIMentionYou";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "Terms of Service for AIMentionYou. Your use of our AI visibility tools is subject to these terms.");
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) { robots = document.createElement("meta"); robots.name = "robots"; document.head.appendChild(robots); }
+    robots.content = "noindex, nofollow";
+    return () => { document.title = "AI Visibility Checker"; if (robots) robots.content = "index, follow"; };
   }, []);
 
   return (

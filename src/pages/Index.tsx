@@ -95,6 +95,37 @@ const Index = () => {
     });
   }, [trackEvent]);
 
+  // Homepage schema (P2)
+  useEffect(() => {
+    const id = "homepage-schema";
+    document.getElementById(id)?.remove();
+    const s = document.createElement("script");
+    s.id = id;
+    s.type = "application/ld+json";
+    s.textContent = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        name: "AI Mention You",
+        applicationCategory: "SEO Tool",
+        description: "Free AI visibility checker. See if ChatGPT, Gemini, and Perplexity mention your site.",
+        url: "https://aimentionyou.com/",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          { "@type": "Question", name: "What is AI Mention You?", acceptedAnswer: { "@type": "Answer", text: "AI Mention You shows whether AI assistants like ChatGPT, Perplexity, and Gemini mention and cite your website when answering user questions." } },
+          { "@type": "Question", name: "How is AI Mention You different from normal SEO tools?", acceptedAnswer: { "@type": "Answer", text: "Traditional SEO tools focus on blue-link rankings. AI Mention You checks if your website is mentioned in AI-generated answers." } },
+          { "@type": "Question", name: "Who should use AI Mention You?", acceptedAnswer: { "@type": "Answer", text: "Any website whose audience uses AI assistants: SaaS, ecommerce, blogs, local businesses, and agencies." } },
+          { "@type": "Question", name: "Does running an AI visibility scan improve my rankings automatically?", acceptedAnswer: { "@type": "Answer", text: "No. AI Mention You provides data and insights. Rankings improve when you act on those insights." } },
+        ],
+      },
+    ]);
+    document.head.appendChild(s);
+    return () => { document.getElementById(id)?.remove(); };
+  }, []);
   // Track scroll depth
   useEffect(() => {
     let scrollTracked = { 

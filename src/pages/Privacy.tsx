@@ -4,7 +4,13 @@ import { useEffect } from "react";
 
 const Privacy = () => {
   useEffect(() => {
-    document.title = "Privacy Policy | AI Visibility Checker";
+    document.title = "Privacy Policy | AIMentionYou";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "Privacy Policy for AIMentionYou. Learn how we collect, use, and protect your data.");
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) { robots = document.createElement("meta"); robots.name = "robots"; document.head.appendChild(robots); }
+    robots.content = "noindex, nofollow";
+    return () => { document.title = "AI Visibility Checker"; if (robots) robots.content = "index, follow"; };
   }, []);
 
   return (

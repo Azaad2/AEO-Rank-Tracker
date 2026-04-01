@@ -4,7 +4,20 @@ import { useEffect } from "react";
 
 const About = () => {
   useEffect(() => {
-    document.title = "About Us | AI Visibility Checker";
+    document.title = "About AIMentionYou — AI Visibility Checker for Brands & Agencies";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "AIMentionYou helps businesses track and improve their presence in AI-powered search engines like ChatGPT, Perplexity, and Gemini. Free tools for any website.");
+    let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
+    can.href = "https://aimentionyou.com/about";
+    const ogT = document.querySelector('meta[property="og:title"]');
+    if (ogT) ogT.setAttribute("content", "About AIMentionYou — AI Visibility Checker for Brands & Agencies");
+    const id = "about-schema";
+    document.getElementById(id)?.remove();
+    const s = document.createElement("script"); s.id = id; s.type = "application/ld+json";
+    s.textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: "AIMentionYou", url: "https://aimentionyou.com", logo: "https://aimentionyou.com/favicon.png", description: "Free AI visibility tools for brands, agencies, and marketers.", contactPoint: { "@type": "ContactPoint", email: "hello@aimentionyou.com", contactType: "customer support" } });
+    document.head.appendChild(s);
+    return () => { document.getElementById(id)?.remove(); can?.remove(); document.title = "AI Visibility Checker"; };
   }, []);
 
   return (

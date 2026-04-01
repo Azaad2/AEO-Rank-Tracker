@@ -5,7 +5,15 @@ import { Mail, MessageSquare } from "lucide-react";
 
 const Contact = () => {
   useEffect(() => {
-    document.title = "Contact Us | AI Visibility Checker";
+    document.title = "Contact AIMentionYou — Get in Touch";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "Contact AIMentionYou. We respond within 24-48 hours. Reach us at hello@aimentionyou.com for support, partnerships, or feedback.");
+    let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
+    can.href = "https://aimentionyou.com/contact";
+    const ogT = document.querySelector('meta[property="og:title"]');
+    if (ogT) ogT.setAttribute("content", "Contact AIMentionYou — Get in Touch");
+    return () => { can?.remove(); document.title = "AI Visibility Checker"; };
   }, []);
 
   return (

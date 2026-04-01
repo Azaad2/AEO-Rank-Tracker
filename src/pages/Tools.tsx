@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { Search, MessageSquare, FileText, Code, Lightbulb, Users, BarChart3, Mail, PenLine, Eye, Zap, Type, AlignLeft, Globe, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ToolCard from "@/components/tools/ToolCard";
@@ -177,6 +178,31 @@ const tools = [
 ];
 
 const Tools = () => {
+  useEffect(() => {
+    document.title = "Free AI Visibility Tools — 24 Tools for AI SEO | AIMentionYou";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "24 free AI visibility tools: check if ChatGPT mentions you, track Perplexity rankings, generate FAQ schema, create AI-optimised content, and monitor brand visibility across every major LLM.");
+    let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
+    can.href = "https://aimentionyou.com/tools";
+    const ogT = document.querySelector('meta[property="og:title"]');
+    if (ogT) ogT.setAttribute("content", "Free AI Visibility Tools — 24 Tools for AI SEO | AIMentionYou");
+    const id = "tools-schema";
+    document.getElementById(id)?.remove();
+    const s = document.createElement("script"); s.id = id; s.type = "application/ld+json";
+    s.textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "ItemList", name: "Free AI Visibility Tools", url: "https://aimentionyou.com/tools", numberOfItems: 24, itemListElement: [
+      { "@type": "ListItem", position: 1, name: "AI Visibility Checker", url: "https://aimentionyou.com/" },
+      { "@type": "ListItem", position: 2, name: "Perplexity Rank Tracker", url: "https://aimentionyou.com/tools/perplexity-rank-tracker" },
+      { "@type": "ListItem", position: 3, name: "ChatGPT Mention Tracker", url: "https://aimentionyou.com/tools/chatgpt-mention-tracker" },
+      { "@type": "ListItem", position: 4, name: "Claude Rank Tracker", url: "https://aimentionyou.com/tools/claude-rank-tracker" },
+      { "@type": "ListItem", position: 5, name: "AI Prompt Generator", url: "https://aimentionyou.com/tools/ai-prompt-generator" },
+      { "@type": "ListItem", position: 6, name: "AI FAQ Generator", url: "https://aimentionyou.com/tools/ai-faq-generator" },
+      { "@type": "ListItem", position: 7, name: "Schema Generator", url: "https://aimentionyou.com/tools/schema-generator" },
+      { "@type": "ListItem", position: 8, name: "AI Blog Outline", url: "https://aimentionyou.com/tools/ai-blog-outline" },
+    ]});
+    document.head.appendChild(s);
+    return () => { document.getElementById(id)?.remove(); can?.remove(); document.title = "AI Visibility Checker"; };
+  }, []);
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />

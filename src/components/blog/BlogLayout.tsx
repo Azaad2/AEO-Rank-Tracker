@@ -99,6 +99,28 @@ export const BlogLayout = ({
     };
 
     // Single script tag for all structured data
+    // Canonical (P3)
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    let canonicalCreated = false;
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+      canonicalCreated = true;
+    }
+    canonical.href = window.location.href.split("?")[0];
+
+    // Per-page OG + Twitter override (P5)
+    const setOg = (sel: string, attr: string, attrVal: string, val: string) => {
+      let el = document.querySelector(sel) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, attrVal); document.head.appendChild(el); }
+      el.setAttribute("content", val);
+    };
+    setOg('meta[property="og:title"]', "property", "og:title", `${title} | AI Visibility Checker`);
+    setOg('meta[property="og:description"]', "property", "og:description", description);
+    setOg('meta[property="og:url"]', "property", "og:url", window.location.href.split("?")[0]);
+    setOg('meta[name="twitter:title"]', "name", "twitter:title", `${title} | AI Visibility Checker`);
+    setOg('meta[name="twitter:description"]', "name", "twitter:description", description);
     const schemaScriptId = "blog-structured-data";
 
     document.getElementById(schemaScriptId)?.remove();
@@ -111,6 +133,7 @@ export const BlogLayout = ({
 
     return () => {
       document.getElementById(schemaScriptId)?.remove();
+      if (canonicalCreated) canonical?.remove();
       document.title = "AI Visibility Checker";
     };
   }, [title, description, publishDate, faqs, author]);

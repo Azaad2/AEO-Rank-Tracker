@@ -117,6 +117,30 @@ const comparisonData = [
 ];
 
 export default function Pricing() {
+  useEffect(() => {
+    document.title = "AI Visibility Pricing — Free, Pro, Team & Agency Plans | AIMentionYou";
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", "Choose your AI visibility plan. Monitor how ChatGPT, Perplexity, Gemini and Claude mention your brand. Plans from free to agency. 10x cheaper than competitors.");
+    let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
+    can.href = "https://aimentionyou.com/pricing";
+    const ogT = document.querySelector('meta[property="og:title"]');
+    if (ogT) ogT.setAttribute("content", "AI Visibility Pricing — Free, Pro, Team & Agency | AIMentionYou");
+    const id = "pricing-schema";
+    document.getElementById(id)?.remove();
+    const s = document.createElement("script"); s.id = id; s.type = "application/ld+json";
+    s.textContent = JSON.stringify([
+      { "@context": "https://schema.org", "@type": "WebPage", name: "AI Visibility Pricing", url: "https://aimentionyou.com/pricing" },
+      { "@context": "https://schema.org", "@type": "ItemList", name: "AIMentionYou Pricing Plans", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Free — $0/month" },
+        { "@type": "ListItem", position: 2, name: "Pro — $19/month" },
+        { "@type": "ListItem", position: 3, name: "Team — $49/month" },
+        { "@type": "ListItem", position: 4, name: "Agency — $149/month" },
+      ]},
+    ]);
+    document.head.appendChild(s);
+    return () => { document.getElementById(id)?.remove(); can?.remove(); document.title = "AI Visibility Checker"; };
+  }, []);
   const [billingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const navigate = useNavigate();

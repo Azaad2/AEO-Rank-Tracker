@@ -12,6 +12,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import AIVisibilityHub from "./pages/AIVisibilityHub";
+import ProgrammaticSEOPage from "./pages/ProgrammaticSEOPage";
 import AIPromptGenerator from "./pages/tools/AIPromptGenerator";
 import AIFAQGenerator from "./pages/tools/AIFAQGenerator";
 import AIAnswerGenerator from "./pages/tools/AIAnswerGenerator";
@@ -143,6 +145,8 @@ const App = () => (
           <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
           <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
           <Route path="/blog/what-is-answer-engine-optimization-aeo-guide" element={<AEOGuide />} />
+          <Route path="/ai-visibility" element={<AIVisibilityHub />} />
+          <Route path="/ai-visibility/:slug" element={<ProgrammaticSEOPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

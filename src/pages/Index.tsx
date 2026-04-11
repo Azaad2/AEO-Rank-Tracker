@@ -172,15 +172,6 @@ const Index = () => {
       return;
     }
 
-    // Require signup for unauthenticated users
-    if (!user) {
-      setShowGuestLimitModal(true);
-      trackEvent('signup_prompt_shown', {
-        domain: domain.trim(),
-      });
-      return;
-    }
-
     // Check subscription limits for logged-in users
     if (user) {
       const { data: sub } = await supabase

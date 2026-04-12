@@ -525,7 +525,7 @@ const Index = () => {
               />
             </div>
 
-            <div className="space-y-2">
+             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-300">
                 What's your business type?
               </label>
@@ -536,7 +536,7 @@ const Index = () => {
                     type="button"
                     variant={selectedBusinessType === type ? "default" : "outline"}
                     size="sm"
-                    disabled={isScanning}
+                    disabled={isScanning || isGeneratingPrompts}
                     className={
                       selectedBusinessType === type
                         ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
@@ -555,7 +555,77 @@ const Index = () => {
                     {type}
                   </Button>
                 ))}
+                <Button
+                  type="button"
+                  variant={selectedBusinessType === 'Custom' ? "default" : "outline"}
+                  size="sm"
+                  disabled={isScanning || isGeneratingPrompts}
+                  className={
+                    selectedBusinessType === 'Custom'
+                      ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                      : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                  }
+                  onClick={() => setSelectedBusinessType('Custom')}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Custom
+                </Button>
               </div>
+
+              {selectedBusinessType === 'Custom' && (
+                <div className="mt-3 space-y-2">
+                  <Input
+                    placeholder="Describe your business, e.g. 'Online pet food subscription service'"
+                    value={customDescription}
+                    onChange={(e) => setCustomDescription(e.target.value)}
+                    disabled={isGeneratingPrompts}
+                    className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isGeneratingPrompts || !customDescription.trim()}
+                    className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                    onClick={async () => {
+                      setIsGeneratingPrompts(true);
+                      trackEvent('custom_prompts_generation', { description: customDescription });
+                      try {
+                        const { data, error } = await supabase.functions.invoke('generate-prompts', {
+                          body: {
+                            industry: customDescription.trim(),
+                            businessDescription: customDescription.trim(),
+                            targetAudience: 'general',
+                          },
+                        });
+                        if (error) throw error;
+                        const prompts = (data.prompts || [])
+                          .slice(0, 5)
+                          .map((p: any) => p.prompt || p)
+                          .join('\n');
+                        setPromptsText(prompts);
+                        toast({ title: 'Prompts generated!', description: '5 AI-tailored prompts added.' });
+                      } catch (err) {
+                        console.error('Prompt generation error:', err);
+                        toast({ title: 'Generation failed', description: 'Please try again or enter prompts manually.', variant: 'destructive' });
+                      } finally {
+                        setIsGeneratingPrompts(false);
+                      }
+                    }}
+                  >
+                    {isGeneratingPrompts ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-1 h-3 w-3" />
+                        Generate Prompts with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

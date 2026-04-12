@@ -55,9 +55,33 @@ interface ScanResponse {
   };
 }
 
+const BUSINESS_TYPE_PROMPTS: Record<string, string[]> = {
+  SaaS: [
+    "best {domain} alternatives",
+    "is {domain} worth it for small teams",
+    "top software tools like {domain}",
+  ],
+  Ecommerce: [
+    "best online store for {domain} products",
+    "is {domain} legit and safe to buy from",
+    "{domain} reviews and customer experience",
+  ],
+  Agency: [
+    "best {domain} type agencies near me",
+    "how much does {domain} charge for services",
+    "top agencies like {domain} for startups",
+  ],
+  Other: [
+    "what is {domain} and what do they do",
+    "is {domain} trustworthy",
+    "{domain} vs competitors",
+  ],
+};
+
 const Index = () => {
   const [domain, setDomain] = useState("");
   const [promptsText, setPromptsText] = useState("");
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
@@ -500,6 +524,39 @@ const Index = () => {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">
+                What's your business type?
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(BUSINESS_TYPE_PROMPTS).map((type) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    variant={selectedBusinessType === type ? "default" : "outline"}
+                    size="sm"
+                    disabled={isScanning}
+                    className={
+                      selectedBusinessType === type
+                        ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                        : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                    }
+                    onClick={() => {
+                      setSelectedBusinessType(type);
+                      const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'yourdomain.com';
+                      const prompts = BUSINESS_TYPE_PROMPTS[type]
+                        .map((p) => p.replace(/\{domain\}/g, domainName))
+                        .join('\n');
+                      setPromptsText(prompts);
+                      trackEvent('business_type_selected', { type });
+                    }}
+                  >
+                    {type}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
                 Prompts/Keywords (one per line)
               </label>
@@ -560,7 +617,9 @@ const Index = () => {
                       {scanData.score}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Score is based on AI mentions, citations and citation rank across your prompts.
+                      {scanData.score}/100 — Only {Math.round(
+                        (scanData.results.filter(r => r.mentioned || r.geminiMentioned).length / scanData.results.length) * 100
+                      )}% of your category queries trigger an AI mention. Industry average is 34%.
                     </p>
                   </div>
                   {isUnlocked ? (

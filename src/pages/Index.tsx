@@ -55,9 +55,33 @@ interface ScanResponse {
   };
 }
 
+const BUSINESS_TYPE_PROMPTS: Record<string, string[]> = {
+  SaaS: [
+    "best {domain} alternatives",
+    "is {domain} worth it for small teams",
+    "top software tools like {domain}",
+  ],
+  Ecommerce: [
+    "best online store for {domain} products",
+    "is {domain} legit and safe to buy from",
+    "{domain} reviews and customer experience",
+  ],
+  Agency: [
+    "best {domain} type agencies near me",
+    "how much does {domain} charge for services",
+    "top agencies like {domain} for startups",
+  ],
+  Other: [
+    "what is {domain} and what do they do",
+    "is {domain} trustworthy",
+    "{domain} vs competitors",
+  ],
+};
+
 const Index = () => {
   const [domain, setDomain] = useState("");
   const [promptsText, setPromptsText] = useState("");
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);

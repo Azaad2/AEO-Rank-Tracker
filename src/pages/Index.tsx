@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles } from "lucide-react";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,6 +82,8 @@ const Index = () => {
   const [domain, setDomain] = useState("");
   const [promptsText, setPromptsText] = useState("");
   const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(null);
+  const [customDescription, setCustomDescription] = useState('');
+  const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<ScanResponse | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);

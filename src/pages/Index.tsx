@@ -654,13 +654,13 @@ const Index = () => {
               size="lg"
             >
               {isScanning ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Scanning...
-                </>
-              ) : (
-                "Scan"
-              )}
+  <>
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    Scanning your brand across AI platforms...
+  </>
+) : (
+  "Run Free AI Scan"
+)}
             </Button>
           </CardContent>
         </Card>

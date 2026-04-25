@@ -20,6 +20,7 @@ import { GuestLimitModal } from "@/components/GuestLimitModal";
 import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
 import { OptimizationHub } from "@/components/OptimizationHub";
+import { ScanProgressBar } from "@/components/ScanProgressBar";
 
 import logo from "@/assets/logo-light.png";
 
@@ -662,6 +663,8 @@ const Index = () => {
   "Run Free AI Scan"
 )}
             </Button>
+
+            <ScanProgressBar isScanning={isScanning} />
           </CardContent>
         </Card>
         </section>

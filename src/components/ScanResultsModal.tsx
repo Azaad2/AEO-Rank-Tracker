@@ -189,29 +189,21 @@ export function ScanResultsModal({
 
         <ScrollArea className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
-            {/* Overall Score - Hidden until unlocked */}
-            <div className="text-center py-4 bg-muted/30 rounded-lg relative">
+            {/* Overall Score - Always visible */}
+            <div className="text-center py-4 bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground mb-1">Combined AI Visibility Score</p>
-              {isUnlocked ? (
-                <p className={`text-5xl font-bold ${getScoreColor(scanData.score)}`}>
-                  {scanData.score}
-                </p>
-              ) : (
-                <div className="relative">
-                  <p className="text-5xl font-bold text-muted-foreground/30 select-none blur-sm">
-                    {scanData.score}
-                  </p>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-background/90 px-4 py-2 rounded-full border shadow-sm">
-                      <Lock className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Enter email to reveal</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-2">
-                Based on mentions & citations across AI platforms
+              <p className={`text-5xl font-bold ${getScoreColor(scanData.score)}`}>
+                {scanData.score}
+                <span className="text-2xl text-muted-foreground font-normal">/100</span>
               </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Based on mentions & citations across AI platforms • Industry avg: 34
+              </p>
+              {!isUnlocked && (
+                <p className="text-xs text-primary mt-2 font-medium">
+                  ↓ Unlock the per-platform breakdown below
+                </p>
+              )}
             </div>
 
             {/* Competitor Alert - Teaser */}

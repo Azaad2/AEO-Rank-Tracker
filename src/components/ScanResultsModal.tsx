@@ -267,7 +267,7 @@ export function ScanResultsModal({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="font-medium">ChatGPT / Search Simulation</span>
+                    <span className="font-medium">ChatGPT / Search</span>
                   </div>
                   {isUnlocked ? (
                     <span className={`font-bold ${getScoreColor(visibility.search.overall)}`}>

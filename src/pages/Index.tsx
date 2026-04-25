@@ -663,6 +663,8 @@ const Index = () => {
   "Run Free AI Scan"
 )}
             </Button>
+
+            <ScanProgressBar isScanning={isScanning} />
           </CardContent>
         </Card>
         </section>

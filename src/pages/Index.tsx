@@ -499,6 +499,29 @@ const Index = () => {
                   Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
                 </p>
               </div>
+
+              {/* Social proof */}
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <div className="flex -space-x-2">
+                  {[
+                    "bg-gradient-to-br from-pink-400 to-red-500",
+                    "bg-gradient-to-br from-yellow-400 to-orange-500",
+                    "bg-gradient-to-br from-green-400 to-emerald-600",
+                    "bg-gradient-to-br from-blue-400 to-indigo-600",
+                    "bg-gradient-to-br from-purple-400 to-fuchsia-600",
+                  ].map((bg, i) => (
+                    <div
+                      key={i}
+                      className={`h-8 w-8 rounded-full ring-2 ring-black ${bg} flex items-center justify-center text-[10px] font-bold text-white`}
+                    >
+                      {String.fromCharCode(65 + i)}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs md:text-sm text-gray-300">
+                  <span className="font-bold text-yellow-400">500+ brands</span> tracking their AI visibility
+                </p>
+              </div>
             </div>
           </div>
 

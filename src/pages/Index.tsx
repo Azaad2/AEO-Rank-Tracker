@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
 import { useAuth } from "@/hooks/useAuth";
@@ -886,6 +887,34 @@ const Index = () => {
                 currentScore={scanData.score}
               />
             </div>
+          </div>
+        )}
+
+        {/* Upgrade CTA — high-intent moment after email unlock */}
+        {scanData && isUnlocked && !user && (
+          <div className="rounded-lg border-2 border-yellow-400 bg-yellow-400/10 p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-black shrink-0">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              <div>
+                <h3
+                  className="text-yellow-400 text-sm md:text-base font-bold"
+                  style={{ fontFamily: "'Press Start 2P', cursive" }}
+                >
+                  Track your score weekly
+                </h3>
+                <p className="text-gray-300 text-sm mt-1">
+                  Get automated weekly scans, competitor alerts, and an action plan — <span className="text-white font-semibold">starting at $19/mo</span>.
+                </p>
+              </div>
+            </div>
+            <Link to="/pricing" onClick={() => trackEvent('upgrade_cta_click', { source: 'post_unlock_banner', score: scanData.score })}>
+              <Button size="lg" className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold whitespace-nowrap">
+                Upgrade to Pro
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         )}
 

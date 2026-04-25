@@ -745,77 +745,129 @@ const Index = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Prompt</TableHead>
-                      <TableHead className="text-center">Search Mentioned</TableHead>
-                      <TableHead className="text-center">Search Cited</TableHead>
-                      <TableHead className="text-center">Gemini Mentions</TableHead>
-                      <TableHead className="text-center">Gemini Cites</TableHead>
-                      <TableHead>Gemini Competitors</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {scanData.results.map((result, idx) => {
-                      const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
-                      
-                      return (
-                        <TableRow key={idx} className={isLocked ? "relative" : ""}>
-                          <TableCell className={`font-medium max-w-xs ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {isLocked ? "Locked prompt content..." : result.prompt}
-                          </TableCell>
-                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.mentioned ? (
-                              <span className="text-success">✓</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.cited ? (
-                              <span className="text-success">✓</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.geminiMentioned ? (
-                              <span className="text-success font-semibold">✓ Yes</span>
-                            ) : (
-                              <span className="text-destructive">✗ No</span>
-                            )}
-                          </TableCell>
-                          <TableCell className={`text-center ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.geminiCited ? (
-                              <span className="text-success font-semibold">✓ Yes</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className={`text-sm text-muted-foreground max-w-xs ${isLocked ? "blur-sm select-none" : ""}`}>
-                            {result.geminiCompetitors?.slice(0, 3).join(', ') || '—'}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-                
-                {/* Unlock CTA for locked results */}
-                {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
-                  <div className="mt-4 p-4 border rounded-lg bg-muted/30 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      <Lock className="inline-block h-4 w-4 mr-1" />
-                      {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
-                    </p>
-                    <Button onClick={openEmailModal} size="sm">
-                      Unlock All Results
-                    </Button>
-                  </div>
-                )}
+              {/* What this means - explainer */}
+              <div className="mb-5 p-4 rounded-lg bg-muted/40 border border-border/60">
+                <p className="text-sm font-medium mb-1">What this shows</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  For each prompt we asked the AI engines about your category, we measured how visible your brand was.
+                  <span className="block mt-1">
+                    <span className="font-medium text-foreground">Mentioned</span> = your brand name appeared in the AI's answer.{" "}
+                    <span className="font-medium text-foreground">Cited</span> = your website was linked as a source.
+                  </span>
+                  <span className="block mt-1">
+                    The bar shows your <span className="font-medium text-foreground">visibility score</span> for that prompt across Google Gemini and ChatGPT-style search results (0–100%).
+                  </span>
+                </p>
               </div>
+
+              <div className="space-y-3">
+                {scanData.results.map((result, idx) => {
+                  const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
+
+                  // Per-prompt visibility: 4 signals (search mention, search cite, gemini mention, gemini cite)
+                  const signals = [
+                    result.mentioned,
+                    result.cited,
+                    result.geminiMentioned,
+                    result.geminiCited,
+                  ];
+                  const hits = signals.filter(Boolean).length;
+                  const pct = Math.round((hits / signals.length) * 100);
+
+                  const barColor =
+                    pct >= 70 ? "bg-success" : pct >= 40 ? "bg-yellow-500" : "bg-destructive";
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-4 border rounded-lg ${isLocked ? "relative" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <p className={`font-medium text-sm flex-1 ${isLocked ? "blur-sm select-none" : ""}`}>
+                          {idx + 1}. {isLocked ? "Locked prompt content — unlock to view" : result.prompt}
+                        </p>
+                        <span
+                          className={`text-sm font-bold whitespace-nowrap ${
+                            isLocked ? "blur-sm select-none" : ""
+                          } ${
+                            pct >= 70 ? "text-success" : pct >= 40 ? "text-yellow-500" : "text-destructive"
+                          }`}
+                        >
+                          {pct}% visible
+                        </span>
+                      </div>
+
+                      {/* Bar graph */}
+                      <div className={`h-3 w-full bg-secondary rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
+                        <div
+                          className={`h-full ${barColor} transition-all`}
+                          style={{ width: `${isLocked ? 30 : pct}%` }}
+                        />
+                      </div>
+
+                      {/* Signal breakdown chips */}
+                      <div className={`flex flex-wrap gap-2 mt-3 text-xs ${isLocked ? "blur-sm select-none" : ""}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                            result.geminiMentioned
+                              ? "bg-success/15 text-success"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {result.geminiMentioned ? "✓" : "—"} Gemini mentioned you
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                            result.geminiCited
+                              ? "bg-success/15 text-success"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {result.geminiCited ? "✓" : "—"} Gemini cited your site
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                            result.mentioned
+                              ? "bg-success/15 text-success"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {result.mentioned ? "✓" : "—"} ChatGPT/Search mentioned you
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                            result.cited
+                              ? "bg-success/15 text-success"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {result.cited ? "✓" : "—"} ChatGPT/Search cited your site
+                        </span>
+                      </div>
+
+                      {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-3">
+                          <span className="font-medium text-foreground">Competitors appearing here:</span>{" "}
+                          {result.geminiCompetitors.slice(0, 3).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Unlock CTA for locked results */}
+              {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/30 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    <Lock className="inline-block h-4 w-4 mr-1" />
+                    {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
+                  </p>
+                  <Button onClick={openEmailModal} size="sm">
+                    Unlock All Results
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

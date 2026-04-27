@@ -371,11 +371,11 @@ serve(async (req) => {
 
     // Send email if requested
     if (sendEmail) {
-      const resendApiKey = Deno.env.get('RESEND_API_KEY');
-      if (!resendApiKey) {
-        console.error('RESEND_API_KEY not configured');
+      const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
+      if (!sendgridApiKey) {
+        console.error('SENDGRID_API_KEY not configured');
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             success: true,
             html: html,
             htmlBase64: htmlBase64,
@@ -387,29 +387,30 @@ serve(async (req) => {
       }
 
       try {
-        const resend = new Resend(resendApiKey);
-        
-        // Create a data URI for the HTML file attachment
         const emailHtml = generateEmailHTML(
-          scan.project_domain, 
+          scan.project_domain,
           scan.score,
           `data:text/html;base64,${htmlBase64}`
         );
 
-        const emailResponse = await resend.emails.send({
-          from: 'AI Visibility Checker <onboarding@resend.dev>',
-          to: [email],
+        const emailResponse = await sendEmail({
+          to: email,
           subject: `Your AI Visibility Report for ${scan.project_domain} (Score: ${scan.score})`,
           html: emailHtml,
           attachments: [
             {
               filename: `ai-visibility-report-${scan.project_domain}.html`,
               content: htmlBase64,
-            }
-          ]
+              type: 'text/html',
+            },
+          ],
         });
 
-        console.log('📧 Email sent successfully:', emailResponse);
+        if (!emailResponse.ok) {
+          throw new Error(emailResponse.error || `SendGrid error ${emailResponse.status}`);
+        }
+
+        console.log('📧 Email sent successfully via SendGrid:', emailResponse.messageId);
 
         // Update customer record with pdf_sent_at
         const { error: updateError } = await supabase

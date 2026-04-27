@@ -64,9 +64,21 @@ export function EmailCaptureModal({
         scan_id: scanId,
       });
 
+      // Fire-and-forget scan complete email — don't block UX if it fails
+      supabase.functions
+        .invoke("send-scan-complete", {
+          body: {
+            email: email.trim().toLowerCase(),
+            domain,
+            score,
+            scanId: scanId || null,
+          },
+        })
+        .catch((err) => console.error("send-scan-complete invoke failed:", err));
+
       toast({
         title: "Access unlocked!",
-        description: "You now have full access to your scan results.",
+        description: "Check your inbox — we sent your scan summary too.",
       });
 
       onSuccess(email);

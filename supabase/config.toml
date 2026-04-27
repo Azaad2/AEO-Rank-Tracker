@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.suggest-prompts]
 verify_jwt = false
+
+[functions.send-scan-complete]
+verify_jwt = false

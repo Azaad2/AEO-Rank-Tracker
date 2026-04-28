@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Zap, Users, Building2, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { usePayPal } from "@/hooks/usePayPal";
+import { useRazorpay } from "@/hooks/useRazorpay";
 import { toast } from "sonner";
 
 const plans = [
@@ -147,7 +147,7 @@ export default function Pricing() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   
-  const { initiateCheckout, verifySubscription, isLoading } = usePayPal({
+  const { initiateCheckout, isLoading } = useRazorpay({
     onSuccess: () => {
       setLoadingPlan(null);
       navigate('/dashboard');
@@ -156,23 +156,6 @@ export default function Pricing() {
       setLoadingPlan(null);
     },
   });
-
-  // Handle PayPal return redirect
-  useEffect(() => {
-    const paypalSuccess = searchParams.get('paypal_success');
-    const subscriptionId = searchParams.get('subscription_id');
-    const planId = searchParams.get('plan_id');
-    const userId = searchParams.get('user_id');
-
-    if (paypalSuccess === 'true' && subscriptionId && planId && user) {
-      toast.info('Verifying your payment...');
-      verifySubscription(subscriptionId, planId, user.email || '', userId || user.id);
-    }
-
-    if (searchParams.get('paypal_cancelled') === 'true') {
-      toast.info('Payment was cancelled.');
-    }
-  }, [searchParams, user, verifySubscription]);
 
   const handlePlanSelect = async (planId: string) => {
     if (planId === 'free') {

@@ -233,92 +233,41 @@ export function ScanResultsModal({
                 AI Platform Visibility
               </h3>
               
-              {/* Gemini AI */}
-              <div className="p-4 border rounded-lg space-y-3 relative">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="font-medium">Gemini AI</span>
+              {(
+                [
+                  { key: "gemini", label: "Gemini AI", dot: "bg-blue-500", data: visibility.gemini },
+                  { key: "search", label: "ChatGPT / Search", dot: "bg-emerald-500", data: visibility.search },
+                  { key: "perplexity", label: "Perplexity AI", dot: "bg-purple-500", data: visibility.perplexity },
+                ] as const
+              ).map((row) => (
+                <div key={row.key} className="p-4 border rounded-lg space-y-3 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${row.dot}`} />
+                      <span className="font-medium">{row.label}</span>
+                    </div>
+                    {isUnlocked ? (
+                      <span className={`font-bold ${getScoreColor(row.data.overall)}`}>
+                        {row.data.overall}%
+                      </span>
+                    ) : (
+                      <span className="font-bold text-muted-foreground/50 blur-sm select-none">??%</span>
+                    )}
                   </div>
-                  {isUnlocked ? (
-                    <span className={`font-bold ${getScoreColor(visibility.gemini.overall)}`}>
-                      {visibility.gemini.overall}%
-                    </span>
-                  ) : (
-                    <span className="font-bold text-muted-foreground/50 blur-sm select-none">??%</span>
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${isUnlocked ? getProgressColor(row.data.overall) : "bg-muted-foreground/30"} transition-all`}
+                      style={{ width: isUnlocked ? `${row.data.overall}%` : "45%" }}
+                    />
+                  </div>
+                  {isUnlocked && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Mentions: {row.data.mentions}%</span>
+                      <span>Citations: {row.data.citations}%</span>
+                    </div>
                   )}
                 </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${isUnlocked ? getProgressColor(visibility.gemini.overall) : 'bg-muted-foreground/30'} transition-all`}
-                    style={{ width: isUnlocked ? `${visibility.gemini.overall}%` : '60%' }}
-                  />
-                </div>
-                {isUnlocked && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Mentions: {visibility.gemini.mentions}%</span>
-                    <span>Citations: {visibility.gemini.citations}%</span>
-                  </div>
-                )}
-              </div>
-
-              {/* ChatGPT/Search */}
-              <div className="p-4 border rounded-lg space-y-3 relative">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="font-medium">ChatGPT / Search</span>
-                  </div>
-                  {isUnlocked ? (
-                    <span className={`font-bold ${getScoreColor(visibility.search.overall)}`}>
-                      {visibility.search.overall}%
-                    </span>
-                  ) : (
-                    <span className="font-bold text-muted-foreground/50 blur-sm select-none">??%</span>
-                  )}
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${isUnlocked ? getProgressColor(visibility.search.overall) : 'bg-muted-foreground/30'} transition-all`}
-                    style={{ width: isUnlocked ? `${visibility.search.overall}%` : '45%' }}
-                  />
-                </div>
-                {isUnlocked && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Mentions: {visibility.search.mentions}%</span>
-                    <span>Citations: {visibility.search.citations}%</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Perplexity AI */}
-              <div className="p-4 border rounded-lg space-y-3 relative">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-purple-500" />
-                    <span className="font-medium">Perplexity AI</span>
-                  </div>
-                  {isUnlocked ? (
-                    <span className={`font-bold ${getScoreColor(visibility.perplexity.overall)}`}>
-                      {visibility.perplexity.overall}%
-                    </span>
-                  ) : (
-                    <span className="font-bold text-muted-foreground/50 blur-sm select-none">??%</span>
-                  )}
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${isUnlocked ? getProgressColor(visibility.perplexity.overall) : 'bg-muted-foreground/30'} transition-all`}
-                    style={{ width: isUnlocked ? `${visibility.perplexity.overall}%` : '35%' }}
-                  />
-                </div>
-                {isUnlocked && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Mentions: {visibility.perplexity.mentions}%</span>
-                    <span>Citations: {visibility.perplexity.citations}%</span>
-                  </div>
-                )}
-              </div>
+              ))}
 
               {/* Combined Score Bar */}
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">

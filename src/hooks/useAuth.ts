@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 
 interface AuthState {
   user: User | null;
@@ -64,13 +65,18 @@ export function useAuth(): AuthState & AuthActions {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: `${window.location.origin}/dashboard`,
     });
-    return { error: error ? new Error(error.message) : null };
+    if (result.error) {
+      return {
+        error:
+          result.error instanceof Error
+            ? result.error
+            : new Error(String(result.error)),
+      };
+    }
+    return { error: null };
   }, []);
 
   const signOut = useCallback(async () => {

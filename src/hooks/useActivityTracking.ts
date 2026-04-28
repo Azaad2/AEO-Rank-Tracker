@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { posthog } from "@/lib/posthog";
 
 // Generate or retrieve session ID
 const getSessionId = (): string => {
@@ -31,6 +32,18 @@ export const useActivityTracking = () => {
         ...metadata,
         session_id: sessionId,
       });
+    }
+
+    // Track in PostHog
+    if (typeof window !== 'undefined' && posthog) {
+      try {
+        posthog.capture(eventType, {
+          ...metadata,
+          session_id: sessionId,
+        });
+      } catch (error) {
+        console.debug('PostHog capture failed:', error);
+      }
     }
 
     // Track in Supabase (async, non-blocking)

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { posthog } from '@/lib/posthog';
 
 interface AuthState {
   user: User | null;
@@ -27,6 +28,19 @@ export function useAuth(): AuthState & AuthActions {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        try {
+          if (session?.user) {
+            posthog.identify(session.user.id, {
+              email: session.user.email,
+              provider: session.user.app_metadata?.provider,
+            });
+          } else {
+            posthog.reset();
+          }
+        } catch (error) {
+          console.debug('PostHog identify failed:', error);
+        }
       }
     );
 

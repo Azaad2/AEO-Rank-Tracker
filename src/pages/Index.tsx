@@ -921,10 +921,7 @@ const Index = () => {
                 <TrendingUp className="h-6 w-6" />
               </div>
               <div>
-                <h3
-                  className="text-yellow-400 text-sm md:text-base font-bold"
-                  style={{ fontFamily: "'Press Start 2P', cursive" }}
-                >
+                <h3 className="text-yellow-400 text-base md:text-lg font-bold">
                   Track your score weekly
                 </h3>
                 <p className="text-gray-300 text-sm mt-1">

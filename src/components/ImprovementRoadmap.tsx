@@ -30,30 +30,30 @@ interface ImprovementRoadmapProps {
 const severityConfig = {
   critical: {
     icon: AlertCircle,
-    color: 'text-destructive',
-    bgColor: 'bg-destructive/10',
-    borderColor: 'border-destructive/30',
+    color: 'text-red-400',
+    bgColor: 'bg-red-900/20',
+    borderColor: 'border-red-500/30',
     badge: 'destructive' as const,
   },
   warning: {
     icon: AlertTriangle,
-    color: 'text-warning',
-    bgColor: 'bg-warning/10',
-    borderColor: 'border-warning/30',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-900/20',
+    borderColor: 'border-amber-500/30',
     badge: 'secondary' as const,
   },
   info: {
     icon: Info,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-900/20',
+    borderColor: 'border-blue-500/30',
     badge: 'outline' as const,
   },
   success: {
     icon: CheckCircle2,
-    color: 'text-success',
-    bgColor: 'bg-success/10',
-    borderColor: 'border-success/30',
+    color: 'text-green-400',
+    bgColor: 'bg-green-900/20',
+    borderColor: 'border-green-500/30',
     badge: 'default' as const,
   },
 };
@@ -87,35 +87,35 @@ export function ImprovementRoadmap({ results, domain, currentScore }: Improvemen
   }
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg bg-gray-900 border-gray-800 text-white">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" />
-          <CardTitle>Your AI Visibility Improvement Roadmap</CardTitle>
+          <Target className="h-5 w-5 text-yellow-400" />
+          <CardTitle className="text-white">Your AI Visibility Improvement Roadmap</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Score Improvement Potential */}
-        <div className="p-4 rounded-lg bg-muted/50 border">
+        <div className="p-4 rounded-lg bg-gray-800 border border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="font-medium">Score Improvement Potential</span>
+              <TrendingUp className="h-4 w-4 text-yellow-400" />
+              <span className="font-medium text-white">Score Improvement Potential</span>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-gray-400">
               {currentScore} → {potentialScore} points
             </span>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm w-16">Current</span>
-              <Progress value={currentScore} className="flex-1 h-2" />
-              <span className="text-sm font-medium w-10 text-right">{currentScore}</span>
+              <span className="text-sm w-16 text-gray-300">Current</span>
+              <Progress value={currentScore} className="flex-1 h-2 bg-gray-700" />
+              <span className="text-sm font-medium w-10 text-right text-white">{currentScore}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm w-16 text-primary">Potential</span>
-              <Progress value={potentialScore} className="flex-1 h-2 [&>div]:bg-primary/60" />
-              <span className="text-sm font-medium w-10 text-right text-primary">{potentialScore}</span>
+              <span className="text-sm w-16 text-yellow-400">Potential</span>
+              <Progress value={potentialScore} className="flex-1 h-2 bg-gray-700 [&>div]:bg-yellow-400" />
+              <span className="text-sm font-medium w-10 text-right text-yellow-400">{potentialScore}</span>
             </div>
           </div>
         </div>
@@ -123,22 +123,16 @@ export function ImprovementRoadmap({ results, domain, currentScore }: Improvemen
         {/* Area Scores */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {areaScores.map((area) => (
-            <div key={area.area} className="p-3 rounded-lg border bg-card">
+            <div key={area.area} className="p-3 rounded-lg border border-gray-700 bg-gray-800">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">{area.icon} {area.label}</span>
-                <span className={`text-sm font-bold ${
-                  area.score >= 70 ? 'text-success' : 
-                  area.score >= 40 ? 'text-warning' : 'text-destructive'
-                }`}>
+                <span className="text-sm font-medium text-white">{area.icon} {area.label}</span>
+                <span className="text-sm font-bold text-yellow-400">
                   {area.score}%
                 </span>
               </div>
               <Progress 
                 value={area.score} 
-                className={`h-1.5 ${
-                  area.score >= 70 ? '[&>div]:bg-success' : 
-                  area.score >= 40 ? '[&>div]:bg-warning' : '[&>div]:bg-destructive'
-                }`}
+                className="h-1.5 bg-gray-700 [&>div]:bg-yellow-400"
               />
             </div>
           ))}
@@ -146,7 +140,7 @@ export function ImprovementRoadmap({ results, domain, currentScore }: Improvemen
 
         {/* Improvement Insights */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+          <h4 className="font-medium text-sm text-gray-400 uppercase tracking-wide">
             Priority Actions
           </h4>
           {insights.map((insight, idx) => {
@@ -165,34 +159,34 @@ export function ImprovementRoadmap({ results, domain, currentScore }: Improvemen
                     <Icon className={`h-5 w-5 mt-0.5 ${config.color} shrink-0`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{insight.issue}</span>
+                        <span className="font-medium text-white">{insight.issue}</span>
                         <Badge variant={config.badge} className="text-xs">
                           {areaLabels[insight.area]}
                         </Badge>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs border-gray-600 text-gray-300">
                           {insight.affectedPrompts.length} prompt{insight.affectedPrompts.length > 1 ? 's' : ''}
                         </Badge>
                       </div>
                     </div>
-                    <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-4 w-4 shrink-0 transition-transform text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
                   </CollapsibleTrigger>
                   
                   <CollapsibleContent>
                     <div className="px-4 pb-4 pt-0 space-y-3">
                       <div className="pl-8">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Recommendation:</strong> {insight.recommendation}
+                        <p className="text-sm text-gray-300">
+                          <strong className="text-white">Recommendation:</strong> {insight.recommendation}
                         </p>
                       </div>
                       <div className="pl-8">
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                        <p className="text-xs font-medium text-gray-400 mb-1.5">
                           Affected prompts:
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {insight.affectedPrompts.map((prompt, pIdx) => (
                             <span 
                               key={pIdx}
-                              className="text-xs px-2 py-1 rounded bg-background border truncate max-w-xs"
+                              className="text-xs px-2 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 truncate max-w-xs"
                               title={prompt}
                             >
                               {prompt.length > 40 ? prompt.slice(0, 40) + '...' : prompt}
@@ -210,15 +204,15 @@ export function ImprovementRoadmap({ results, domain, currentScore }: Improvemen
 
         {/* Top Competitors */}
         {competitors.length > 0 && (
-          <div className="p-4 rounded-lg border bg-card">
-            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-3">
+          <div className="p-4 rounded-lg border border-gray-700 bg-gray-800">
+            <h4 className="font-medium text-sm text-gray-400 uppercase tracking-wide mb-3">
               Top Competitors to Watch
             </h4>
             <div className="space-y-2">
               {competitors.slice(0, 3).map((comp, idx) => (
                 <div key={idx} className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{comp.domain}</span>
-                  <span className="text-muted-foreground">
+                  <span className="font-medium text-white">{comp.domain}</span>
+                  <span className="text-gray-400">
                     {comp.appearances} appearance{comp.appearances > 1 ? 's' : ''}
                   </span>
                 </div>

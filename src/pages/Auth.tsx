@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthForm } from '@/components/auth/AuthForm';
+import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/logo-light.png';
@@ -10,9 +12,23 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
-  const { user, isLoading, signIn, signUp } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const { user, isLoading, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      toast({
+        title: 'Google sign-in failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setGoogleLoading(false);
+    }
+  };
 
   // Redirect if already logged in
   useEffect(() => {

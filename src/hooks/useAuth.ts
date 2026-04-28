@@ -11,6 +11,7 @@ interface AuthState {
 interface AuthActions {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -62,6 +63,16 @@ export function useAuth(): AuthState & AuthActions {
     return { error: error ? new Error(error.message) : null };
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    return { error: error ? new Error(error.message) : null };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -72,6 +83,7 @@ export function useAuth(): AuthState & AuthActions {
     isLoading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 }

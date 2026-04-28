@@ -1,67 +1,44 @@
-## Plan
+## Plan: Activate Razorpay payments
 
-Switch the Google button from Lovable Cloud managed OAuth back to direct Google OAuth, so users no longer see the Lovable-branded permission screen.
+Good news — your project already has a **complete Razorpay integration** built. Plans, edge functions, webhook, hook, and DB columns all exist. We just need to wire the Pricing page back to it (it's currently calling PayPal) and confirm the Razorpay SDK script is loaded.
 
-## What’s happening now
+### What's already there (no work needed)
+- DB: `plans.razorpay_plan_id` populated for Pro (`plan_SCokLVuHjsAOlA`), Team (`plan_SBwr5Gm88JWwPg`), Agency (`plan_SBwrxIPmX3DWK0`)
+- DB: `subscriptions.razorpay_subscription_id` column
+- Edge functions: `create-razorpay-subscription`, `verify-razorpay-payment`, `razorpay-webhook` (all with `verify_jwt = false` in `config.toml`)
+- Hook: `src/hooks/useRazorpay.ts` (opens Razorpay checkout overlay, verifies payment, handles failures)
+- Secrets configured: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
 
-The current code in `src/hooks/useAuth.ts` still does this:
+### What needs to change
 
-```ts
-import { lovable } from '@/integrations/lovable';
+**1. `src/pages/Pricing.tsx` — switch from PayPal to Razorpay**
+- Replace `import { usePayPal } from "@/hooks/usePayPal"` with `useRazorpay`
+- Replace the `usePayPal({...})` destructure: drop `verifySubscription` (Razorpay verifies inline in the modal handler), keep `initiateCheckout` and `isLoading`
+- Remove the PayPal return-redirect `useEffect` (lines 161–175) — Razorpay uses an overlay modal, no redirect/return flow
+- `handlePlanSelect` keeps the same signature; `initiateCheckout(planId, email, userId)` already matches
 
-const result = await lovable.auth.signInWithOAuth('google', {
-  redirect_uri: `${window.location.origin}/dashboard`,
-});
-```
+**2. `index.html` — load the Razorpay checkout SDK**
+Add `<script src="https://checkout.razorpay.com/v1/checkout.js"></script>` in `<head>` so `window.Razorpay` is available when `useRazorpay` runs (the hook already throws a clear error if it's missing).
 
-That is why the Lovable permission page is still showing. The app is still using the managed OAuth broker.
+**3. `src/components/UpgradeModal.tsx`**
+Check it for any PayPal references and switch to `useRazorpay` the same way as Pricing (will verify when implementing).
 
-## Changes
+**4. Razorpay dashboard — webhook URL (manual step you'll do)**
+After deploy, register this webhook URL in your Razorpay dashboard (Settings → Webhooks):
+`https://sxcsbqglcmwbueztpvei.supabase.co/functions/v1/razorpay-webhook`
+Subscribe to events: `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `subscription.completed`, `payment.failed`. Use the same secret you stored in `RAZORPAY_WEBHOOK_SECRET`.
 
-1. Update the Google sign-in flow in `src/hooks/useAuth.ts`
-   - Remove the `lovable` import.
-   - Replace `lovable.auth.signInWithOAuth(...)` with direct auth client Google OAuth:
-     ```ts
-     await supabase.auth.signInWithOAuth({
-       provider: 'google',
-       options: {
-         redirectTo: `${window.location.origin}/dashboard`,
-       },
-     });
-     ```
-   - Keep the same error-return shape so the existing toast on the auth page continues to work.
+### Optional cleanup (recommended, but I'll only do it if you say yes)
+Remove the now-unused PayPal stack so the codebase has one billing path:
+- Delete `src/hooks/usePayPal.ts`
+- Delete edge functions: `create-paypal-subscription`, `verify-paypal-payment`, `paypal-webhook`
+- Drop unused `paypal_plan_id` column from `plans` and `paypal_subscription_id` from `subscriptions` (data is empty)
+- Remove `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` secrets
 
-2. Leave email/password auth unchanged
-   - Keep `signIn`, `signUp`, session loading, and sign-out exactly as they are.
-   - Only the Google path changes.
+### One thing to confirm before I proceed
+**Are you using Razorpay Live keys or Test keys right now?** The hook will work either way, but the existing `razorpay_plan_id`s in your `plans` table must match the same mode. If they're test plans and your secrets are live (or vice versa), checkout will fail with "plan not found." If unsure, I'll point you at how to verify in the Razorpay dashboard.
 
-3. Keep the auth page UI unchanged
-   - `src/pages/Auth.tsx` already calls `signInWithGoogle()` correctly.
-   - No visual changes are needed unless you also want the button label adjusted.
+### Note on Razorpay availability
+Razorpay primarily serves businesses with an Indian entity. If your business isn't registered in India and you can't onboard, let me know and I'll switch the plan to Lovable's built-in Paddle instead (recommended for global SaaS — handles VAT/tax/MoR automatically).
 
-4. Clean up unused managed OAuth usage
-   - Stop using `src/integrations/lovable` from auth flow.
-   - If nothing else imports it, optionally remove the unused import path/dependency in a follow-up cleanup.
-
-5. Verify direct Google configuration
-   - Confirm your Google OAuth app has the correct authorized origins and callback URL for the direct provider setup in Lovable Cloud auth settings.
-   - Test on the published/custom domain first, since preview and published auth environments can differ.
-
-## Expected result
-
-After this change:
-- clicking `Continue with Google` should go straight into Google OAuth using your own Google app credentials
-- the Lovable-branded consent/intermediate screen should no longer appear
-- email/password login will keep working as before
-
-## Technical details
-
-Files involved:
-- `src/hooks/useAuth.ts`
-- `src/pages/Auth.tsx` for validation only
-
-No database migration is needed.
-
-Notes:
-- The uploaded screenshot matches the current managed OAuth flow, so this is not a caching illusion — the code path is still pointed at the Lovable auth client.
-- If Google sign-in still behaves differently between preview and your live domain after the code change, that would point to environment-specific auth configuration rather than the button implementation itself.
+Reply "go ahead" and I'll execute steps 1–3 (and the cleanup if you also say yes to it).

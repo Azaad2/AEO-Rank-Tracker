@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export default function Pricing() {
   const [billingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  
   const { user } = useAuth();
   
   const { initiateCheckout, isLoading } = useRazorpay({

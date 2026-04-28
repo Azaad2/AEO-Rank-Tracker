@@ -113,14 +113,25 @@ export const Header = () => {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
-                  <Link to="/auth">
-                    <Button 
-                      size="sm" 
-                      className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                    >
-                      Sign In
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link to="/auth?mode=signin">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-300 hover:text-white hover:bg-gray-800"
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/auth?mode=signup">
+                      <Button
+                        size="sm"
+                        className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                      >
+                        Get Started Free
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </>
             )}

@@ -30,7 +30,6 @@ export function GuestLimitModal({ open, onOpenChange }: GuestLimitModalProps) {
           </div>
           <DialogTitle 
             className="text-xl text-center"
-            style={{ fontFamily: "'Press Start 2P', cursive" }}
           >
             Sign Up to Scan
           </DialogTitle>

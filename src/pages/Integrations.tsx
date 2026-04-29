@@ -113,7 +113,6 @@ const Integrations = () => {
           <div className="text-center mb-12">
             <h1 
               className="text-2xl md:text-3xl font-bold text-white mb-4"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               <span className="text-yellow-400">Integrations</span>
             </h1>

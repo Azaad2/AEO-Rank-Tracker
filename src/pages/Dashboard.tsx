@@ -176,7 +176,6 @@ export default function Dashboard() {
           <div className="max-w-5xl mx-auto">
             <h1 
               className="text-2xl md:text-3xl font-bold text-white mb-8"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               Dashboard
             </h1>

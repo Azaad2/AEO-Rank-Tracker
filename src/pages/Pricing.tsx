@@ -191,7 +191,6 @@ export default function Pricing() {
             </Badge>
             <h1 
               className="text-3xl md:text-4xl font-bold mb-4 text-white"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               Choose Your AI Visibility Plan
             </h1>
@@ -287,7 +286,6 @@ export default function Pricing() {
             <div className="text-center mb-12">
               <h2 
                 className="text-2xl md:text-3xl font-bold mb-4 text-white"
-                style={{ fontFamily: "'Press Start 2P', cursive" }}
               >
                 Why We're 10x Cheaper
               </h2>
@@ -337,7 +335,6 @@ export default function Pricing() {
           <div className="container mx-auto max-w-3xl">
             <h2 
               className="text-2xl md:text-3xl font-bold text-center mb-12 text-white"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               Frequently Asked Questions
             </h2>
@@ -383,7 +380,6 @@ export default function Pricing() {
           <div className="container mx-auto text-center max-w-2xl">
             <h2 
               className="text-2xl md:text-3xl font-bold mb-4 text-white"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               Ready to Track Your AI Visibility?
             </h2>

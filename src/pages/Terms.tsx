@@ -22,7 +22,6 @@ const Terms = () => {
           <div className="text-center mb-12">
             <h1 
               className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4"
-              style={{ fontFamily: "'Press Start 2P', cursive" }}
             >
               Terms of <span className="text-yellow-400">Service</span>
             </h1>

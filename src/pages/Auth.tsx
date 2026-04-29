@@ -76,7 +76,6 @@ export default function Auth() {
               <img src={logo} alt="AI Visibility Checker" className="h-10 w-10" />
               <span 
                 className="text-white text-sm"
-                style={{ fontFamily: "'Press Start 2P', cursive" }}
               >
                 AI Visibility
               </span>

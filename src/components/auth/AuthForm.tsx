@@ -66,7 +66,6 @@ export function AuthForm({ mode, onSubmit, onToggleMode, isLoading = false }: Au
       <CardHeader className="text-center">
         <CardTitle 
           className="text-xl text-white"
-          style={{ fontFamily: "'Press Start 2P', cursive" }}
         >
           {mode === 'signin' ? 'Sign In' : 'Create Account'}
         </CardTitle>

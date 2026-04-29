@@ -477,8 +477,7 @@ const Index = () => {
           <div className="py-12 md:py-16 px-6 -mx-4 md:-mx-8">
             <div className="text-center space-y-6">
               <h1 
-                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-relaxed drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
-                style={{ fontFamily: "'Press Start 2P', cursive" }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
                 Invisible to AI?
                 <br />

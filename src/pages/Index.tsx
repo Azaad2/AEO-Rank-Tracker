@@ -108,7 +108,7 @@ const Index = () => {
   
   // Default values while loading
   const headline = headlineVariant?.value || 'AI Search Visibility Checker';
-  const ctaText = ctaVariant?.value || 'Run a Free AI Visibility Scan';
+  const ctaText = ctaVariant?.value || 'Check My AI Visibility — Free';
 
   // Track page view on mount
   useEffect(() => {
@@ -484,7 +484,7 @@ const Index = () => {
                 <span className="text-yellow-400">Fix It in Minutes.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                Check if ChatGPT, Perplexity, and Gemini mention your website — then get a personalized optimization plan to boost your visibility.
+                See exactly how ChatGPT, Perplexity, and Gemini describe your brand — and get a personalised plan to fix what's broken.
               </p>
               <div className="pt-2">
                 <Button 
@@ -495,7 +495,7 @@ const Index = () => {
                   {ctaText}
                 </Button>
                 <p className="text-xs text-gray-400 mt-3">
-                  Works for any website – SaaS, ecommerce, blogs, local services, agencies and more.
+                  Most brands score below 30/100. See where you stand.
                 </p>
               </div>
 

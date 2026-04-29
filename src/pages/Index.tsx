@@ -525,6 +525,7 @@ const Index = () => {
           </div>
 
         {/* Scan Input Section */}
+        {!scanData && (
         <section id="scan" className="scroll-mt-8 -mt-4">
           <Card className="shadow-lg bg-gray-900 border-gray-700">
           <CardHeader>
@@ -691,6 +692,7 @@ const Index = () => {
           </CardContent>
         </Card>
         </section>
+        )}
 
         {/* Results Section */}
         {scanData && (
@@ -894,6 +896,22 @@ const Index = () => {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {scanData && isUnlocked && (
+          <div className="text-center mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setScanData(null);
+                setIsUnlocked(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              Scan another domain →
+            </Button>
+          </div>
         )}
 
         {/* Improvement Roadmap - locked behind email gate */}

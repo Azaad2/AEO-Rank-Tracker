@@ -82,7 +82,7 @@ const About = () => {
                 to="/"
                 className="inline-block bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-6 py-3 rounded-lg transition-colors"
               >
-                Run a Free AI Visibility Scan
+                Check My AI Visibility — Free
               </Link>
             </section>
           </div>

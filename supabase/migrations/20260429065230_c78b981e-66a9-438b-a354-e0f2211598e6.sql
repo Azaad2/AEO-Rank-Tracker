@@ -1,0 +1,1 @@
+UPDATE public.ab_test_variants SET variant_value = 'Check My AI Visibility — Free' WHERE test_name = 'cta';

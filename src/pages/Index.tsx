@@ -715,9 +715,7 @@ const Index = () => {
                       {scanData.score}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {scanData.score}/100 — Only {Math.round(
-                        (scanData.results.filter(r => r.mentioned || r.geminiMentioned).length / scanData.results.length) * 100
-                      )}% of your category queries trigger an AI mention. Industry average is 34%.
+                      Your score: {scanData.score}/100 — based on how often AI assistants mention and cite your brand for category queries. Industry average: 34/100.
                     </p>
                   </div>
                   {isUnlocked ? (

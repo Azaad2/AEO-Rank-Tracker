@@ -176,13 +176,13 @@ export function ScanResultsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Target className="h-5 w-5 text-primary" />
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 bg-gray-900 border-gray-800 text-white">
+        <DialogHeader className="p-6 pb-4 border-b border-gray-800">
+          <DialogTitle className="flex items-center gap-2 text-xl text-white">
+            <Target className="h-5 w-5 text-yellow-400" />
             AI Visibility Results
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-400">
             {scanData.project} • {scanData.promptsCount} prompts analyzed
           </p>
         </DialogHeader>
@@ -190,17 +190,17 @@ export function ScanResultsModal({
         <ScrollArea className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
             {/* Overall Score - Always visible */}
-            <div className="text-center py-4 bg-muted/30 rounded-lg">
-              <p className="text-sm text-muted-foreground mb-1">Combined AI Visibility Score</p>
+            <div className="text-center py-4 bg-gray-800 border border-gray-700 rounded-lg">
+              <p className="text-sm text-gray-400 mb-1">Combined AI Visibility Score</p>
               <p className={`text-5xl font-bold ${getScoreColor(scanData.score)}`}>
                 {scanData.score}
-                <span className="text-2xl text-muted-foreground font-normal">/100</span>
+                <span className="text-2xl text-gray-500 font-normal">/100</span>
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-gray-400 mt-2">
                 Based on mentions & citations across AI platforms • Industry avg: 34
               </p>
               {!isUnlocked && (
-                <p className="text-xs text-primary mt-2 font-medium">
+                <p className="text-xs text-yellow-400 mt-2 font-medium">
                   ↓ Unlock the per-platform breakdown below
                 </p>
               )}
@@ -208,15 +208,15 @@ export function ScanResultsModal({
 
             {/* Competitor Alert - Teaser */}
             {!isUnlocked && competitors.length > 0 && (
-              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-medium text-sm">
+                    <p className="font-medium text-sm text-white">
                       {competitors.length} competitors appearing instead of you
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium">{competitors[0]}</span>
+                    <p className="text-xs text-gray-400">
+                      <span className="font-medium text-gray-300">{competitors[0]}</span>
                       {competitors.length > 1 && (
                         <span> and {competitors.length - 1} others</span>
                       )} are getting visibility that could be yours.
@@ -228,8 +228,8 @@ export function ScanResultsModal({
 
             {/* AI Platform Breakdown - Blurred until unlocked */}
             <div className="space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold flex items-center gap-2 text-white">
+                <Sparkles className="h-4 w-4 text-yellow-400" />
                 AI Platform Visibility
               </h3>
               
@@ -240,28 +240,28 @@ export function ScanResultsModal({
                   { key: "perplexity", label: "Perplexity AI", dot: "bg-purple-500", data: visibility.perplexity },
                 ] as const
               ).map((row) => (
-                <div key={row.key} className="p-4 border rounded-lg space-y-3 relative">
+                <div key={row.key} className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3 relative">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${row.dot}`} />
-                      <span className="font-medium">{row.label}</span>
+                      <span className="font-medium text-white">{row.label}</span>
                     </div>
                     {isUnlocked ? (
                       <span className={`font-bold ${getScoreColor(row.data.overall)}`}>
                         {row.data.overall}%
                       </span>
                     ) : (
-                      <span className="font-bold text-muted-foreground/50 blur-sm select-none">??%</span>
+                      <span className="font-bold text-gray-500 blur-sm select-none">??%</span>
                     )}
                   </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${isUnlocked ? getProgressColor(row.data.overall) : "bg-muted-foreground/30"} transition-all`}
+                      className={`h-full ${isUnlocked ? getProgressColor(row.data.overall) : "bg-gray-600"} transition-all`}
                       style={{ width: isUnlocked ? `${row.data.overall}%` : "45%" }}
                     />
                   </div>
                   {isUnlocked && (
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex justify-between text-xs text-gray-400">
                       <span>Mentions: {row.data.mentions}%</span>
                       <span>Citations: {row.data.citations}%</span>
                     </div>
@@ -270,22 +270,22 @@ export function ScanResultsModal({
               ))}
 
               {/* Combined Score Bar */}
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+              <div className="p-4 bg-gray-800 border border-yellow-400/30 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Combined Score</span>
+                    <Zap className="h-4 w-4 text-yellow-400" />
+                    <span className="font-medium text-white">Combined Score</span>
                   </div>
                   {isUnlocked ? (
                     <span className={`font-bold text-lg ${getScoreColor(visibility.combined)}`}>
                       {visibility.combined}%
                     </span>
                   ) : (
-                    <span className="font-bold text-lg text-muted-foreground/50 blur-sm select-none">??%</span>
+                    <span className="font-bold text-lg text-gray-500 blur-sm select-none">??%</span>
                   )}
                 </div>
                 <Progress value={isUnlocked ? visibility.combined : 50} className="h-3" />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-400">
                   Weighted: 40% Gemini + 35% Perplexity + 25% Search/ChatGPT
                 </p>
               </div>
@@ -293,56 +293,56 @@ export function ScanResultsModal({
 
             {/* Detailed Results */}
             <div className="space-y-3">
-              <h3 className="font-semibold">Detailed Results by Prompt</h3>
+              <h3 className="font-semibold text-white">Detailed Results by Prompt</h3>
               
               {scanData.results.slice(0, freePreviewCount).map((result, idx) => (
                 <div 
                   key={idx} 
-                  className="p-4 border rounded-lg space-y-3"
+                  className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3"
                 >
-                  <p className="font-medium text-sm">
+                  <p className="font-medium text-sm text-white">
                     {idx + 1}. {result.prompt}
                   </p>
                   
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
                         Gemini
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.geminiMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.geminiMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.geminiCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiCited ? "text-green-400" : "text-gray-500"}>
                           {result.geminiCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-purple-500" />
                         Perplexity
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.perplexityMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.perplexityCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityCited ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         ChatGPT/Search
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.mentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.mentioned ? "text-green-400" : "text-gray-500"}>
                           {result.mentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.cited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.cited ? "text-green-400" : "text-gray-500"}>
                           {result.cited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
@@ -350,8 +350,8 @@ export function ScanResultsModal({
                   </div>
                   
                   {result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Competitors mentioned: </span>
+                    <div className="text-xs text-gray-400">
+                      <span className="font-medium text-gray-300">Competitors mentioned: </span>
                       {result.geminiCompetitors.slice(0, 3).join(", ")}
                     </div>
                   )}
@@ -360,27 +360,27 @@ export function ScanResultsModal({
 
               {/* Inline Email Capture Card - appears after first prompt */}
               {!isUnlocked && lockedCount > 0 && (
-                <div className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 rounded-xl space-y-4">
+                <div className="p-5 bg-gray-800 border-2 border-yellow-400/30 rounded-xl space-y-4">
                   <div className="flex items-center gap-2">
-                    <Lock className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Unlock {lockedCount} More Results</span>
+                    <Lock className="h-5 w-5 text-yellow-400" />
+                    <span className="font-semibold text-white">Unlock {lockedCount} More Results</span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Full AI visibility score</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>All {scanData.promptsCount} prompt results</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Competitor breakdown</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Improvement roadmap</span>
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export function ScanResultsModal({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting}
-                      className="flex-1"
+                      className="flex-1 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
                     />
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
@@ -403,7 +403,7 @@ export function ScanResultsModal({
                     </Button>
                   </form>
                   
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs text-gray-500 text-center">
                     No spam. Just your AI visibility insights.
                   </p>
                 </div>
@@ -413,23 +413,23 @@ export function ScanResultsModal({
               {!isUnlocked && scanData.results.slice(freePreviewCount).map((_, idx) => (
                 <div 
                   key={idx + freePreviewCount} 
-                  className="p-4 border rounded-lg space-y-3 relative"
+                  className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3 relative"
                 >
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                    <div className="flex items-center gap-2 text-gray-300">
                       <Lock className="h-4 w-4" />
                       <span className="text-sm font-medium">Locked</span>
                     </div>
                   </div>
                   
-                  <p className="font-medium text-sm text-muted-foreground/50">
+                  <p className="font-medium text-sm text-gray-500">
                     {idx + freePreviewCount + 1}. Locked prompt content...
                   </p>
                   
                   <div className="grid grid-cols-3 gap-3 text-sm opacity-30">
-                    <div className="h-8 bg-muted rounded" />
-                    <div className="h-8 bg-muted rounded" />
-                    <div className="h-8 bg-muted rounded" />
+                    <div className="h-8 bg-gray-700 rounded" />
+                    <div className="h-8 bg-gray-700 rounded" />
+                    <div className="h-8 bg-gray-700 rounded" />
                   </div>
                 </div>
               ))}
@@ -438,51 +438,51 @@ export function ScanResultsModal({
               {isUnlocked && scanData.results.slice(freePreviewCount).map((result, idx) => (
                 <div 
                   key={idx + freePreviewCount} 
-                  className="p-4 border rounded-lg space-y-3"
+                  className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3"
                 >
-                  <p className="font-medium text-sm">
+                  <p className="font-medium text-sm text-white">
                     {idx + freePreviewCount + 1}. {result.prompt}
                   </p>
                   
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
                         Gemini
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.geminiMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.geminiMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.geminiCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiCited ? "text-green-400" : "text-gray-500"}>
                           {result.geminiCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-purple-500" />
                         Perplexity
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.perplexityMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.perplexityCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityCited ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         ChatGPT/Search
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.mentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.mentioned ? "text-green-400" : "text-gray-500"}>
                           {result.mentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.cited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.cited ? "text-green-400" : "text-gray-500"}>
                           {result.cited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
@@ -490,8 +490,8 @@ export function ScanResultsModal({
                   </div>
                   
                   {result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Competitors mentioned: </span>
+                    <div className="text-xs text-gray-400">
+                      <span className="font-medium text-gray-300">Competitors mentioned: </span>
                       {result.geminiCompetitors.slice(0, 3).join(", ")}
                     </div>
                   )}
@@ -500,24 +500,24 @@ export function ScanResultsModal({
 
               {/* Optimization CTA - Only show when unlocked and score < 70 */}
               {isUnlocked && scanData.score < 70 && (
-                <div className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 rounded-xl space-y-4 mt-4">
+                <div className="p-5 bg-gray-800 border-2 border-yellow-400/30 rounded-xl space-y-4 mt-4">
                   <div className="flex items-center gap-2">
-                    <Wand2 className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Your Score Needs Improvement</span>
+                    <Wand2 className="h-5 w-5 text-yellow-400" />
+                    <span className="font-semibold text-white">Your Score Needs Improvement</span>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground">
-                    Your visibility score of <strong className="text-destructive">{scanData.score}</strong> means AI assistants 
+                  <p className="text-sm text-gray-300">
+                    Your visibility score of <strong className="text-red-400">{scanData.score}</strong> means AI assistants 
                     aren't recommending you. Get a personalized plan to fix this.
                   </p>
                   
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
                     <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-primary" />
+                      <Target className="h-4 w-4 text-yellow-400" />
                       <span>Prompt-specific fixes</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" />
+                      <Zap className="h-4 w-4 text-yellow-400" />
                       <span>Quick wins with tools</span>
                     </div>
                   </div>
@@ -544,20 +544,20 @@ export function ScanResultsModal({
         </ScrollArea>
 
         {/* Sticky Footer */}
-        <div className="p-4 border-t bg-background">
+        <div className="p-4 border-t border-gray-800 bg-gray-900">
           {!isUnlocked && lockedCount > 0 ? (
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-gray-400">
                 <Users className="h-4 w-4" />
                 <span>Join 500+ marketers improving their AI visibility</span>
               </div>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 Close
               </Button>
             </div>
           ) : (
             <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 Close
               </Button>
             </div>

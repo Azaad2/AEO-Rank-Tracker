@@ -293,56 +293,56 @@ export function ScanResultsModal({
 
             {/* Detailed Results */}
             <div className="space-y-3">
-              <h3 className="font-semibold">Detailed Results by Prompt</h3>
+              <h3 className="font-semibold text-white">Detailed Results by Prompt</h3>
               
               {scanData.results.slice(0, freePreviewCount).map((result, idx) => (
                 <div 
                   key={idx} 
-                  className="p-4 border rounded-lg space-y-3"
+                  className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3"
                 >
-                  <p className="font-medium text-sm">
+                  <p className="font-medium text-sm text-white">
                     {idx + 1}. {result.prompt}
                   </p>
                   
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
                         Gemini
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.geminiMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.geminiMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.geminiCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.geminiCited ? "text-green-400" : "text-gray-500"}>
                           {result.geminiCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-purple-500" />
                         Perplexity
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.perplexityMentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityMentioned ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityMentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.perplexityCited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.perplexityCited ? "text-green-400" : "text-gray-500"}>
                           {result.perplexityCited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         ChatGPT/Search
                       </p>
                       <div className="flex flex-col gap-0.5 text-xs">
-                        <span className={result.mentioned ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.mentioned ? "text-green-400" : "text-gray-500"}>
                           {result.mentioned ? "✓ Mentioned" : "✗ No mention"}
                         </span>
-                        <span className={result.cited ? "text-green-500" : "text-muted-foreground"}>
+                        <span className={result.cited ? "text-green-400" : "text-gray-500"}>
                           {result.cited ? "✓ Cited" : "✗ No citation"}
                         </span>
                       </div>
@@ -350,8 +350,8 @@ export function ScanResultsModal({
                   </div>
                   
                   {result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Competitors mentioned: </span>
+                    <div className="text-xs text-gray-400">
+                      <span className="font-medium text-gray-300">Competitors mentioned: </span>
                       {result.geminiCompetitors.slice(0, 3).join(", ")}
                     </div>
                   )}
@@ -360,27 +360,27 @@ export function ScanResultsModal({
 
               {/* Inline Email Capture Card - appears after first prompt */}
               {!isUnlocked && lockedCount > 0 && (
-                <div className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 rounded-xl space-y-4">
+                <div className="p-5 bg-gray-800 border-2 border-yellow-400/30 rounded-xl space-y-4">
                   <div className="flex items-center gap-2">
-                    <Lock className="h-5 w-5 text-primary" />
-                    <span className="font-semibold">Unlock {lockedCount} More Results</span>
+                    <Lock className="h-5 w-5 text-yellow-400" />
+                    <span className="font-semibold text-white">Unlock {lockedCount} More Results</span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Full AI visibility score</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>All {scanData.promptsCount} prompt results</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Competitor breakdown</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
                       <span>Improvement roadmap</span>
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export function ScanResultsModal({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={isSubmitting}
-                      className="flex-1"
+                      className="flex-1 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
                     />
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
@@ -403,7 +403,7 @@ export function ScanResultsModal({
                     </Button>
                   </form>
                   
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-xs text-gray-500 text-center">
                     No spam. Just your AI visibility insights.
                   </p>
                 </div>

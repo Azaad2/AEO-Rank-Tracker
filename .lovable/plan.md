@@ -1,44 +1,51 @@
-## Plan: Activate Razorpay payments
+## Why no email is being sent
 
-Good news — your project already has a **complete Razorpay integration** built. Plans, edge functions, webhook, hook, and DB columns all exist. We just need to wire the Pricing page back to it (it's currently calling PayPal) and confirm the Razorpay SDK script is loaded.
+SendGrid itself is fine. The bug is in the **frontend wiring**.
 
-### What's already there (no work needed)
-- DB: `plans.razorpay_plan_id` populated for Pro (`plan_SCokLVuHjsAOlA`), Team (`plan_SBwr5Gm88JWwPg`), Agency (`plan_SBwrxIPmX3DWK0`)
-- DB: `subscriptions.razorpay_subscription_id` column
-- Edge functions: `create-razorpay-subscription`, `verify-razorpay-payment`, `razorpay-webhook` (all with `verify_jwt = false` in `config.toml`)
-- Hook: `src/hooks/useRazorpay.ts` (opens Razorpay checkout overlay, verifies payment, handles failures)
-- Secrets configured: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
+There are two email-capture surfaces in the app:
 
-### What needs to change
+1. `src/components/EmailCaptureModal.tsx` — correctly invokes the `send-scan-complete` edge function after inserting into `customers`.
+2. `src/components/ScanResultsModal.tsx` (the inline "unlock" form inside the dark results modal) — inserts the email into `customers` and calls `trackEvent("email_captured", ...)`, but **never calls `supabase.functions.invoke("send-scan-complete", ...)`**.
 
-**1. `src/pages/Pricing.tsx` — switch from PayPal to Razorpay**
-- Replace `import { usePayPal } from "@/hooks/usePayPal"` with `useRazorpay`
-- Replace the `usePayPal({...})` destructure: drop `verifySubscription` (Razorpay verifies inline in the modal handler), keep `initiateCheckout` and `isLoading`
-- Remove the PayPal return-redirect `useEffect` (lines 161–175) — Razorpay uses an overlay modal, no redirect/return flow
-- `handlePlanSelect` keeps the same signature; `initiateCheckout(planId, email, userId)` already matches
+After the recent dark-theme refactor, the inline unlock form in `ScanResultsModal` is the path real users actually go through, so:
 
-**2. `index.html` — load the Razorpay checkout SDK**
-Add `<script src="https://checkout.razorpay.com/v1/checkout.js"></script>` in `<head>` so `window.Razorpay` is available when `useRazorpay` runs (the hook already throws a clear error if it's missing).
+- Row gets created in `customers` ✅
+- Activity event tracked ✅
+- SendGrid email never triggered ❌
+- No logs ever appear for `send-scan-complete` (confirmed: edge function logs are empty)
 
-**3. `src/components/UpgradeModal.tsx`**
-Check it for any PayPal references and switch to `useRazorpay` the same way as Pricing (will verify when implementing).
+So this isn't a SendGrid/API key/domain problem — the function is simply never invoked for the main flow.
 
-**4. Razorpay dashboard — webhook URL (manual step you'll do)**
-After deploy, register this webhook URL in your Razorpay dashboard (Settings → Webhooks):
-`https://sxcsbqglcmwbueztpvei.supabase.co/functions/v1/razorpay-webhook`
-Subscribe to events: `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `subscription.completed`, `payment.failed`. Use the same secret you stored in `RAZORPAY_WEBHOOK_SECRET`.
+## Fix
 
-### Optional cleanup (recommended, but I'll only do it if you say yes)
-Remove the now-unused PayPal stack so the codebase has one billing path:
-- Delete `src/hooks/usePayPal.ts`
-- Delete edge functions: `create-paypal-subscription`, `verify-paypal-payment`, `paypal-webhook`
-- Drop unused `paypal_plan_id` column from `plans` and `paypal_subscription_id` from `subscriptions` (data is empty)
-- Remove `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` secrets
+In `src/components/ScanResultsModal.tsx`, inside `handleEmailSubmit`, right after the successful `customers` insert and `trackEvent` call, add the same fire-and-forget invoke that `EmailCaptureModal` uses:
 
-### One thing to confirm before I proceed
-**Are you using Razorpay Live keys or Test keys right now?** The hook will work either way, but the existing `razorpay_plan_id`s in your `plans` table must match the same mode. If they're test plans and your secrets are live (or vice versa), checkout will fail with "plan not found." If unsure, I'll point you at how to verify in the Razorpay dashboard.
+```ts
+supabase.functions
+  .invoke("send-scan-complete", {
+    body: {
+      email: email.trim().toLowerCase(),
+      domain: scanData.project,
+      score: scanData.score,
+      scanId: scanData.scanId || null,
+    },
+  })
+  .catch((err) => console.error("send-scan-complete invoke failed:", err));
+```
 
-### Note on Razorpay availability
-Razorpay primarily serves businesses with an Indian entity. If your business isn't registered in India and you can't onboard, let me know and I'll switch the plan to Lovable's built-in Paddle instead (recommended for global SaaS — handles VAT/tax/MoR automatically).
+Also update the success toast copy to mention the email was sent (matching `EmailCaptureModal`): "Check your inbox — we sent your scan summary too."
 
-Reply "go ahead" and I'll execute steps 1–3 (and the cleanup if you also say yes to it).
+## Verification
+
+After the change:
+1. Run a scan, submit email in the results modal.
+2. Check `supabase--edge_function_logs` for `send-scan-complete` — should now show a 200.
+3. Confirm email arrives from `hello@aimentionyou.com`.
+
+If after the fix logs show a non-200, then it's a SendGrid-side issue (API key, sender verification, suppression) and we'll debug from those logs.
+
+## Out of scope
+
+- No edge function changes.
+- No DB / RLS changes.
+- No changes to `EmailCaptureModal.tsx` (already correct, just unused on main path).

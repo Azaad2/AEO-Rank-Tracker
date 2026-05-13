@@ -118,7 +118,7 @@ const comparisonData = [
 
 export default function Pricing() {
   useEffect(() => {
-    document.title = "AI Visibility Pricing — Free, Pro, Team & Agency Plans | AIMentionYou";
+    document.title = "AI Visibility Pricing — Plans & Costs";
     const desc = document.querySelector('meta[name="description"]');
     if (desc) desc.setAttribute("content", "Choose your AI visibility plan. Monitor how ChatGPT, Perplexity, Gemini and Claude mention your brand. Plans from free to agency. 10x cheaper than competitors.");
     let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;

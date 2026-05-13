@@ -10,7 +10,7 @@ import { TableOfContents } from "@/components/blog/TableOfContents";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 
 const title = "What is Answer Engine Optimization (AEO)? Complete Guide for 2026";
-const description = "Answer Engine Optimization (AEO) is the new SEO. Learn what it is, how it differs from traditional SEO, and exactly how to improve your brand's AI citation rate in 2026 — with real data, examples, and a step-by-step strategy.";
+const description = "AEO is the new SEO. Learn how Answer Engine Optimization works, how it differs from traditional SEO, and how to improve your AI citation rate in 2026.";
 const canonicalUrl = "https://aimentionyou.com/blog/what-is-answer-engine-optimization-aeo-guide";
 
 const jsonLdSchema = [

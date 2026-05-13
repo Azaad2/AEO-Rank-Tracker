@@ -179,14 +179,14 @@ const tools = [
 
 const Tools = () => {
   useEffect(() => {
-    document.title = "Free AI Visibility Tools — 24 Tools for AI SEO | AIMentionYou";
+    document.title = "Free AI Visibility Tools — 24 SEO Tools";
     const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "24 free AI visibility tools: check if ChatGPT mentions you, track Perplexity rankings, generate FAQ schema, create AI-optimised content, and monitor brand visibility across every major LLM.");
+    if (desc) desc.setAttribute("content", "24 free AI visibility tools. Check ChatGPT mentions, track Perplexity rankings, generate schema, and monitor brand visibility across major LLMs.");
     let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
     can.href = "https://aimentionyou.com/tools";
     const ogT = document.querySelector('meta[property="og:title"]');
-    if (ogT) ogT.setAttribute("content", "Free AI Visibility Tools — 24 Tools for AI SEO | AIMentionYou");
+    if (ogT) ogT.setAttribute("content", "Free AI Visibility Tools — 24 SEO Tools");
     const id = "tools-schema";
     document.getElementById(id)?.remove();
     const s = document.createElement("script"); s.id = id; s.type = "application/ld+json";

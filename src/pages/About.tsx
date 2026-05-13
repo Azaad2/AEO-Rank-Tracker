@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const About = () => {
   useEffect(() => {
-    document.title = "About AIMentionYou — AI Visibility Checker for Brands & Agencies";
+    document.title = "About AI Mention You — Visibility Tools";
     const desc = document.querySelector('meta[name="description"]');
     if (desc) desc.setAttribute("content", "AIMentionYou helps businesses track and improve their presence in AI-powered search engines like ChatGPT, Perplexity, and Gemini. Free tools for any website.");
     let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;

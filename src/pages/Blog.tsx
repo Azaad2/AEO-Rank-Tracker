@@ -242,14 +242,27 @@ const Blog = () => {
   const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
-    document.title = "AI Visibility Blog | SEO Tips & AI Search Optimization Guides";
+    document.title = "AI Visibility Blog — SEO & GEO Guides";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Expert guides on AI search visibility, SEO optimization, and content strategies. Learn how to get your website mentioned by ChatGPT, Gemini, and other AI assistants."
+        "Expert guides on AI search visibility and SEO. Learn how to get your website mentioned by ChatGPT, Gemini, and Perplexity."
       );
     }
+
+    // Canonical link
+    let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
+    can.href = "https://aimentionyou.com/blog";
+
+    // OG title
+    const ogT = document.querySelector('meta[property="og:title"]');
+    if (ogT) ogT.setAttribute("content", "AI Visibility Blog — SEO & GEO Guides");
+
+    // OG description
+    const ogD = document.querySelector('meta[property="og:description"]');
+    if (ogD) ogD.setAttribute("content", "Expert guides on AI search visibility and SEO. Learn how to get your website mentioned by ChatGPT, Gemini, and Perplexity.");
 
     // Add Blog schema
     const blogSchema = {
@@ -257,7 +270,7 @@ const Blog = () => {
       "@type": "Blog",
       name: "AI Visibility Checker Blog",
       description: "Expert guides on AI search visibility and SEO optimization",
-      url: "https://domain-signal-check.lovable.app/blog",
+      url: "https://aimentionyou.com/blog",
       publisher: {
         "@type": "Organization",
         name: "AI Visibility Checker",
@@ -272,6 +285,7 @@ const Blog = () => {
 
     return () => {
       document.getElementById("blog-schema")?.remove();
+      can?.remove();
       document.title = "AI Visibility Checker";
     };
   }, []);

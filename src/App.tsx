@@ -78,78 +78,80 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/tools" element={<Tools />} />
-          <Route path="/blog" element={<Blog />} />
-          {/* Company pages */}
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          {/* Auth pages */}
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/integrations" element={<Integrations />} />
-          {/* Blog posts */}
-          <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
-          <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />
-          <Route path="/blog/ai-brand-monitoring" element={<AIBrandMonitoring />} />
-          <Route path="/blog/llm-readiness-optimization" element={<LLMReadinessOptimization />} />
-          <Route path="/blog/ai-prompt-generator-guide" element={<AIPromptGeneratorGuide />} />
-          <Route path="/blog/ai-answer-optimization" element={<AIAnswerOptimization />} />
-          <Route path="/blog/ai-email-generator-guide" element={<AIEmailGeneratorGuide />} />
-          <Route path="/blog/ai-blog-outline-generator" element={<AIBlogOutlineGenerator />} />
-          <Route path="/blog/ai-faq-generator-guide" element={<AIFAQGeneratorGuide />} />
-          <Route path="/blog/schema-markup-generator" element={<SchemaMarkupGenerator />} />
-          <Route path="/blog/meta-tag-optimization" element={<MetaTagOptimization />} />
-          <Route path="/blog/content-audit-ai-visibility" element={<ContentAuditAIVisibility />} />
-          <Route path="/blog/ai-keyword-research" element={<AIKeywordResearch />} />
-          <Route path="/blog/serp-preview-tool" element={<SERPPreviewTool />} />
-          <Route path="/blog/seo-title-generator" element={<SEOTitleGenerator />} />
-          <Route path="/blog/meta-description-generator" element={<MetaDescriptionGenerator />} />
-          {/* Tools */}
-          <Route path="/tools/ai-prompt-generator" element={<AIPromptGenerator />} />
-          <Route path="/tools/ai-faq-generator" element={<AIFAQGenerator />} />
-          <Route path="/tools/ai-answer-generator" element={<AIAnswerGenerator />} />
-          <Route path="/tools/ai-email-generator" element={<AIEmailGenerator />} />
-          <Route path="/tools/ai-blog-outline" element={<AIBlogOutline />} />
-          <Route path="/tools/schema-generator" element={<SchemaGenerator />} />
-          <Route path="/tools/meta-optimizer" element={<MetaOptimizer />} />
-          <Route path="/tools/content-auditor" element={<ContentAuditor />} />
-          <Route path="/tools/keyword-analyzer" element={<KeywordAnalyzer />} />
-          <Route path="/tools/serp-previewer" element={<SERPPreviewer />} />
-          <Route path="/tools/title-generator" element={<TitleGenerator />} />
-          <Route path="/tools/description-generator" element={<DescriptionGenerator />} />
-          <Route path="/tools/competitor-analyzer" element={<CompetitorAnalyzer />} />
-          <Route path="/tools/brand-monitor" element={<BrandMonitor />} />
-          <Route path="/tools/llm-readiness-score" element={<LLMReadinessScore />} />
-          <Route path="/tools/perplexity-rank-tracker" element={<PerplexityRankTracker />} />
-          <Route path="/tools/chatgpt-mention-tracker" element={<ChatGPTMentionTracker />} />
-          <Route path="/tools/claude-rank-tracker" element={<ClaudeRankTracker />} />
-          <Route path="/tools/ai-overviews-tracker" element={<AIOverviewsTracker />} />
-          <Route path="/tools/copilot-rank-tracker" element={<CopilotRankTracker />} />
-          <Route path="/tools/llm-rank-tracker" element={<LLMRankTracker />} />
-          <Route path="/tools/geo-optimization-checker" element={<GEOOptimizationChecker />} />
-          <Route path="/tools/ai-citation-tracker" element={<AICitationTracker />} />
-          {/* New blog posts */}
-          <Route path="/blog/perplexity-rank-tracker-guide" element={<PerplexityRankTrackerGuide />} />
-          <Route path="/blog/chatgpt-mention-tracking-guide" element={<ChatGPTMentionTrackingGuide />} />
-          <Route path="/blog/claude-rank-tracker-guide" element={<ClaudeRankTrackerGuide />} />
-          <Route path="/blog/ai-overviews-tracking-guide" element={<AIOverviewsTrackingGuide />} />
-          <Route path="/blog/copilot-seo-tracking-guide" element={<CopilotSEOTrackingGuide />} />
-          <Route path="/blog/llm-rank-tracking-guide" element={<LLMRankTrackingGuide />} />
-          <Route path="/blog/geo-optimization-guide" element={<GEOOptimizationGuide />} />
-          <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
-          <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
-          <Route path="/blog/what-is-answer-engine-optimization-aeo-guide" element={<AEOGuide />} />
-          <Route path="/ai-visibility" element={<AIVisibilityHub />} />
-          <Route path="/ai-visibility/:slug" element={<ProgrammaticSEOPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <main>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/tools" element={<Tools />} />
+            <Route path="/blog" element={<Blog />} />
+            {/* Company pages */}
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            {/* Auth pages */}
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/integrations" element={<Integrations />} />
+            {/* Blog posts */}
+            <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
+            <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />
+            <Route path="/blog/ai-brand-monitoring" element={<AIBrandMonitoring />} />
+            <Route path="/blog/llm-readiness-optimization" element={<LLMReadinessOptimization />} />
+            <Route path="/blog/ai-prompt-generator-guide" element={<AIPromptGeneratorGuide />} />
+            <Route path="/blog/ai-answer-optimization" element={<AIAnswerOptimization />} />
+            <Route path="/blog/ai-email-generator-guide" element={<AIEmailGeneratorGuide />} />
+            <Route path="/blog/ai-blog-outline-generator" element={<AIBlogOutlineGenerator />} />
+            <Route path="/blog/ai-faq-generator-guide" element={<AIFAQGeneratorGuide />} />
+            <Route path="/blog/schema-markup-generator" element={<SchemaMarkupGenerator />} />
+            <Route path="/blog/meta-tag-optimization" element={<MetaTagOptimization />} />
+            <Route path="/blog/content-audit-ai-visibility" element={<ContentAuditAIVisibility />} />
+            <Route path="/blog/ai-keyword-research" element={<AIKeywordResearch />} />
+            <Route path="/blog/serp-preview-tool" element={<SERPPreviewTool />} />
+            <Route path="/blog/seo-title-generator" element={<SEOTitleGenerator />} />
+            <Route path="/blog/meta-description-generator" element={<MetaDescriptionGenerator />} />
+            {/* Tools */}
+            <Route path="/tools/ai-prompt-generator" element={<AIPromptGenerator />} />
+            <Route path="/tools/ai-faq-generator" element={<AIFAQGenerator />} />
+            <Route path="/tools/ai-answer-generator" element={<AIAnswerGenerator />} />
+            <Route path="/tools/ai-email-generator" element={<AIEmailGenerator />} />
+            <Route path="/tools/ai-blog-outline" element={<AIBlogOutline />} />
+            <Route path="/tools/schema-generator" element={<SchemaGenerator />} />
+            <Route path="/tools/meta-optimizer" element={<MetaOptimizer />} />
+            <Route path="/tools/content-auditor" element={<ContentAuditor />} />
+            <Route path="/tools/keyword-analyzer" element={<KeywordAnalyzer />} />
+            <Route path="/tools/serp-previewer" element={<SERPPreviewer />} />
+            <Route path="/tools/title-generator" element={<TitleGenerator />} />
+            <Route path="/tools/description-generator" element={<DescriptionGenerator />} />
+            <Route path="/tools/competitor-analyzer" element={<CompetitorAnalyzer />} />
+            <Route path="/tools/brand-monitor" element={<BrandMonitor />} />
+            <Route path="/tools/llm-readiness-score" element={<LLMReadinessScore />} />
+            <Route path="/tools/perplexity-rank-tracker" element={<PerplexityRankTracker />} />
+            <Route path="/tools/chatgpt-mention-tracker" element={<ChatGPTMentionTracker />} />
+            <Route path="/tools/claude-rank-tracker" element={<ClaudeRankTracker />} />
+            <Route path="/tools/ai-overviews-tracker" element={<AIOverviewsTracker />} />
+            <Route path="/tools/copilot-rank-tracker" element={<CopilotRankTracker />} />
+            <Route path="/tools/llm-rank-tracker" element={<LLMRankTracker />} />
+            <Route path="/tools/geo-optimization-checker" element={<GEOOptimizationChecker />} />
+            <Route path="/tools/ai-citation-tracker" element={<AICitationTracker />} />
+            {/* New blog posts */}
+            <Route path="/blog/perplexity-rank-tracker-guide" element={<PerplexityRankTrackerGuide />} />
+            <Route path="/blog/chatgpt-mention-tracking-guide" element={<ChatGPTMentionTrackingGuide />} />
+            <Route path="/blog/claude-rank-tracker-guide" element={<ClaudeRankTrackerGuide />} />
+            <Route path="/blog/ai-overviews-tracking-guide" element={<AIOverviewsTrackingGuide />} />
+            <Route path="/blog/copilot-seo-tracking-guide" element={<CopilotSEOTrackingGuide />} />
+            <Route path="/blog/llm-rank-tracking-guide" element={<LLMRankTrackingGuide />} />
+            <Route path="/blog/geo-optimization-guide" element={<GEOOptimizationGuide />} />
+            <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
+            <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
+            <Route path="/blog/what-is-answer-engine-optimization-aeo-guide" element={<AEOGuide />} />
+            <Route path="/ai-visibility" element={<AIVisibilityHub />} />
+            <Route path="/ai-visibility/:slug" element={<ProgrammaticSEOPage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

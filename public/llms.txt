@@ -1,0 +1,57 @@
+# AI Mention You
+
+> AI visibility checker and GEO tracker. Monitor whether ChatGPT, Gemini, Perplexity, Claude, and Google AI Overviews mention your brand — and improve your citations across every major LLM.
+
+AI Mention You scans your domain across major AI assistants, scores how often it's cited, surfaces missed-mention opportunities, and generates an action plan (content, schema, FAQs) to improve visibility. Built for SaaS, ecommerce, and agencies.
+
+## Pages
+
+- [Home — AI Visibility Checker](/): Free instant scan of your AI visibility across ChatGPT, Gemini, and Perplexity.
+- [Tools](/tools): 24 free AI/SEO tools — rank trackers, prompt generators, schema, FAQs, content audits.
+- [Pricing](/pricing): Free, Pro ($19), Team ($49), Agency ($149/mo).
+- [Blog](/blog): Guides on AI visibility, GEO, AEO, and AI search optimization.
+- [About](/about): Mission and team behind AI Mention You.
+- [Contact](/contact): Reach support at hello@aimentionyou.com.
+- [Integrations](/integrations): Slack and Zapier webhooks for visibility alerts.
+
+## AI Rank Trackers
+
+- [Perplexity Rank Tracker](/tools/perplexity-rank-tracker): Track citations in Perplexity AI.
+- [ChatGPT Mention Tracker](/tools/chatgpt-mention-tracker): Monitor mentions in ChatGPT.
+- [Claude Rank Tracker](/tools/claude-rank-tracker): Track visibility in Anthropic's Claude.
+- [Google AI Overviews Tracker](/tools/ai-overviews-tracker): Monitor Google AI Overviews and AI Mode.
+- [Copilot Rank Tracker](/tools/copilot-rank-tracker): Track Microsoft Copilot and Bing AI.
+- [LLM Rank Tracker](/tools/llm-rank-tracker): Multi-platform AI rank tracking.
+
+## Optimization Tools
+
+- [GEO Optimization Checker](/tools/geo-optimization-checker): Score your generative engine optimization.
+- [LLM Readiness Score](/tools/llm-readiness-score): Audit how AI-friendly your site is.
+- [AI Citation Tracker](/tools/ai-citation-tracker): See where AI cites your domain.
+- [Brand Monitor](/tools/brand-monitor): Track brand mentions across AI platforms.
+- [Competitor Analyzer](/tools/competitor-analyzer): Compare AI visibility vs rivals.
+- [Content Auditor](/tools/content-auditor): Audit content for AI visibility gaps.
+- [Schema Generator](/tools/schema-generator): Generate JSON-LD for AI and SEO.
+- [Meta Optimizer](/tools/meta-optimizer): Optimize titles and descriptions.
+
+## Generators
+
+- [AI Prompt Generator](/tools/ai-prompt-generator): Surface customer search queries.
+- [AI FAQ Generator](/tools/ai-faq-generator): Schema-ready FAQ blocks.
+- [AI Answer Generator](/tools/ai-answer-generator): Citation-optimized content.
+- [AI Blog Outline](/tools/ai-blog-outline): SEO-ready outlines.
+- [AI Email Generator](/tools/ai-email-generator): Professional email drafts.
+- [Title Generator](/tools/title-generator) and [Description Generator](/tools/description-generator): Meta tag copy.
+
+## Featured Guides
+
+- [What is Answer Engine Optimization (AEO)?](/blog/what-is-answer-engine-optimization-aeo-guide): Complete 2026 guide.
+- [Best Online LLM Rank Trackers](/blog/best-online-llm-rank-tracker): Tested comparison of top tools.
+- [GEO Optimization Guide](/blog/geo-optimization-guide): Mastering Generative Engine Optimization.
+- [AI Visibility Checker Guide](/blog/ai-visibility-checker-guide): How to check if AI mentions you.
+
+## Optional
+
+- [Dashboard](/dashboard): Authenticated user workspace.
+- [Auth](/auth): Sign up / log in.
+- [Privacy](/privacy) and [Terms](/terms).

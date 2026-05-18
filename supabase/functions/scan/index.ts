@@ -508,7 +508,7 @@ serve(async (req) => {
     }
 
     // === Subscription limit enforcement ===
-    if (userId) {
+    if (userId && !isAdmin) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);

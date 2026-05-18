@@ -41,6 +41,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Integrations from "./pages/Integrations";
+import BulkScan from "./pages/admin/BulkScan";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";

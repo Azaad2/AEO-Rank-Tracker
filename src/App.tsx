@@ -95,6 +95,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/integrations" element={<Integrations />} />
+            <Route path="/admin/bulk-scan" element={<BulkScan />} />
             {/* Blog posts */}
             <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
             <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />

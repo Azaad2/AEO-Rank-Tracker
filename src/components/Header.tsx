@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ToolsDropdown } from "./ToolsDropdown";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminUser } from "@/lib/admin";
+import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo-light.png";
 
 export const Header = () => {

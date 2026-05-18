@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ToolsDropdown } from "./ToolsDropdown";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminUser } from "@/lib/admin";
+import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo-light.png";
 
 export const Header = () => {
@@ -76,6 +78,15 @@ export const Header = () => {
             >
               Blog
             </Link>
+            {isAdminUser(user) && (
+              <Link
+                to="/admin/bulk-scan"
+                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Bulk Scan
+                <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-[10px] px-1.5 py-0">Admin</Badge>
+              </Link>
+            )}
 
             {/* Auth Section */}
             {!isLoading && (

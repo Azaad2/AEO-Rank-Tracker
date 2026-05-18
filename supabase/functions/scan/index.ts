@@ -684,7 +684,7 @@ serve(async (req) => {
     }
 
     // --- Issue 1: Increment credit usage ---
-    if (userId) {
+    if (userId && !isAdmin) {
       try {
         const { data: sub } = await supabase
           .from('subscriptions')

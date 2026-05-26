@@ -25,9 +25,3 @@ export function initPostHog() {
 }
 
 export { posthog };
-    capture_pageleave: true,
-  });
-  initialized = true;
-}
-
-export { posthog };

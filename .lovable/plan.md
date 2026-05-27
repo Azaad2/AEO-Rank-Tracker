@@ -1,64 +1,60 @@
-## What you're asking for (and what's currently wrong)
+# Plan: Domain Detail Dashboard (GSC-style command center)
 
-You want the **homepage domain scan** popup (the "AI Visibility Results" modal in your screenshots) to show **what's broken** on the scanned site, with a **Fix it** button next to each issue. Clicking any Fix button as a guest should send the user to signup, then come back and open the fix.
+Right now `/dashboard` shows tabs (Overview, My Domains, Action Plan, Competitors, Auto-Fix, AI Assistant) but the user has to hop between them to understand a single domain. We'll add a **per-domain detail view** that consolidates everything a brand owner needs for AI visibility — modeled after Google Search Console's property dashboard.
 
-Right now that lives only on `/tools/ai-content-auditor` (a separate page). The main homepage scan modal (`ScanResultsModal.tsx`) only shows visibility scores + per-prompt mentions/citations — **no issues list, no Fix buttons**. That's the gap.
+## What the user gets
 
-## Plan — add an "Issues to Fix" section to `ScanResultsModal`
+When a user clicks a saved domain (or any domain in scan history), they land on a dedicated page at `/dashboard/domain/:domain` showing **one screen with everything for that brand**:
 
-### 1. Derive issues from the scan data already returned
+1. **Header strip** — domain, latest visibility score (big number), score delta vs last week, last scan time, "Rescan now" button.
+2. **Weekly tracking chart** — line chart of the visibility score over the last 7 / 30 / 90 days (toggle), pulled from `scans` table filtered by `project_domain` + `user_id`. Reuse `ScoreTrend` styling.
+3. **Per-engine breakdown** — 3 mini-cards (Gemini / Perplexity / Web Search) showing mention rate and citation count for the latest scan.
+4. **Issues to Fix** — the same `deriveIssues` list already used in `ScanResultsModal`, rendered as a checklist with severity badges and a **"Fix it"** button per issue. Clicking calls `audit-fix` and shows the generated content/schema in a dialog with Copy + "Save to Action Plan". Completed issues (matching `optimization_tasks.status = 'completed'`) render with a strikethrough + green check.
+5. **Schema health card** — checks the live homepage (via existing `audit-content` edge function) for Article, FAQ, Organization, and Breadcrumb JSON-LD. Each row shows ✓ present / ✗ missing with a one-click "Generate schema" button that pipes into `generate-schema`.
+6. **Ranking opportunities** — prompts where competitors ranked but user didn't, pulled from latest `scan_results`. Each row shows the prompt, competitor list, and "Beat them" button (opens the existing competitor strategy panel).
+7. **Action Plan slice** — filtered `optimization_tasks` for this domain only, with status toggles.
+8. **Competitor snapshot** — top 5 competitors that appeared most often across this domain's scans, with appearance counts.
 
-The scan modal already has `scanData.results` (Gemini/Perplexity/Search mentions + citations + competitors) and `scanData.score`. Translate those into actionable AI-visibility issues — no extra API call needed for the list itself:
+## Navigation
 
-- **Not cited on Gemini** (if any `geminiCited === false`) → fix: `faq_schema` + `answer_style`
-- **Not cited on Perplexity** (if any `perplexityCited === false`) → fix: `article_schema`
-- **Not mentioned on ChatGPT/Search** (if any `mentioned === false`) → fix: `content_expand` + `internal_links`
-- **Competitors outranking you** (if `geminiCompetitors`/`perplexityCompetitors` non-empty) → fix: `answer_style` (citability content)
-- **Low overall score (<50)** → fix: `meta_title` + `meta_description`
-- **No citations anywhere** (all `cited`/`geminiCited`/`perplexityCited` false) → fix: `org_schema`
+- `My Domains` cards become clickable → route to `/dashboard/domain/:domain`.
+- `ScanHistory` rows get a "View domain" link.
+- Breadcrumb back to `/dashboard`.
 
-Each issue: `{ id, severity (high/med/low), title, evidence (e.g. "Cited in 0/3 Perplexity responses"), fixType, category }`.
+## Technical details
 
-### 2. Render an "Issues to Fix" card list in the modal
+**New file**: `src/pages/DomainDetail.tsx` (wrapped in `AuthGuard`, uses `useParams` for domain).
 
-New section in `ScanResultsModal.tsx`, placed **above** the per-prompt detailed results (so it's visible immediately after the score):
+**New components** (under `src/components/dashboard/domain/`):
+- `DomainHeader.tsx` — score + delta + rescan
+- `DomainTrendChart.tsx` — recharts line chart with 7/30/90 toggle
+- `EngineBreakdown.tsx` — 3 mini-cards from latest `scan_results`
+- `DomainIssues.tsx` — reuses `deriveIssues` helper extracted from `ScanResultsModal` into `src/utils/deriveIssues.ts`, renders Fix buttons wired to `audit-fix`
+- `SchemaHealth.tsx` — calls `audit-content` on mount, shows schema checklist
+- `DomainOpportunities.tsx` — missed-prompt list (logic already exists in current Overview's Ranking Opportunities — extract to shared component)
+- `DomainTasks.tsx` — filtered `optimization_tasks` list with status toggle
+- `DomainCompetitors.tsx` — aggregated competitor counts
 
-```text
-┌─ Issues Detected (4) ────────────────────────┐
-│  [HIGH] Not cited on Perplexity              │
-│  Cited in 0/3 Perplexity responses           │
-│                                  [ Fix it → ]│
-├──────────────────────────────────────────────┤
-│  [MED] Competitors outranking you            │
-│  qbstores.com + 4 others mentioned instead   │
-│                                  [ Fix it → ]│
-└──────────────────────────────────────────────┘
+**Refactor**:
+- Extract `deriveIssues` from `ScanResultsModal.tsx` into `src/utils/deriveIssues.ts` so both the modal and the detail page share it.
+- Extract Ranking Opportunities widget from `Dashboard.tsx` Overview into `src/components/dashboard/RankingOpportunities.tsx` reused on both Overview and Domain Detail.
+
+**Routing**: add `<Route path="/dashboard/domain/:domain" element={<DomainDetail />} />` in `src/App.tsx`.
+
+**Data queries** (all client-side via supabase-js, no migrations needed):
+```
+scans:        select * where user_id=auth.uid() and project_domain=:domain order by created_at desc
+scan_results: select * where scan_id in (latest scan id)
+tasks:        select * from optimization_tasks where user_id=auth.uid() and scan_id in (...)
+schema check: supabase.functions.invoke('audit-content', { body: { url } })
+fix:          supabase.functions.invoke('audit-fix', { body: { url, fixType, pageMeta } })
 ```
 
-Styling matches existing arcade theme (`bg-gray-800`, `border-gray-700`, yellow-400 accents, severity badges in red/yellow/blue).
+**No DB migration required** — all needed tables (`scans`, `scan_results`, `optimization_tasks`, `saved_domains`) and edge functions (`audit-content`, `audit-fix`, `generate-schema`) already exist.
 
-**Guests** see all issue cards (titles + evidence visible — not locked, so they understand the value), but the **Fix it button** is the gate.
+## Out of scope (this round)
+- Email/Slack weekly digest exports
+- PDF export of the domain dashboard
+- Editing schema directly on the user's live site (we only generate copy-pasteable snippets)
 
-### 3. Wire the Fix it button → signup gate
-
-On click:
-- **If guest** (no session): persist scan context to `localStorage` (`pendingFix = { domain, fixType, issueId, scanId }`), then `navigate('/auth?mode=signup&redirect=/dashboard?fix=<fixType>&domain=<domain>')`. Toast: "Sign up free to apply this fix."
-- **If signed in**: call existing `supabase.functions.invoke('audit-fix', { body: { url: domain, fixType, pageMeta: { title: domain } } })` and show the result in a second nested Dialog (Copy button + Save to Action Plan via `optimization_tasks` insert).
-
-### 4. Post-signup bounce-back
-
-In `Dashboard.tsx` (or wherever `redirect` lands), on mount check for `pendingFix` in localStorage. If present + user authed, auto-open the same Fix dialog with the generated content, then clear localStorage. (`Auth.tsx` already forwards `redirect` from earlier work.)
-
-### 5. Files touched
-
-- **`src/components/ScanResultsModal.tsx`** — add `deriveIssues(scanData)` helper, render Issues section, add Fix dialog state, signup-gate logic.
-- **`src/pages/Dashboard.tsx`** — small `useEffect` to consume `localStorage.pendingFix` on mount and auto-open the fix.
-- **No backend changes** — reuses existing `audit-fix` edge function.
-
-### Out of scope
-- HTML scraping of the user's site (homepage scan is prompt-based, not page-based — issues come from prompt results, not from parsing their HTML). If you want page-level issues (missing meta, no H1, etc.) on the homepage scan too, that's a bigger change — say the word and I'll add a Firecrawl call to the `scan` edge function.
-- Removing the standalone `/tools/ai-content-auditor` page — keeping it as a dedicated URL-input tool.
-
-## Part 2 — clarify the blog post question
-
-The "50 SaaS Brands AI Visibility" post is **already listed** on `/blog` and in `sitemap.xml` from the previous turn. If it's still not showing for you, tell me what you see at `/blog` and I'll investigate — no plan needed for that yet.
+After approval I'll build it in this order: utils extraction → routing → page shell → header + trend → issues + schema → opportunities + tasks + competitors → wire "My Domains" cards to the new route.

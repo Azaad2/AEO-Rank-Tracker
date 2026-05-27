@@ -96,6 +96,7 @@ const App = () => (
             {/* Auth pages */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/domain/:domain" element={<DomainDetail />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/admin/bulk-scan" element={<BulkScan />} />
             {/* Blog posts */}

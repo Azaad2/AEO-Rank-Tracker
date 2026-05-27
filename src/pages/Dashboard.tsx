@@ -96,6 +96,8 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
+      <PendingFixHandler />
+
       <UserProfile 
         planName={plan?.name || 'Free'} 
         planPrice={plan?.price_monthly || 0} 

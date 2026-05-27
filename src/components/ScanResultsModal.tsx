@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2 } from "lucide-react";
+import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2, Wrench, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useAuth } from "@/hooks/useAuth";
+
 
 interface ScanResult {
   prompt: string;

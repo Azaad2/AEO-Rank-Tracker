@@ -194,12 +194,75 @@ export function ScanResultsModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [fixOpen, setFixOpen] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [fixContent, setFixContent] = useState("");
+  const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
   if (!scanData) return null;
 
   const visibility = calculateAIVisibility(scanData.results);
   const competitors = getUniqueCompetitors(scanData.results);
   const lockedCount = scanData.results.length - freePreviewCount;
+  const issues = deriveIssues(scanData.results, scanData.score, competitors);
+
+  const handleFixClick = async (issue: Issue) => {
+    trackEvent("fix_button_clicked", { domain: scanData.project, fixType: issue.fixType, issueId: issue.id });
+    if (!user) {
+      try {
+        localStorage.setItem("pendingFix", JSON.stringify({
+          domain: scanData.project,
+          fixType: issue.fixType,
+          issueId: issue.id,
+          issueTitle: issue.title,
+          scanId: scanData.scanId,
+        }));
+      } catch {}
+      toast({ title: "Sign up free to apply this fix", description: "We'll generate the fix as soon as you're in." });
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent(`/dashboard?fix=${issue.fixType}&domain=${scanData.project}`)}`);
+      return;
+    }
+    setActiveIssue(issue);
+    setFixOpen(true);
+    setFixLoading(true);
+    setFixContent("");
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-fix", {
+        body: {
+          url: scanData.project.startsWith("http") ? scanData.project : `https://${scanData.project}`,
+          fixType: issue.fixType,
+          pageMeta: { title: scanData.project, description: "", h1: "" },
+        },
+      });
+      if (error) throw error;
+      setFixContent(data?.fix || "No fix generated.");
+    } catch (e) {
+      console.error(e);
+      setFixContent("Failed to generate fix. Please try again.");
+    } finally {
+      setFixLoading(false);
+    }
+  };
+
+  const handleSaveToActionPlan = async () => {
+    if (!user || !activeIssue) return;
+    const { error } = await supabase.from("optimization_tasks").insert({
+      user_id: user.id,
+      title: activeIssue.title,
+      description: fixContent.slice(0, 2000),
+      priority: activeIssue.severity === "high" ? "high" : activeIssue.severity === "med" ? "medium" : "low",
+      scan_id: scanData.scanId || null,
+    });
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved to Action Plan" });
+    }
+  };
+
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

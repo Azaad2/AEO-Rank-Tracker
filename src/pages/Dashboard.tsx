@@ -10,12 +10,15 @@ import { CompetitorWatch } from '@/components/dashboard/CompetitorWatch';
 import { QuickScan } from '@/components/dashboard/QuickScan';
 import { AutoFixResults } from '@/components/dashboard/AutoFixResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles, Bot } from 'lucide-react';
+import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles, Bot, Wrench, Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AIAssistant } from '@/components/dashboard/AIAssistant';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface SubscriptionData {
   plan_id: string;

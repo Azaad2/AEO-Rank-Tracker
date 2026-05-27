@@ -10,12 +10,15 @@ import { CompetitorWatch } from '@/components/dashboard/CompetitorWatch';
 import { QuickScan } from '@/components/dashboard/QuickScan';
 import { AutoFixResults } from '@/components/dashboard/AutoFixResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles, Bot } from 'lucide-react';
+import { Loader2, LayoutDashboard, Globe, ListChecks, Swords, Sparkles, Bot, Wrench, Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AIAssistant } from '@/components/dashboard/AIAssistant';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface SubscriptionData {
   plan_id: string;
@@ -32,7 +35,79 @@ interface PlanData {
   chat_limit: number;
 }
 
+function PendingFixHandler() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    let raw: string | null = null;
+    try { raw = localStorage.getItem("pendingFix"); } catch { return; }
+    if (!raw) return;
+    let pending: any;
+    try { pending = JSON.parse(raw); } catch { localStorage.removeItem("pendingFix"); return; }
+    localStorage.removeItem("pendingFix");
+    setTitle(pending.issueTitle || "Your fix");
+    setOpen(true);
+    setLoading(true);
+    supabase.functions.invoke("audit-fix", {
+      body: {
+        url: pending.domain?.startsWith("http") ? pending.domain : `https://${pending.domain}`,
+        fixType: pending.fixType,
+        pageMeta: { title: pending.domain, description: "", h1: "" },
+      },
+    }).then(({ data, error }) => {
+      if (error) throw error;
+      setContent(data?.fix || "No fix generated.");
+    }).catch((e) => {
+      console.error(e);
+      setContent("Failed to generate fix. Please try again.");
+    }).finally(() => setLoading(false));
+  }, [user]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-2xl bg-gray-900 border-gray-800 text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-white">
+            <Wrench className="h-5 w-5 text-yellow-400" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex items-center justify-center py-12 text-gray-400">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Generating fix...
+          </div>
+        ) : (
+          <>
+            <pre className="bg-black border border-gray-800 rounded p-3 text-xs text-gray-200 whitespace-pre-wrap max-h-[50vh] overflow-auto">
+              {content}
+            </pre>
+            {content && (
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  onClick={() => { navigator.clipboard.writeText(content); toast({ title: "Copied" }); }}
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DashboardContent() {
+
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [plan, setPlan] = useState<PlanData | null>(null);
@@ -93,6 +168,8 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
+      <PendingFixHandler />
+
       <UserProfile 
         planName={plan?.name || 'Free'} 
         planPrice={plan?.price_monthly || 0} 

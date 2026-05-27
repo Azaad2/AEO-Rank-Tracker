@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2 } from "lucide-react";
+import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2, Wrench, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { useAuth } from "@/hooks/useAuth";
+
 
 interface ScanResult {
   prompt: string;
@@ -104,6 +107,81 @@ const getUniqueCompetitors = (results: ScanResult[]): string[] => {
   return [...new Set(allCompetitors)].slice(0, 5);
 };
 
+type Issue = {
+  id: string;
+  severity: "high" | "med" | "low";
+  title: string;
+  evidence: string;
+  fixType: string;
+  category: string;
+};
+
+const deriveIssues = (results: ScanResult[], score: number, competitors: string[]): Issue[] => {
+  const issues: Issue[] = [];
+  const total = results.length || 1;
+
+  const geminiCited = results.filter(r => r.geminiCited).length;
+  const perpCited = results.filter(r => r.perplexityCited).length;
+  const searchMentioned = results.filter(r => r.mentioned).length;
+  const anyCited = results.some(r => r.cited || r.geminiCited || r.perplexityCited);
+
+  if (perpCited === 0) {
+    issues.push({ id: "no-perp-cite", severity: "high", category: "Perplexity",
+      title: "Not cited on Perplexity",
+      evidence: `Cited in 0/${total} Perplexity responses — Perplexity loves Article schema.`,
+      fixType: "article_schema" });
+  }
+  if (geminiCited < total / 2) {
+    issues.push({ id: "low-gemini-cite", severity: "high", category: "Gemini",
+      title: "Weak citations on Gemini",
+      evidence: `Cited in ${geminiCited}/${total} Gemini responses. Add FAQ schema + answer-style content.`,
+      fixType: "faq_schema" });
+  }
+  if (searchMentioned < total / 2) {
+    issues.push({ id: "low-search-mention", severity: "med", category: "Search/ChatGPT",
+      title: "Low search mentions",
+      evidence: `Mentioned in ${searchMentioned}/${total} search results. Expand content depth + internal links.`,
+      fixType: "content_expand" });
+  }
+  if (competitors.length > 0) {
+    issues.push({ id: "competitors", severity: "high", category: "Competitors",
+      title: `${competitors.length} competitors outranking you`,
+      evidence: `${competitors[0]}${competitors.length > 1 ? ` + ${competitors.length - 1} others` : ""} are mentioned instead of your brand.`,
+      fixType: "answer_style" });
+  }
+  if (score < 50) {
+    issues.push({ id: "weak-meta", severity: "med", category: "On-page SEO",
+      title: "Weak meta tags hurt AI parsing",
+      evidence: `Overall score is ${score}/100. AI assistants rely on strong titles + descriptions.`,
+      fixType: "meta_title" });
+  }
+  if (!anyCited) {
+    issues.push({ id: "no-org", severity: "high", category: "Authority",
+      title: "Missing Organization schema",
+      evidence: "Zero citations across all platforms — add Organization JSON-LD to establish brand entity.",
+      fixType: "org_schema" });
+  }
+  const altIssues: Issue[] = [
+    { id: "answer-style", severity: "low", category: "Citability",
+      title: "Few answer-style paragraphs",
+      evidence: "AI assistants quote concise Q&A-formatted answers more often.",
+      fixType: "answer_style" },
+    { id: "internal-links", severity: "low", category: "Structure",
+      title: "Improve internal linking",
+      evidence: "Internal links help AI crawlers map your topical authority.",
+      fixType: "internal_links" },
+  ];
+  for (const a of altIssues) if (issues.length < 6) issues.push(a);
+  return issues;
+};
+
+const severityStyles: Record<Issue["severity"], string> = {
+  high: "bg-red-500/15 text-red-300 border-red-500/30",
+  med: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  low: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+};
+
+
 export function ScanResultsModal({
   open,
   onOpenChange,
@@ -116,12 +194,75 @@ export function ScanResultsModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [fixOpen, setFixOpen] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [fixContent, setFixContent] = useState("");
+  const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
   if (!scanData) return null;
 
   const visibility = calculateAIVisibility(scanData.results);
   const competitors = getUniqueCompetitors(scanData.results);
   const lockedCount = scanData.results.length - freePreviewCount;
+  const issues = deriveIssues(scanData.results, scanData.score, competitors);
+
+  const handleFixClick = async (issue: Issue) => {
+    trackEvent("fix_button_clicked", { domain: scanData.project, fixType: issue.fixType, issueId: issue.id });
+    if (!user) {
+      try {
+        localStorage.setItem("pendingFix", JSON.stringify({
+          domain: scanData.project,
+          fixType: issue.fixType,
+          issueId: issue.id,
+          issueTitle: issue.title,
+          scanId: scanData.scanId,
+        }));
+      } catch {}
+      toast({ title: "Sign up free to apply this fix", description: "We'll generate the fix as soon as you're in." });
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent(`/dashboard?fix=${issue.fixType}&domain=${scanData.project}`)}`);
+      return;
+    }
+    setActiveIssue(issue);
+    setFixOpen(true);
+    setFixLoading(true);
+    setFixContent("");
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-fix", {
+        body: {
+          url: scanData.project.startsWith("http") ? scanData.project : `https://${scanData.project}`,
+          fixType: issue.fixType,
+          pageMeta: { title: scanData.project, description: "", h1: "" },
+        },
+      });
+      if (error) throw error;
+      setFixContent(data?.fix || "No fix generated.");
+    } catch (e) {
+      console.error(e);
+      setFixContent("Failed to generate fix. Please try again.");
+    } finally {
+      setFixLoading(false);
+    }
+  };
+
+  const handleSaveToActionPlan = async () => {
+    if (!user || !activeIssue) return;
+    const { error } = await supabase.from("optimization_tasks").insert({
+      user_id: user.id,
+      title: activeIssue.title,
+      description: fixContent.slice(0, 2000),
+      priority: activeIssue.severity === "high" ? "high" : activeIssue.severity === "med" ? "medium" : "low",
+      scan_id: scanData.scanId || null,
+    });
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved to Action Plan" });
+    }
+  };
+
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -302,6 +443,50 @@ export function ScanResultsModal({
                 </p>
               </div>
             </div>
+
+            {/* Issues to Fix */}
+            {issues.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-yellow-400" />
+                  Issues Detected ({issues.length})
+                  {!user && (
+                    <span className="text-xs font-normal text-gray-400">
+                      — sign up free to apply fixes
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-2">
+                  {issues.map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-4 bg-gray-800 border border-gray-700 rounded-lg flex items-start justify-between gap-4"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border ${severityStyles[issue.severity]}`}>
+                            {issue.severity === "med" ? "Medium" : issue.severity === "high" ? "High" : "Low"}
+                          </span>
+                          <span className="text-xs text-gray-400">{issue.category}</span>
+                        </div>
+                        <p className="font-medium text-sm text-white">{issue.title}</p>
+                        <p className="text-xs text-gray-400">{issue.evidence}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleFixClick(issue)}
+                        className="shrink-0 bg-yellow-400 text-black hover:bg-yellow-300"
+                      >
+                        {!user && <Lock className="h-3 w-3 mr-1" />}
+                        Fix it
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
 
             {/* Detailed Results */}
             <div className="space-y-3">
@@ -576,6 +761,47 @@ export function ScanResultsModal({
           )}
         </div>
       </DialogContent>
+
+      <Dialog open={fixOpen} onOpenChange={setFixOpen}>
+        <DialogContent className="max-w-2xl bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Wrench className="h-5 w-5 text-yellow-400" />
+              {activeIssue?.title || "Fix"}
+            </DialogTitle>
+            <p className="text-xs text-gray-400">{activeIssue?.evidence}</p>
+          </DialogHeader>
+          <div className="space-y-3">
+            {fixLoading ? (
+              <div className="flex items-center justify-center py-12 text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Generating fix...
+              </div>
+            ) : (
+              <pre className="bg-black border border-gray-800 rounded p-3 text-xs text-gray-200 whitespace-pre-wrap max-h-[50vh] overflow-auto">
+                {fixContent}
+              </pre>
+            )}
+            {!fixLoading && fixContent && (
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fixContent);
+                    toast({ title: "Copied" });
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy
+                </Button>
+                <Button size="sm" onClick={handleSaveToActionPlan}>Save to Action Plan</Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+

@@ -1,54 +1,64 @@
-## Part 1 — Rebuild AI Content Auditor (URL → popup → signup-gated Fix)
+## What you're asking for (and what's currently wrong)
 
-### New flow
-1. Public page `/tools/ai-content-auditor` shows a single **URL input** + "Scan Website" button (no paste box).
-2. Click Scan → edge function fetches the page (Firecrawl) and analyzes it. Guests can run the scan without signing up.
-3. Results open in a **modal popup** with:
-   - Overall AI-readiness score (0–100) + page meta (title, description, H1, word count).
-   - List of detected **issues**, each as a card: severity badge, title, what's broken on their page, and a **"Fix this"** button.
-4. **Signup gate on Fix**: clicking any Fix button → if not signed in, redirect to `/auth?redirect=/tools/ai-content-auditor?url=<url>&fix=<issueId>` with toast "Sign up free to apply this fix." After signup/login, user lands back on the auditor; the scan re-runs automatically and the chosen issue's fix modal opens.
-5. Signed-in users: Fix opens a second modal with the AI-generated fix (meta tag, FAQ JSON-LD, rewritten H1, suggested paragraph, alt text, etc.) + **Copy** and **Save to Action Plan** (writes to `optimization_tasks`).
+You want the **homepage domain scan** popup (the "AI Visibility Results" modal in your screenshots) to show **what's broken** on the scanned site, with a **Fix it** button next to each issue. Clicking any Fix button as a guest should send the user to signup, then come back and open the fix.
 
-### Issues detected (AI/GEO-focused)
-From the scraped HTML:
-- Weak/missing `<title>` (length, keyword)
-- Missing meta description
-- Missing or multiple `<h1>`
-- No FAQ section / no FAQPage schema
-- No Article/Organization JSON-LD
-- Thin content (<300 words)
-- No answer-style paragraphs (citability)
-- Images missing alt text
-- No internal links
-- Missing canonical / OG tags
+Right now that lives only on `/tools/ai-content-auditor` (a separate page). The main homepage scan modal (`ScanResultsModal.tsx`) only shows visibility scores + per-prompt mentions/citations — **no issues list, no Fix buttons**. That's the gap.
 
-### Backend changes
-- **Rewrite `supabase/functions/audit-content/index.ts`** to accept `{ url }`, call Firecrawl (`FIRECRAWL_API_KEY`) with `formats: ['markdown','html','links']`, run rule-based checks on the HTML for the issues above (with concrete evidence like "Title is 12 chars — too short"), then call Lovable AI (`google/gemini-2.5-flash`) once for an overall score + human-readable explanations. Returns `{ url, overallScore, pageMeta, issues: [{id, severity, category, title, evidence, fixType}] }`. No auth required (guest scan allowed).
-- **New `supabase/functions/audit-fix/index.ts`** — JWT-required. Body `{ url, issueId, fixType, pageContext }`. Routes to the right Lovable AI generator based on `fixType` (`meta`, `faq`, `schema`, `h1`, `content`, `alt`). Returns the fix as text/code.
-- Reuse existing CORS pattern, env validation, `corsHeaders` from `npm:@supabase/supabase-js@2/cors`.
+## Plan — add an "Issues to Fix" section to `ScanResultsModal`
 
-### Frontend changes
-- **Rewrite `src/pages/tools/ContentAuditor.tsx`**: URL input + Scan button → Dialog with score + issue cards → second Dialog with fix code + Copy + Save to Action Plan.
-- Read `?url=` and `?fix=` from query params on mount; if present and user is signed in, auto-run scan and auto-open the matching fix modal (post-signup bounce-back).
-- Use existing `useAuth` hook and `useToast`.
-- Keep arcade theme (bg-black, yellow-400 accents, Press Start 2P headings).
-- Verify `src/pages/Auth.tsx` forwards the full `redirect` query string (including `?url=` and `&fix=`) after signup.
+### 1. Derive issues from the scan data already returned
 
-### Firecrawl connector
-The `firecrawl` knowledge file expects `FIRECRAWL_API_KEY` env var. If not yet linked, I'll prompt to connect via `standard_connectors--connect` before deploying the audit function.
+The scan modal already has `scanData.results` (Gemini/Perplexity/Search mentions + citations + competitors) and `scanData.score`. Translate those into actionable AI-visibility issues — no extra API call needed for the list itself:
 
----
+- **Not cited on Gemini** (if any `geminiCited === false`) → fix: `faq_schema` + `answer_style`
+- **Not cited on Perplexity** (if any `perplexityCited === false`) → fix: `article_schema`
+- **Not mentioned on ChatGPT/Search** (if any `mentioned === false`) → fix: `content_expand` + `internal_links`
+- **Competitors outranking you** (if `geminiCompetitors`/`perplexityCompetitors` non-empty) → fix: `answer_style` (citability content)
+- **Low overall score (<50)** → fix: `meta_title` + `meta_description`
+- **No citations anywhere** (all `cited`/`geminiCited`/`perplexityCited` false) → fix: `org_schema`
 
-## Part 2 — List the missing blog post
+Each issue: `{ id, severity (high/med/low), title, evidence (e.g. "Cited in 0/3 Perplexity responses"), fixType, category }`.
 
-The post `FiftySaaSBrandsAIVisibility` is routed at `/blog/50-saas-brands-ai-visibility-data` but not surfaced anywhere.
+### 2. Render an "Issues to Fix" card list in the modal
 
-- **`src/pages/Blog.tsx`** — add a card entry (title "50 SaaS Brands AI Visibility: The Data", excerpt, date, slug, tag) matching the existing card layout.
-- **`public/sitemap.xml`** — add a `<url>` entry for `https://aimentionyou.com/blog/50-saas-brands-ai-visibility-data` (priority 0.8, matching other blog entries) so Google Search Console can index it.
+New section in `ScanResultsModal.tsx`, placed **above** the per-prompt detailed results (so it's visible immediately after the score):
 
----
+```text
+┌─ Issues Detected (4) ────────────────────────┐
+│  [HIGH] Not cited on Perplexity              │
+│  Cited in 0/3 Perplexity responses           │
+│                                  [ Fix it → ]│
+├──────────────────────────────────────────────┤
+│  [MED] Competitors outranking you            │
+│  qbstores.com + 4 others mentioned instead   │
+│                                  [ Fix it → ]│
+└──────────────────────────────────────────────┘
+```
 
-## Out of scope (ask separately)
-- Multi-page site crawl (this audits one URL per scan).
-- Performance/Core Web Vitals/broken-link checks (would need extra APIs).
-- Auto-pushing fixes to the user's live site — fixes remain copy/paste or saved to Action Plan.
+Styling matches existing arcade theme (`bg-gray-800`, `border-gray-700`, yellow-400 accents, severity badges in red/yellow/blue).
+
+**Guests** see all issue cards (titles + evidence visible — not locked, so they understand the value), but the **Fix it button** is the gate.
+
+### 3. Wire the Fix it button → signup gate
+
+On click:
+- **If guest** (no session): persist scan context to `localStorage` (`pendingFix = { domain, fixType, issueId, scanId }`), then `navigate('/auth?mode=signup&redirect=/dashboard?fix=<fixType>&domain=<domain>')`. Toast: "Sign up free to apply this fix."
+- **If signed in**: call existing `supabase.functions.invoke('audit-fix', { body: { url: domain, fixType, pageMeta: { title: domain } } })` and show the result in a second nested Dialog (Copy button + Save to Action Plan via `optimization_tasks` insert).
+
+### 4. Post-signup bounce-back
+
+In `Dashboard.tsx` (or wherever `redirect` lands), on mount check for `pendingFix` in localStorage. If present + user authed, auto-open the same Fix dialog with the generated content, then clear localStorage. (`Auth.tsx` already forwards `redirect` from earlier work.)
+
+### 5. Files touched
+
+- **`src/components/ScanResultsModal.tsx`** — add `deriveIssues(scanData)` helper, render Issues section, add Fix dialog state, signup-gate logic.
+- **`src/pages/Dashboard.tsx`** — small `useEffect` to consume `localStorage.pendingFix` on mount and auto-open the fix.
+- **No backend changes** — reuses existing `audit-fix` edge function.
+
+### Out of scope
+- HTML scraping of the user's site (homepage scan is prompt-based, not page-based — issues come from prompt results, not from parsing their HTML). If you want page-level issues (missing meta, no H1, etc.) on the homepage scan too, that's a bigger change — say the word and I'll add a Firecrawl call to the `scan` edge function.
+- Removing the standalone `/tools/ai-content-auditor` page — keeping it as a dedicated URL-input tool.
+
+## Part 2 — clarify the blog post question
+
+The "50 SaaS Brands AI Visibility" post is **already listed** on `/blog` and in `sitemap.xml` from the previous turn. If it's still not showing for you, tell me what you see at `/blog` and I'll investigate — no plan needed for that yet.

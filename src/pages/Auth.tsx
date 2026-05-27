@@ -11,6 +11,7 @@ import logo from '@/assets/logo-light.png';
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { user, isLoading, signIn, signUp, signInWithGoogle } = useAuth();
@@ -33,9 +34,9 @@ export default function Auth() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !isLoading) {
-      navigate('/dashboard', { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, redirectTo]);
 
   const handleSubmit = async (email: string, password: string) => {
     if (mode === 'signin') {
@@ -45,7 +46,7 @@ export default function Auth() {
           title: "Welcome back!",
           description: "You've successfully signed in.",
         });
-        navigate('/dashboard');
+        navigate(redirectTo);
       }
       return result;
     } else {
@@ -53,13 +54,14 @@ export default function Auth() {
       if (!result.error) {
         toast({
           title: "Account created!",
-          description: "Welcome! Redirecting to your dashboard.",
+          description: "Welcome! Let's get you set up.",
         });
-        navigate('/dashboard');
+        navigate(redirectTo);
       }
       return result;
     }
   };
+
 
   const toggleMode = () => {
     setMode(mode === 'signin' ? 'signup' : 'signin');

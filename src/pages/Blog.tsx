@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "50 SaaS Brands AI Visibility Score: The Data Report (2026)",
+    description: "We scanned 50 leading SaaS brands across ChatGPT, Gemini, and Perplexity. See which brands dominate AI search results — and which are invisible.",
+    slug: "50-saas-brands-ai-visibility-data",
+    category: "AI Visibility",
+    readTime: "12 min",
+    publishDate: "May 26, 2026",
+    featured: true,
+  },
+  {
     title: "What is Answer Engine Optimization (AEO)? Complete Guide for 2026",
     description: "Answer Engine Optimization (AEO) is the new SEO. Learn what it is, how it differs from traditional SEO, and how to track and improve your AEO performance in 2026.",
     slug: "what-is-answer-engine-optimization-aeo-guide",

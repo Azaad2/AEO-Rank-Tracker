@@ -1,276 +1,259 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import ToolLayout from "@/components/tools/ToolLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileSearch, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, Globe, AlertTriangle, Wrench, Copy, Check, ListPlus } from "lucide-react";
 
-interface Grade {
-  score: number;
-  grade: string;
+interface Issue {
+  id: string;
+  severity: "critical" | "high" | "medium" | "low";
+  category: string;
+  title: string;
+  evidence: string;
+  fixType: string;
 }
 
-interface Recommendation {
-  priority: string;
-  issue: string;
-  suggestion: string;
-  impact: string;
-}
-
-interface AuditResult {
+interface AuditResponse {
+  url: string;
   overallScore: number;
-  grades: {
-    clarity: Grade;
-    structure: Grade;
-    aiCitability: Grade;
-    keywords: Grade;
-    readability: Grade;
-  };
-  strengths: string[];
-  weaknesses: string[];
-  recommendations: Recommendation[];
-  aiOptimizationTips: string[];
+  pageMeta: { title: string; description: string; h1: string; wordCount: number; canonical?: string; imgCount?: number; internalLinkCount?: number };
+  issues: Issue[];
 }
 
-const contentTypes = ["Blog Post", "Article", "Landing Page", "Product Page", "About Page", "FAQ Page"];
+const severityColor: Record<string, string> = {
+  critical: "bg-red-500/20 text-red-400 border-red-500/40",
+  high: "bg-orange-500/20 text-orange-400 border-orange-500/40",
+  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
+  low: "bg-blue-500/20 text-blue-400 border-blue-500/40",
+};
 
 const ContentAuditor = () => {
-  const [content, setContent] = useState("");
-  const [contentType, setContentType] = useState("Blog Post");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<AuditResult | null>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleGenerate = async () => {
-    if (!content.trim()) {
-      toast.error("Please enter content to audit");
+  const [url, setUrl] = useState(searchParams.get("url") || "");
+  const [isScanning, setIsScanning] = useState(false);
+  const [result, setResult] = useState<AuditResponse | null>(null);
+  const [resultsOpen, setResultsOpen] = useState(false);
+
+  const [fixOpen, setFixOpen] = useState(false);
+  const [fixingIssue, setFixingIssue] = useState<Issue | null>(null);
+  const [fixContent, setFixContent] = useState("");
+  const [fixLoading, setFixLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const runScan = async (targetUrl: string) => {
+    setIsScanning(true);
+    setResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-content", { body: { url: targetUrl } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setResult(data as AuditResponse);
+      setResultsOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "Scan failed");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleScan = async () => {
+    if (!url.trim()) {
+      toast.error("Please enter a website URL");
       return;
     }
+    await runScan(url.trim());
+  };
 
-    setIsGenerating(true);
+  const openFix = async (issue: Issue, res: AuditResponse) => {
+    if (!user) {
+      toast.info("Sign up free to apply this fix");
+      const redirect = `/tools/content-auditor?url=${encodeURIComponent(res.url)}&fix=${encodeURIComponent(issue.id)}`;
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+    setFixingIssue(issue);
+    setFixContent("");
+    setFixOpen(true);
+    setFixLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("audit-content", {
-        body: { content, contentType },
+      const { data, error } = await supabase.functions.invoke("audit-fix", {
+        body: { url: res.url, fixType: issue.fixType, issueId: issue.id, pageMeta: res.pageMeta },
       });
-
       if (error) throw error;
-      setResult(data);
-      toast.success("Content audited!");
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to audit content. Please try again.");
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setFixContent((data as any).fix || "");
+    } catch (e: any) {
+      toast.error(e.message || "Could not generate fix");
+      setFixOpen(false);
     } finally {
-      setIsGenerating(false);
+      setFixLoading(false);
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+  const copyFix = async () => {
+    await navigator.clipboard.writeText(fixContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
-  const getGradeBg = (grade: string) => {
-    if (grade.startsWith("A")) return "bg-green-100 text-green-800";
-    if (grade.startsWith("B")) return "bg-blue-100 text-blue-800";
-    if (grade.startsWith("C")) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
+  const saveToActionPlan = async () => {
+    if (!user || !fixingIssue) return;
+    try {
+      const { error } = await supabase.from("optimization_tasks").insert({
+        user_id: user.id,
+        title: `Fix: ${fixingIssue.title}`,
+        description: `${fixingIssue.evidence}\n\nGenerated fix:\n${fixContent}`,
+        priority: fixingIssue.severity === "critical" || fixingIssue.severity === "high" ? "high" : "medium",
+        status: "pending",
+      });
+      if (error) throw error;
+      toast.success("Saved to your Action Plan");
+    } catch (e: any) {
+      toast.error(e.message || "Could not save");
+    }
   };
 
-  const getPriorityBg = (priority: string) => {
-    if (priority === "high") return "bg-red-100 text-red-800";
-    if (priority === "medium") return "bg-yellow-100 text-yellow-800";
-    return "bg-green-100 text-green-800";
-  };
+  // Auto-scan + auto-open fix after signup bounce-back
+  useEffect(() => {
+    const qUrl = searchParams.get("url");
+    const qFix = searchParams.get("fix");
+    if (qUrl && user && !result && !isScanning) {
+      (async () => {
+        await runScan(qUrl);
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  const relatedTools = [
-    { title: "AI FAQ Generator", href: "/tools/ai-faq-generator", description: "Generate SEO FAQs" },
-    { title: "Keyword Analyzer", href: "/tools/keyword-analyzer", description: "Find AI keywords" },
-    { title: "Meta Optimizer", href: "/tools/meta-optimizer", description: "Optimize meta tags" },
-  ];
+  useEffect(() => {
+    const qFix = searchParams.get("fix");
+    if (qFix && result && user) {
+      const issue = result.issues.find(i => i.id === qFix);
+      if (issue) openFix(issue, result);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   return (
     <ToolLayout
       title="AI Content Auditor"
-      description="Analyze your content for AI-friendliness and get actionable recommendations to improve visibility."
-      relatedTools={relatedTools}
+      description="Scan any URL and instantly see what's hurting your AI visibility — with one-click fixes."
     >
-      <div className="max-w-4xl mx-auto space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSearch className="h-5 w-5 text-primary" />
-              Audit Your Content
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Content Type</Label>
-              <Select value={contentType} onValueChange={setContentType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {contentTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="content">Content to Audit *</Label>
-              <Textarea
-                id="content"
-                placeholder="Paste your content here for analysis..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={10}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {content.length} characters | ~{Math.ceil(content.split(/\s+/).length)} words
-              </p>
-            </div>
-            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full">
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Auditing Content...
-                </>
-              ) : (
-                "Audit Content"
-              )}
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Globe className="w-5 h-5 text-yellow-400" />
+            Scan a Website
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              type="url"
+              placeholder="https://yourdomain.com/page"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleScan()}
+              className="bg-black border-gray-700 text-white"
+            />
+            <Button onClick={handleScan} disabled={isScanning} className="bg-yellow-400 text-black hover:bg-yellow-300">
+              {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : "Scan Website"}
             </Button>
-          </CardContent>
-        </Card>
-
-        {result && (
-          <div className="space-y-6">
-            {/* Overall Score */}
-            <Card className="border-2 border-primary/20">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className={`text-5xl font-bold ${getScoreColor(result.overallScore)}`}>
-                    {result.overallScore}
-                  </div>
-                  <p className="text-muted-foreground mt-1">AI Optimization Score</p>
-                  <Progress value={result.overallScore} className="mt-4 h-3" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Category Grades */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Detailed Grades</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {result.grades && Object.entries(result.grades).map(([key, value]) => (
-                    <div key={key} className="text-center p-3 bg-muted rounded-lg">
-                      <div className={`text-2xl font-bold mb-1 ${getScoreColor(value.score)}`}>
-                        {value.score}
-                      </div>
-                      <Badge className={getGradeBg(value.grade)}>{value.grade}</Badge>
-                      <p className="text-xs text-muted-foreground mt-2 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Strengths & Weaknesses */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    Strengths
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {result.strengths?.map((strength, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span>{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                    Weaknesses
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {result.weaknesses?.map((weakness, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                        <span>{weakness}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recommendations */}
-            {result.recommendations && result.recommendations.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Priority Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {result.recommendations.map((rec, i) => (
-                    <div key={i} className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={getPriorityBg(rec.priority)}>{rec.priority}</Badge>
-                        <span className="font-medium">{rec.issue}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{rec.suggestion}</p>
-                      <p className="text-xs text-primary">Impact: {rec.impact}</p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* AI Tips */}
-            {result.aiOptimizationTips && result.aiOptimizationTips.length > 0 && (
-              <Card className="bg-primary/5 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-lg">AI Optimization Tips</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {result.aiOptimizationTips.map((tip, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className="text-primary">💡</span>
-                        <span>{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
           </div>
-        )}
-      </div>
+          <p className="text-sm text-gray-400">
+            We'll fetch your page, detect AI/SEO issues, and show one-click fixes for each.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Results modal */}
+      <Dialog open={resultsOpen} onOpenChange={setResultsOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-yellow-400">Audit Results</DialogTitle>
+            <DialogDescription className="text-gray-400 break-all">{result?.url}</DialogDescription>
+          </DialogHeader>
+
+          {result && (
+            <div className="space-y-5">
+              <Card className="bg-black border-gray-800">
+                <CardContent className="pt-6">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-sm text-gray-400">AI Readiness Score</span>
+                    <span className="text-3xl font-bold text-yellow-400">{result.overallScore}/100</span>
+                  </div>
+                  <Progress value={result.overallScore} className="h-2" />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
+                    <div><div className="text-gray-500 text-xs">Title</div><div className="truncate">{result.pageMeta.title || "—"}</div></div>
+                    <div><div className="text-gray-500 text-xs">H1</div><div className="truncate">{result.pageMeta.h1 || "—"}</div></div>
+                    <div><div className="text-gray-500 text-xs">Words</div><div>{result.pageMeta.wordCount}</div></div>
+                    <div><div className="text-gray-500 text-xs">Issues found</div><div>{result.issues.length}</div></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {result.issues.length === 0 ? (
+                <p className="text-green-400 text-center py-6">No major issues detected. Nicely done!</p>
+              ) : (
+                <div className="space-y-3">
+                  {result.issues.map((issue) => (
+                    <Card key={issue.id} className="bg-black border-gray-800">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />
+                            <h4 className="font-semibold">{issue.title}</h4>
+                          </div>
+                          <Badge variant="outline" className={severityColor[issue.severity]}>{issue.severity}</Badge>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-3">{issue.evidence}</p>
+                        <Button size="sm" onClick={() => openFix(issue, result)} className="bg-yellow-400 text-black hover:bg-yellow-300">
+                          <Wrench className="w-4 h-4 mr-1" /> Fix this
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Fix modal */}
+      <Dialog open={fixOpen} onOpenChange={setFixOpen}>
+        <DialogContent className="max-w-2xl bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-yellow-400">{fixingIssue?.title}</DialogTitle>
+            <DialogDescription className="text-gray-400">{fixingIssue?.evidence}</DialogDescription>
+          </DialogHeader>
+          {fixLoading ? (
+            <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-yellow-400" /></div>
+          ) : (
+            <pre className="bg-black border border-gray-800 rounded p-3 text-xs overflow-x-auto whitespace-pre-wrap max-h-[50vh] overflow-y-auto">{fixContent}</pre>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={copyFix} disabled={!fixContent} className="border-gray-700">
+              {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+            <Button onClick={saveToActionPlan} disabled={!fixContent} className="bg-yellow-400 text-black hover:bg-yellow-300">
+              <ListPlus className="w-4 h-4 mr-1" /> Save to Action Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ToolLayout>
   );
 };

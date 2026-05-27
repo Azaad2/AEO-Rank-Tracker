@@ -761,6 +761,47 @@ export function ScanResultsModal({
           )}
         </div>
       </DialogContent>
+
+      <Dialog open={fixOpen} onOpenChange={setFixOpen}>
+        <DialogContent className="max-w-2xl bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Wrench className="h-5 w-5 text-yellow-400" />
+              {activeIssue?.title || "Fix"}
+            </DialogTitle>
+            <p className="text-xs text-gray-400">{activeIssue?.evidence}</p>
+          </DialogHeader>
+          <div className="space-y-3">
+            {fixLoading ? (
+              <div className="flex items-center justify-center py-12 text-gray-400">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Generating fix...
+              </div>
+            ) : (
+              <pre className="bg-black border border-gray-800 rounded p-3 text-xs text-gray-200 whitespace-pre-wrap max-h-[50vh] overflow-auto">
+                {fixContent}
+              </pre>
+            )}
+            {!fixLoading && fixContent && (
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fixContent);
+                    toast({ title: "Copied" });
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" /> Copy
+                </Button>
+                <Button size="sm" onClick={handleSaveToActionPlan}>Save to Action Plan</Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+

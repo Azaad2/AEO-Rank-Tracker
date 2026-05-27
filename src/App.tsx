@@ -40,6 +40,7 @@ import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";
 import BulkScan from "./pages/admin/BulkScan";
 // Blog posts

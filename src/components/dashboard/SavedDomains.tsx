@@ -198,7 +198,17 @@ export function SavedDomains() {
       </Card>
 
       {selectedDomain && (
-        <ScoreTrend domain={selectedDomain} scans={domainScans} />
+        <>
+          <ScoreTrend domain={selectedDomain} scans={domainScans} />
+          <Button
+            asChild
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold w-full"
+          >
+            <a href={`/dashboard/domain/${encodeURIComponent(selectedDomain)}`}>
+              Open full domain dashboard →
+            </a>
+          </Button>
+        </>
       )}
     </div>
   );

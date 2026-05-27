@@ -40,6 +40,7 @@ import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";
 import BulkScan from "./pages/admin/BulkScan";
 // Blog posts
@@ -95,6 +96,7 @@ const App = () => (
             {/* Auth pages */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/domain/:domain" element={<DomainDetail />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/admin/bulk-scan" element={<BulkScan />} />
             {/* Blog posts */}

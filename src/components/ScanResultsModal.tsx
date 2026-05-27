@@ -444,6 +444,50 @@ export function ScanResultsModal({
               </div>
             </div>
 
+            {/* Issues to Fix */}
+            {issues.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-yellow-400" />
+                  Issues Detected ({issues.length})
+                  {!user && (
+                    <span className="text-xs font-normal text-gray-400">
+                      — sign up free to apply fixes
+                    </span>
+                  )}
+                </h3>
+                <div className="space-y-2">
+                  {issues.map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="p-4 bg-gray-800 border border-gray-700 rounded-lg flex items-start justify-between gap-4"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded border ${severityStyles[issue.severity]}`}>
+                            {issue.severity === "med" ? "Medium" : issue.severity === "high" ? "High" : "Low"}
+                          </span>
+                          <span className="text-xs text-gray-400">{issue.category}</span>
+                        </div>
+                        <p className="font-medium text-sm text-white">{issue.title}</p>
+                        <p className="text-xs text-gray-400">{issue.evidence}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleFixClick(issue)}
+                        className="shrink-0 bg-yellow-400 text-black hover:bg-yellow-300"
+                      >
+                        {!user && <Lock className="h-3 w-3 mr-1" />}
+                        Fix it
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
+
             {/* Detailed Results */}
             <div className="space-y-3">
               <h3 className="font-semibold text-white">Detailed Results by Prompt</h3>

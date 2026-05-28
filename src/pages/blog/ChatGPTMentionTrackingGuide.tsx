@@ -61,7 +61,6 @@ const ChatGPTMentionTrackingGuide = () => {
       relatedPosts={relatedPosts}
     >
 
-    >
       <h2 id="introduction">Introduction: Your Brand in ChatGPT's Responses</h2>
       <p>
         With over 100 million weekly active users, ChatGPT has become one of the world's most influential sources of information. When users ask ChatGPT about products, services, or companies in your industry, what it says directly impacts their perception of your brand.

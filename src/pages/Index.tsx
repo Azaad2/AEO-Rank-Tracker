@@ -134,11 +134,12 @@ const Index = () => {
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        name: "AI Mention You",
+        name: "AI Mention You — AI Search Visibility Checker",
         applicationCategory: "SEO Tool",
-        description: "Free AI visibility checker. See if ChatGPT, Gemini, and Perplexity mention your site.",
+        description: "Free AI search visibility checker and AI visibility platform. Track brand mentions across ChatGPT, Gemini, and Perplexity, and fix what's invisible.",
         url: "https://aimentionyou.com/",
         offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+
       },
       {
         "@context": "https://schema.org",
@@ -479,13 +480,14 @@ const Index = () => {
               <h1 
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
-                Invisible to AI?
+                AI Search Visibility Checker.
                 <br />
-                <span className="text-yellow-400">Fix It in Minutes.</span>
+                <span className="text-yellow-400">Stop Being Invisible to AI.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                See exactly how ChatGPT, Perplexity, and Gemini describe your brand — and get a personalised plan to fix what's broken.
+                The AI visibility platform that tracks brand mentions in ChatGPT, Gemini, and Perplexity. Learn how to track brand mentions in AI search and fix what's broken — with a personalised, prioritised action plan.
               </p>
+
               <div className="pt-2">
                 <Button 
                   onClick={scrollToScan} 

@@ -1,60 +1,44 @@
-# Plan: Domain Detail Dashboard (GSC-style command center)
+## Goal
 
-Right now `/dashboard` shows tabs (Overview, My Domains, Action Plan, Competitors, Auto-Fix, AI Assistant) but the user has to hop between them to understand a single domain. We'll add a **per-domain detail view** that consolidates everything a brand owner needs for AI visibility — modeled after Google Search Console's property dashboard.
+Capture the easiest, highest-volume AI-visibility keywords we just identified in Semrush by (1) retargeting the homepage on-page SEO and (2) shipping the first of four planned blog posts.
 
-## What the user gets
+## Scope (this turn)
 
-When a user clicks a saved domain (or any domain in scan history), they land on a dedicated page at `/dashboard/domain/:domain` showing **one screen with everything for that brand**:
+### 1. Homepage on-page SEO rewrite — `index.html` + `src/pages/Index.tsx`
 
-1. **Header strip** — domain, latest visibility score (big number), score delta vs last week, last scan time, "Rescan now" button.
-2. **Weekly tracking chart** — line chart of the visibility score over the last 7 / 30 / 90 days (toggle), pulled from `scans` table filtered by `project_domain` + `user_id`. Reuse `ScoreTrend` styling.
-3. **Per-engine breakdown** — 3 mini-cards (Gemini / Perplexity / Web Search) showing mention rate and citation count for the latest scan.
-4. **Issues to Fix** — the same `deriveIssues` list already used in `ScanResultsModal`, rendered as a checklist with severity badges and a **"Fix it"** button per issue. Clicking calls `audit-fix` and shows the generated content/schema in a dialog with Copy + "Save to Action Plan". Completed issues (matching `optimization_tasks.status = 'completed'`) render with a strikethrough + green check.
-5. **Schema health card** — checks the live homepage (via existing `audit-content` edge function) for Article, FAQ, Organization, and Breadcrumb JSON-LD. Each row shows ✓ present / ✗ missing with a one-click "Generate schema" button that pipes into `generate-schema`.
-6. **Ranking opportunities** — prompts where competitors ranked but user didn't, pulled from latest `scan_results`. Each row shows the prompt, competitor list, and "Beat them" button (opens the existing competitor strategy panel).
-7. **Action Plan slice** — filtered `optimization_tasks` for this domain only, with status toggles.
-8. **Competitor snapshot** — top 5 competitors that appeared most often across this domain's scans, with appearance counts.
+Target keywords:
+- Primary: **AI search visibility checker** (260/mo, KDI 30)
+- Secondary: **AI visibility platform**, **AI visibility tool** (2,400/mo each, low comp)
+- Supporting: **how to track brand mentions in AI search**, **AI search optimization tools**
 
-## Navigation
+Changes:
+- `index.html` — update `<title>`, `<meta name="description">`, `og:title`, `og:description`, `twitter:title`, `twitter:description` to lead with "AI Search Visibility Checker".
+- `src/pages/Index.tsx` — rewrite the hero H1, sub-headline, and the first 100 words to naturally include the primary + secondary keywords. Keep the existing arcade theme (yellow-400, Press Start 2P) and `pt-32` layout standard. No visual redesign.
+- Update the existing JSON-LD `SoftwareApplication` / `WebSite` schema `name` + `description` to match.
 
-- `My Domains` cards become clickable → route to `/dashboard/domain/:domain`.
-- `ScanHistory` rows get a "View domain" link.
-- Breadcrumb back to `/dashboard`.
+### 2. New blog post — `src/pages/blog/HowToTrackChatGPTMentions.tsx`
 
-## Technical details
+- Target: **chatgpt mention tracker** (260/mo, KDI 16) + the 13 question-format variants (~1,250/mo combined).
+- Use existing `BlogLayout` component, 2000+ words, author = Azaad Pandey, with FAQPage + Article JSON-LD consolidated via `@graph` (matches existing blog architecture).
+- Internal links to: `/tools/chatgpt-mention-tracker`, `/tools/llm-rank-tracker`, homepage scan.
+- Sections: What is ChatGPT mention tracking → Why it matters → 5 methods (manual, prompt sampling, API polling, dedicated tools, dashboards) → Step-by-step with our tool → FAQ (10+ questions pulled directly from Semrush's question keywords).
+- Register the route in `src/App.tsx`.
+- Add the slug to `public/sitemap.xml` and surface it on `src/pages/Blog.tsx`.
 
-**New file**: `src/pages/DomainDetail.tsx` (wrapped in `AuthGuard`, uses `useParams` for domain).
+### 3. Memory + finding hygiene
 
-**New components** (under `src/components/dashboard/domain/`):
-- `DomainHeader.tsx` — score + delta + rescan
-- `DomainTrendChart.tsx` — recharts line chart with 7/30/90 toggle
-- `EngineBreakdown.tsx` — 3 mini-cards from latest `scan_results`
-- `DomainIssues.tsx` — reuses `deriveIssues` helper extracted from `ScanResultsModal` into `src/utils/deriveIssues.ts`, renders Fix buttons wired to `audit-fix`
-- `SchemaHealth.tsx` — calls `audit-content` on mount, shows schema checklist
-- `DomainOpportunities.tsx` — missed-prompt list (logic already exists in current Overview's Ranking Opportunities — extract to shared component)
-- `DomainTasks.tsx` — filtered `optimization_tasks` list with status toggle
-- `DomainCompetitors.tsx` — aggregated competitor counts
+- Update `mem://seo/target-keywords` with the prioritized list (chatgpt mention tracker, llm rank tracker, ai search visibility checker, ai visibility platform).
+- After the rewrite, call `seo--list_findings` and mark any title/description-related findings as fixed if they're addressed.
 
-**Refactor**:
-- Extract `deriveIssues` from `ScanResultsModal.tsx` into `src/utils/deriveIssues.ts` so both the modal and the detail page share it.
-- Extract Ranking Opportunities widget from `Dashboard.tsx` Overview into `src/components/dashboard/RankingOpportunities.tsx` reused on both Overview and Domain Detail.
+## Out of scope (next batches)
 
-**Routing**: add `<Route path="/dashboard/domain/:domain" element={<DomainDetail />} />` in `src/App.tsx`.
+- The other 3 planned blog posts ("How to track brand mentions in AI search", "How to check AI search visibility", "What is GEO" pillar). Ship after this one is reviewed.
+- Polishing the 4 tool pages (ChatGPT Mention Tracker, Perplexity Rank Tracker, LLM Rank Tracker, Content Auditor) — separate batch.
+- No new components, no design changes, no DB migrations, no edge function changes.
 
-**Data queries** (all client-side via supabase-js, no migrations needed):
-```
-scans:        select * where user_id=auth.uid() and project_domain=:domain order by created_at desc
-scan_results: select * where scan_id in (latest scan id)
-tasks:        select * from optimization_tasks where user_id=auth.uid() and scan_id in (...)
-schema check: supabase.functions.invoke('audit-content', { body: { url } })
-fix:          supabase.functions.invoke('audit-fix', { body: { url, fixType, pageMeta } })
-```
+## Technical notes
 
-**No DB migration required** — all needed tables (`scans`, `scan_results`, `optimization_tasks`, `saved_domains`) and edge functions (`audit-content`, `audit-fix`, `generate-schema`) already exist.
-
-## Out of scope (this round)
-- Email/Slack weekly digest exports
-- PDF export of the domain dashboard
-- Editing schema directly on the user's live site (we only generate copy-pasteable snippets)
-
-After approval I'll build it in this order: utils extraction → routing → page shell → header + trend → issues + schema → opportunities + tasks + competitors → wire "My Domains" cards to the new route.
+- `index.html` is the SEO source of truth (Vite stack).
+- Keep canonical + og:url absolute on production domain `https://aimentionyou.com` (matches existing pattern).
+- Blog post must use the `useEffect` cleanup pattern for JSON-LD to avoid duplicate schemas (per existing blog architecture memory).
+- Sitemap entry: `<priority>0.8</priority>`, today's `<lastmod>`.

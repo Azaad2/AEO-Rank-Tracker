@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "How to Track Brand Mentions in AI Search (2026 Guide)",
+    description: "The complete 2026 guide to tracking brand mentions in AI search — ChatGPT, Gemini, Perplexity, and AI Overviews. Free AI search visibility checker included.",
+    slug: "how-to-track-brand-mentions-in-ai-search",
+    category: "AI Visibility",
+    readTime: "13 min",
+    publishDate: "May 28, 2026",
+    featured: true,
+  },
+  {
     title: "50 SaaS Brands AI Visibility Score: The Data Report (2026)",
     description: "We scanned 50 leading SaaS brands across ChatGPT, Gemini, and Perplexity. See which brands dominate AI search results — and which are invisible.",
     slug: "50-saas-brands-ai-visibility-data",

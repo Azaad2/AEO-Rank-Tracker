@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "How to Check AI Search Visibility (2026 Step-by-Step Guide)",
+    description: "Check your AI search visibility across ChatGPT, Gemini, Perplexity, and AI Overviews. Free checker, score benchmarks, and a 5-step fix-it plan.",
+    slug: "how-to-check-ai-search-visibility",
+    category: "AI Visibility",
+    readTime: "12 min",
+    publishDate: "May 29, 2026",
+    featured: true,
+  },
+  {
     title: "How to Track Brand Mentions in AI Search (2026 Guide)",
     description: "The complete 2026 guide to tracking brand mentions in AI search — ChatGPT, Gemini, Perplexity, and AI Overviews. Free AI search visibility checker included.",
     slug: "how-to-track-brand-mentions-in-ai-search",

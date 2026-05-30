@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "How to Improve Brand Visibility in AI Search Engines (2026 Playbook)",
+    description: "The proven 5-strategy playbook to improve brand visibility in AI search engines — ChatGPT, Gemini, Perplexity, and AI Overviews. Free scan, schema templates, 90-day roadmap.",
+    slug: "how-to-improve-brand-visibility-in-ai-search-engines",
+    category: "AI Visibility",
+    readTime: "14 min",
+    publishDate: "May 30, 2026",
+    featured: true,
+  },
+  {
     title: "How to Check AI Search Visibility (2026 Step-by-Step Guide)",
     description: "Check your AI search visibility across ChatGPT, Gemini, Perplexity, and AI Overviews. Free checker, score benchmarks, and a 5-step fix-it plan.",
     slug: "how-to-check-ai-search-visibility",

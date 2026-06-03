@@ -921,6 +921,24 @@ serve(async (req) => {
       console.error('⚠️ Citation pipeline failed (non-fatal):', citErr);
     }
 
+    // --- Proprietary metrics (RSS/CAG/TSD/CIS/COI) — fire-and-forget ---
+    try {
+      const metricsUrl = `${supabaseUrl}/functions/v1/compute-metrics`;
+      fetch(metricsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ scanId: scan.id }),
+      }).then(() => console.log('✅ compute-metrics triggered'))
+        .catch((e) => console.error('⚠️ compute-metrics trigger failed:', e));
+    } catch (metricsErr) {
+      console.error('⚠️ Failed to trigger compute-metrics:', metricsErr);
+    }
+
+
+
 
     // --- Issue 1: Increment credit usage ---
     if (userId && !isAdmin) {

@@ -861,38 +861,72 @@ export type Database = {
       proprietary_metrics_cache: {
         Row: {
           cag: number | null
+          cag_breakdown: Json | null
           cis_top: Json | null
           coi: Json | null
           computed_at: string
+          confidence_score: number | null
+          deltas: Json | null
+          explanation: Json | null
           id: string
           metrics: Json | null
+          narrative: string | null
+          previous_scan_id: string | null
           rss: number | null
+          rss_breakdown: Json | null
+          sample_size: Json | null
           scan_id: string
           tsd: number | null
+          tsd_breakdown: Json | null
         }
         Insert: {
           cag?: number | null
+          cag_breakdown?: Json | null
           cis_top?: Json | null
           coi?: Json | null
           computed_at?: string
+          confidence_score?: number | null
+          deltas?: Json | null
+          explanation?: Json | null
           id?: string
           metrics?: Json | null
+          narrative?: string | null
+          previous_scan_id?: string | null
           rss?: number | null
+          rss_breakdown?: Json | null
+          sample_size?: Json | null
           scan_id: string
           tsd?: number | null
+          tsd_breakdown?: Json | null
         }
         Update: {
           cag?: number | null
+          cag_breakdown?: Json | null
           cis_top?: Json | null
           coi?: Json | null
           computed_at?: string
+          confidence_score?: number | null
+          deltas?: Json | null
+          explanation?: Json | null
           id?: string
           metrics?: Json | null
+          narrative?: string | null
+          previous_scan_id?: string | null
           rss?: number | null
+          rss_breakdown?: Json | null
+          sample_size?: Json | null
           scan_id?: string
           tsd?: number | null
+          tsd_breakdown?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "proprietary_metrics_cache_previous_scan_id_fkey"
+            columns: ["previous_scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proprietary_metrics_cache_scan_id_fkey"
             columns: ["scan_id"]

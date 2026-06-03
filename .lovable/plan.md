@@ -1,149 +1,120 @@
-# Phase 1, Chunk #1 — Citation Extraction + Hybrid Classifier (with Asset-Type Intelligence)
+# Phase 1, Chunk #2 — Proprietary Metrics with Explainability
 
 ## Goal
 
-Evolve the scanner so every AI response yields structured citation rows tagged with **both** a `source_type` (where the URL lives) and an `asset_type` (what kind of page it is). Asset types are the unit the "Why Competitors Win" engine will reason on.
+Compute CAG, CIS, TSD, RSS, COI after every scan AND store the **decomposition + delta-vs-previous** so the dashboard never shows a score without "why it changed" evidence.
 
-## Scope of this chunk
+## Scope
 
-1. Citation extraction from all engine responses
-2. Hybrid classifier (pattern → cache → LLM fallback) for `source_type` AND `asset_type`
-3. Persistence into `citations`, `citation_sources`, `content_assets`
-4. Integration into the existing `scan` edge function pipeline
-5. No dashboard/UI work, no metrics computation, no global_intelligence write — those are later chunks
+1. Schema additions for explainability (breakdown + previous-scan deltas)
+2. New shared module: metric formulas (pure functions, testable)
+3. New edge function `compute-metrics` (called from `scan` after citations pipeline)
+4. Integration hook in `scan/index.ts` (fire-and-forget, non-fatal)
+5. No dashboard UI in this chunk — only the durable evidence layer the UI will read
 
----
+## 1. Schema additions
 
-## 1. Citation extraction
+Extend `proprietary_metrics_cache`:
 
-New shared module `supabase/functions/_shared/citations.ts`:
+- `rss_breakdown jsonb` — `{ mention_rate, citation_rate, position_inv, tsd, weighted_components: {…}, weights: {…} }`
+- `cag_breakdown jsonb` — `{ brand_mean_authority, competitor_mean_authority, by_competitor: [{name, mean, delta}], top_gaps: [{domain, your_auth, comp_auth}] }`
+- `tsd_breakdown jsonb` — `{ unique_domains, total_prompts, by_source_type: {reddit, review, …}, by_asset_type: {comparison, listicle, …} }`
+- `cis_top` (existing) → standardize shape: `[{domain, cis, source_type, sample_size, wins, appearances}]`
+- `coi` (existing) → standardize: `{ overall, by_competitor: [{name, coi, component_deltas: {mention_rate, citation_rate, position_inv, tsd}}] }`
+- `previous_scan_id uuid` — pointer to the prior scan for the same `(user_id, project_domain)`
+- `deltas jsonb` — `{ rss: {prev, curr, delta}, cag: {…}, tsd: {…}, by_source_type: [{type, prev_count, curr_count, delta}], by_asset_type: [{type, prev_count, curr_count, delta, pct_change}], new_winning_domains: [...], lost_winning_domains: [...] }`
+- `explanation jsonb` — `[{metric: 'rss', direction: 'up'|'down'|'flat', magnitude: number, top_drivers: [{factor, contribution_pct, evidence: {…}}]}]` — pre-rendered "why it changed" payload the UI consumes directly
+- `narrative text` — one-sentence human summary (e.g. *"RSS up 7 pts: Reddit citations +12%, comparison pages +4, TSD 0.41→0.58."*) generated deterministically from the explanation payload (no LLM)
 
-- `extractCitationsFromText(text, engine)` → returns `{ url, domain, position }[]`
-  - Regex for bare URLs + markdown link syntax
-  - Strips trailing punctuation, fragments, tracking params
-  - Dedupes per response, preserves first-seen order (`position`)
-- `extractDomain(url)` → lowercased eTLD+1 (no `www.`)
-- Per-engine adapters:
-  - **Gemini**: parse markdown links + bare URLs from response text
-  - **Perplexity**: use structured `citations[]` field when present, fall back to text parse
-  - **ChatGPT / Claude**: text parse (placeholder; today's pipeline only stores Gemini + search, structural fields added in earlier migration are now populated)
-  - **Google Search / AI Overviews**: already structured — map directly
+Index: `idx_metrics_cache_previous` on `previous_scan_id` for follow-up queries.
 
-## 2. Hybrid classifier
+## 2. Formulas (per architecture doc, with engine weighting)
 
-New edge function `supabase/functions/classify-citation/index.ts` (callable internally; not user-facing). Input: `{ url, title?, snippet? }`. Output: `{ source_type, asset_type, authority_score, method, brand_detected? }`.
+Input: this scan's `scan_results` + `citations` + `citation_sources` + (optional) prior scan's metrics row.
 
-### Step A — Domain pattern match (`source_type`)
+- **Engine-weighted mention/citation rates**: pull weights from `engine_weights` table, default `{chatgpt:0.4, gemini:0.3, perplexity:0.2, claude:0.1}`.
+- **RSS** = `0.35*mention_rate + 0.25*citation_rate + 0.25*position_inv + 0.15*TSD`
+- **CAG** = `mean(authority of competitor citations) − mean(authority of your citations)` (authority joined via `citation_sources`)
+- **TSD** = `unique_domains_supporting_brand / total_prompts_where_brand_appeared`, plus `by_source_type` + `by_asset_type` counts (uses Chunk #1's `asset_type` field — directly fulfills the user's explainability ask)
+- **CIS** per domain in this scan's industry context: `(# prompts where d appears AND a brand it cites wins) / (# prompts where d appears)` — top 20 stored
+- **COI** per competitor: `RSS(competitor) − RSS(you)`, **decomposed** into the four RSS components so we can say "you lose 8 pts on citation_rate, 3 on TSD"
 
-In-memory regex/host map seeded from the 22 patterns already inserted in `citation_sources` plus a hardcoded fallback set:
+Competitors are derived from `brand_observations` for this scan (with their own per-brand RSS computed against the same prompt set).
 
-- `reddit.com` → reddit
-- `news.ycombinator.com`, `*.substack.com` → forum / blog
-- `g2.com`, `capterra.com`, `trustradius.com`, `getapp.com`, `softwareadvice.com` → review_site
-- `producthunt.com`, `alternativeto.net` → directory
-- `youtube.com`, `youtu.be` → youtube
-- `github.com` → github
-- TLDs & known publishers (`nytimes.com`, `techcrunch.com`, `theverge.com`, `wired.com`, …) → news
-- `docs.*`, `*/docs/*`, `developer.*` → official (documentation hint passed to asset classifier)
-- Fallback → blog (low confidence, flagged for LLM)
+## 3. Explainability engine (deterministic, no LLM)
 
-### Step B — URL/path heuristics (`asset_type`, cheap pre-pass)
+After computing current + loading previous, generate `deltas` + `explanation`:
 
-Before any LLM call, infer asset_type from URL shape + source_type:
+```text
+for each metric m in [rss, cag, tsd]:
+  delta = curr[m] - prev[m]
+  factors = decompose(m, curr_breakdown, prev_breakdown)
+    e.g. for RSS:
+      contribution_pct[mention_rate] = (Δmention_rate * weight) / Δrss
+      contribution_pct[citation_rate] = ...
+      contribution_pct[tsd] = ...
+  attach evidence per factor:
+    citation_rate: "+12% citations from reddit.com" (pull from by_source_type deltas)
+    tsd:          "0.41 → 0.58 (+7 unique domains)"
+    asset_type:   "+4 comparison_page citations, -2 listicle citations"
+  rank factors by |contribution_pct| desc, take top 3
+```
 
-- `reddit.com/r/*/comments/*` → reddit_thread
-- `news.ycombinator.com/item` → forum_thread
-- `g2.com/products/*/reviews`, `capterra.com/p/*/reviews` → review_page
-- `g2.com/compare/*`, `*/vs-*`, `*-vs-*`, `*/comparison/*` → comparison_page
-- `*/best-*`, `*/top-*`, `*-tools-*`, `*-alternatives*` → listicle
-- `*/blog/*`, `*.substack.com/p/*`, `medium.com/*/*` → blog_article
-- News domain + article path → news_article
-- `docs.*`, `*/docs/*`, `developer.*` → documentation_page
-- Categorized directory hosts → directory_listing
-- Domain root / shallow path on a brand site → landing_page
+The deterministic `narrative` is then a templated string assembled from the top 3 factors. No model call, fully reproducible.
 
-### Step C — LLM fallback (`asset_type` only, when heuristics are low-confidence)
+When no previous scan exists, `deltas` is null, `explanation` shows component breakdown only (no "why it changed"), and `narrative` becomes a baseline statement ("Baseline RSS 42. Strongest component: citation_rate (28).").
 
-- Model: `google/gemini-2.5-flash-lite` via Lovable AI gateway (already configured, `LOVABLE_API_KEY` available)
-- Prompt: pass `url`, `title`, `snippet`, and the source_type; ask for `asset_type` from the closed enum + a `brand_detected` field (which brand the page is about / cites)
-- Batched: up to 10 URLs per call; one LLM call per scan in the common case
-- Result cached into `citation_sources` (`classification_method = 'llm'`) keyed by domain for `source_type`, and into `content_assets` for the asset-level record
+## 4. Compute pipeline
 
-### Step D — Authority score
+New edge function `compute-metrics` (verify_jwt = false, internal):
 
-Static lookup table per domain category (Reddit 70, G2 85, NYT 95, generic blog 30, own brand 10, etc.). Stored on the `citation_sources` row; refreshed lazily.
+- Input: `{ scanId }` (looks up everything via service-role client)
+- Loads: scan + scan_results + citations + citation_sources + brand_observations
+- Computes all five metrics + breakdowns
+- Finds prior `proprietary_metrics_cache` row by `(scan.user_id, scan.project_domain)` ordered by `computed_at desc`
+- Builds deltas + explanation + narrative
+- Upserts into `proprietary_metrics_cache` keyed by `scan_id`
 
-### Caching rules
+Shared helpers in `supabase/functions/_shared/metrics.ts`:
 
-- `citation_sources` row keyed by domain: stores `source_type`, `authority_score`, `classification_method`, `classified_at`
-- Asset-type results are URL-specific, not domain-specific → stored in `content_assets` (not `citation_sources`)
-- In-function LRU (Map, ~500 entries) to coalesce within a single scan
+- `computeRss(rows, engineWeights)` → `{ value, breakdown }`
+- `computeCag(citations, sources, ownBrand, competitors)` → `{ value, breakdown }`
+- `computeTsd(citations, ownBrand)` → `{ value, breakdown }` (groups by `source_type` AND `asset_type`)
+- `computeCis(citations, winningBrands)` → `[{domain, cis, ...}]`
+- `computeCoi(ownRss, competitorRssMap)` → `{ overall, by_competitor }`
+- `buildExplanation(currMetrics, prevMetrics)` → `{ deltas, explanation, narrative }`
 
-## 3. Persistence
+All pure functions, no Supabase imports — unit-testable.
 
-Per scan_result, write:
+## 5. Scan integration
 
-`**citations**` (one row per extracted URL)
+In `scan/index.ts`, after the citations pipeline succeeds, fire-and-forget invoke `compute-metrics` (background, like `auto-optimize` is invoked today). Failures logged, never break the scan response.
 
-- `scan_result_id`, `engine`, `url`, `domain`, `source_type`, `asset_type`, `cites_brand`, `position`
+## 6. What this chunk does NOT do
 
-`**citation_sources**` (upsert by domain)
-
-- New domains inserted with `classification_method` and `authority_score`
-- Existing rows touched (`classified_at` refreshed if stale)
-
-`**content_assets**` (upsert by `(url)`, or `(url, brand_name)`)
-
-- `url`, `domain`, `asset_type`, `source_type`, `brand_name` (normalized via `normalize_brand`), `industry_id` (from scan), `title`, `authority_score`
-- `citation_count` incremented on every re-observation
-- `first_seen` set on insert, `last_seen` updated every scan  
-confidence_score  
-visibility_weight
-- This is the table the future "Why Competitors Win" engine reads from
-
-Brand detection for `cites_brand` / `content_assets.brand_name`:
-
-- Primary: scan's own brand + known competitor list (already in `brand_observations` pipeline)
-- Secondary: LLM `brand_detected` output when present
-- Fallback: NULL (asset still stored, just unattributed)
-
-## 4. Scan pipeline integration
-
-Edit `supabase/functions/scan/index.ts`:
-
-- After each engine response is stored on `scan_results`, call the new shared extractor
-- Batch-classify all URLs from this scan in one pass (Step A→B locally, Step C as a single LLM call for leftovers)
-- Bulk-insert `citations`, upsert `citation_sources` + `content_assets`
-- Wrap in `try/catch` — citation pipeline failures must **not** fail the scan; log and continue
-- Added latency budget: target < 1.5s overhead on a scan (LLM fallback is the only network hop and is batched)
-
-No changes to existing scan response shape — additive only.
-
-## 5. What this chunk does NOT do
-
-- No `proprietary_metrics_cache` writes (chunk #2)
+- No dashboard surfaces (chunk #5 reads this evidence)
 - No `global_intelligence` writes (chunk #4)
-- No `recommendations` generation (chunk #3)
-- No dashboard surfaces (chunk #5)
-- No backfill (chunk #6)
+- No recommendations (chunk #3 — but recs will cite `explanation` entries as their `evidence`)
+- No backfill of historic scans (chunk #6)
 
 ---
 
 ## Technical details (engineer-facing)
 
-- New file: `supabase/functions/_shared/citations.ts` (extractor + heuristics, pure functions, unit-testable)
-- New edge function: `supabase/functions/classify-citation/` with `verify_jwt = false`, internal callers only (called from `scan` via direct import for now; standalone HTTP route kept for chunk #6 backfill reuse)
-- Direct import path preferred over HTTP self-call to avoid latency; HTTP entrypoint exists for backfill jobs
-- `content_assets` upsert uses `ON CONFLICT (url) DO UPDATE SET citation_count = content_assets.citation_count + 1, last_seen = now(), title = COALESCE(EXCLUDED.title, content_assets.title)`
-- `citation_sources` upsert uses `ON CONFLICT (domain) DO UPDATE` only when row is older than 7 days or method upgrades (pattern → llm → manual)
-- Confidence threshold for skipping LLM: if Step B returns a non-fallback asset_type AND Step A returned a non-`other` source_type, skip LLM
-- LLM prompt returns strict JSON; validate with Zod, drop malformed rows rather than failing the batch
-- Cost cap: hard limit of 1 LLM call per scan, max 10 URLs per call; remaining URLs get heuristic-only classification and are flagged `classification_method = 'pattern'` for later upgrade
+- `compute-metrics` deno function: imports shared metrics module + uses service-role client (already pattern in repo)
+- Engine weights loaded once per invocation from `engine_weights` (fallback to constants if table empty)
+- For per-competitor RSS we reuse the same prompt set; `competitor_rss` requires per-engine mention/citation data — derive from `brand_observations` (engine, cited, position columns)
+- Numeric stability: when prev or curr metric is null, contribution_pct = 0 and factor is dropped from explanation
+- `narrative` length cap: 240 chars; truncate factor list rather than text
+- `deltas.by_asset_type` is the field that powers the user's explicit example ("comparison pages increased by 4") — guarantee it's always populated when current scan has citations, even if prev is null (zero-baseline diff)
+- Concurrency: `(scan_id)` unique constraint already exists, so `compute-metrics` is idempotent — safe to retry
 
-## Open question (low-risk, can decide during build)
+## Open question (low-risk, decide during build)
 
-For very long Perplexity/ChatGPT responses with 30+ citations, do we LLM-classify only the **top N by position** (cheaper, biases toward what the model surfaces first) or all of them (more complete, +cost)? Proposal: top 10 by position now, full-pass during backfill in chunk #6.
+For competitor RSS, do we score them against the **same prompt set** as the scan (apples-to-apples) or include their broader presence in `global_intelligence` (richer but cross-scan)? Proposal: same prompt set in Chunk #2; cross-scan upgrade lands with Chunk #4 when the moat dataset is live.  
+  
+Approved. One addition: add confidence_score and sample_size to proprietary_metrics_cache so every metric can communicate confidence based on data volume. For competitor RSS use the same prompt set as the scan for now; cross-scan/global_intelligence comparisons can be introduced in Chunk #4. Proceed with the build.
 
 ---
 
-Approve and I'll move to build for this chunk.
+Approve and I'll build this chunk.

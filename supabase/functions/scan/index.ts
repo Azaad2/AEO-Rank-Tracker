@@ -685,16 +685,36 @@ serve(async (req) => {
       gemini_cited: row.geminiCited,
       gemini_response: row.geminiResponse,
       gemini_competitors: row.geminiCompetitors,
+      // Perplexity columns
+      perplexity_mentioned: row.perplexityMentioned,
+      perplexity_cited: row.perplexityCited,
+      perplexity_response: row.perplexityResponse,
+      perplexity_competitors: row.perplexityCompetitors,
     }));
 
-    const { error: resultsError } = await supabase
+    const { data: insertedResults, error: resultsError } = await supabase
       .from('scan_results')
-      .insert(scanResultsData);
+      .insert(scanResultsData)
+      .select('id, prompt');
 
     if (resultsError) {
       console.error('Results insert error:', resultsError);
       throw new Error('Failed to save results');
     }
+
+    // --- Citation intelligence pipeline (additive; non-fatal on failure) ---
+    try {
+      await runCitationPipeline({
+        supabase,
+        rows,
+        insertedResults: insertedResults ?? [],
+        targetDomain,
+        lovableApiKey: Deno.env.get('LOVABLE_API_KEY') ?? undefined,
+      });
+    } catch (citErr) {
+      console.error('⚠️ Citation pipeline failed (non-fatal):', citErr);
+    }
+
 
     // --- Issue 1: Increment credit usage ---
     if (userId && !isAdmin) {

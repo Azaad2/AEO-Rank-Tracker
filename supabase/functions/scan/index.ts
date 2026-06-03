@@ -598,6 +598,8 @@ serve(async (req) => {
         perplexityCited: perplexityAnalysis?.brandCited || false,
         perplexityResponse: perplexityAnalysis?.response || '',
         perplexityCompetitors: perplexityAnalysis?.competitors || [],
+        perplexityCitationsRaw: perplexityAnalysis?.citations || [],
+        searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
         perplexityUsed: !!perplexityAnalysis,

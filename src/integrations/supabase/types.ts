@@ -139,6 +139,71 @@ export type Database = {
           },
         ]
       }
+      brand_aliases: {
+        Row: {
+          alias: string
+          canonical_name: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alias: string
+          canonical_name: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alias?: string
+          canonical_name?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      brand_observations: {
+        Row: {
+          brand_name: string
+          cited: boolean | null
+          created_at: string
+          engine: string
+          id: string
+          is_customer_brand: boolean
+          normalized_name: string
+          position: number | null
+          scan_result_id: number
+        }
+        Insert: {
+          brand_name: string
+          cited?: boolean | null
+          created_at?: string
+          engine: string
+          id?: string
+          is_customer_brand?: boolean
+          normalized_name: string
+          position?: number | null
+          scan_result_id: number
+        }
+        Update: {
+          brand_name?: string
+          cited?: boolean | null
+          created_at?: string
+          engine?: string
+          id?: string
+          is_customer_brand?: boolean
+          normalized_name?: string
+          position?: number | null
+          scan_result_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_observations_scan_result_id_fkey"
+            columns: ["scan_result_id"]
+            isOneToOne: false
+            referencedRelation: "scan_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -162,6 +227,127 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      citation_sources: {
+        Row: {
+          authority_refreshed_at: string
+          authority_score: number
+          classification_method: string
+          classified_at: string
+          domain: string
+          domain_type: string
+          metadata: Json | null
+        }
+        Insert: {
+          authority_refreshed_at?: string
+          authority_score?: number
+          classification_method?: string
+          classified_at?: string
+          domain: string
+          domain_type: string
+          metadata?: Json | null
+        }
+        Update: {
+          authority_refreshed_at?: string
+          authority_score?: number
+          classification_method?: string
+          classified_at?: string
+          domain?: string
+          domain_type?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      citations: {
+        Row: {
+          cites_brand: string | null
+          created_at: string
+          domain: string
+          engine: string
+          id: string
+          position: number | null
+          scan_result_id: number
+          source_type: string | null
+          url: string
+        }
+        Insert: {
+          cites_brand?: string | null
+          created_at?: string
+          domain: string
+          engine: string
+          id?: string
+          position?: number | null
+          scan_result_id: number
+          source_type?: string | null
+          url: string
+        }
+        Update: {
+          cites_brand?: string | null
+          created_at?: string
+          domain?: string
+          engine?: string
+          id?: string
+          position?: number | null
+          scan_result_id?: number
+          source_type?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citations_scan_result_id_fkey"
+            columns: ["scan_result_id"]
+            isOneToOne: false
+            referencedRelation: "scan_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_assets: {
+        Row: {
+          asset_type: string
+          authority_score: number | null
+          brand_name: string
+          citation_count: number
+          first_seen: string
+          id: string
+          industry_id: string | null
+          last_seen: string
+          normalized_brand: string
+          url: string
+        }
+        Insert: {
+          asset_type: string
+          authority_score?: number | null
+          brand_name: string
+          citation_count?: number
+          first_seen?: string
+          id?: string
+          industry_id?: string | null
+          last_seen?: string
+          normalized_brand: string
+          url: string
+        }
+        Update: {
+          asset_type?: string
+          authority_score?: number | null
+          brand_name?: string
+          citation_count?: number
+          first_seen?: string
+          id?: string
+          industry_id?: string | null
+          last_seen?: string
+          normalized_brand?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_assets_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -294,6 +480,84 @@ export type Database = {
         }
         Relationships: []
       }
+      engine_weights: {
+        Row: {
+          engine: string
+          last_updated: string
+          weight: number
+        }
+        Insert: {
+          engine: string
+          last_updated?: string
+          weight: number
+        }
+        Update: {
+          engine?: string
+          last_updated?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      global_intelligence: {
+        Row: {
+          citation_domain: string | null
+          created_at: string
+          engine: string
+          id: string
+          industry_id: string | null
+          observation_count: number
+          period_end: string
+          period_start: string
+          prompt_template_hash: string
+          source_type: string | null
+          topic_cluster_id: string | null
+          winning_brand: string | null
+        }
+        Insert: {
+          citation_domain?: string | null
+          created_at?: string
+          engine: string
+          id?: string
+          industry_id?: string | null
+          observation_count?: number
+          period_end?: string
+          period_start?: string
+          prompt_template_hash: string
+          source_type?: string | null
+          topic_cluster_id?: string | null
+          winning_brand?: string | null
+        }
+        Update: {
+          citation_domain?: string | null
+          created_at?: string
+          engine?: string
+          id?: string
+          industry_id?: string | null
+          observation_count?: number
+          period_end?: string
+          period_start?: string
+          prompt_template_hash?: string
+          source_type?: string | null
+          topic_cluster_id?: string | null
+          winning_brand?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_intelligence_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "global_intelligence_topic_cluster_id_fkey"
+            columns: ["topic_cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topic_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_scans: {
         Row: {
           created_at: string
@@ -325,6 +589,113 @@ export type Database = {
             columns: ["scan_id"]
             isOneToOne: false
             referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      industries: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          prompt_seed_pack: string[] | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          prompt_seed_pack?: string[] | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          prompt_seed_pack?: string[] | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "industries_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      industry_leaderboard: {
+        Row: {
+          brand: string
+          citation_authority_score: number | null
+          computed_at: string
+          delta_vs_previous: number | null
+          id: string
+          industry_id: string
+          observation_count: number
+          period: string
+          rank: number
+          recommendation_strength: number | null
+          rss: number
+          top_sources: Json | null
+          topic_cluster_id: string | null
+          trust_source_density: number | null
+        }
+        Insert: {
+          brand: string
+          citation_authority_score?: number | null
+          computed_at?: string
+          delta_vs_previous?: number | null
+          id?: string
+          industry_id: string
+          observation_count?: number
+          period?: string
+          rank?: number
+          recommendation_strength?: number | null
+          rss?: number
+          top_sources?: Json | null
+          topic_cluster_id?: string | null
+          trust_source_density?: number | null
+        }
+        Update: {
+          brand?: string
+          citation_authority_score?: number | null
+          computed_at?: string
+          delta_vs_previous?: number | null
+          id?: string
+          industry_id?: string
+          observation_count?: number
+          period?: string
+          rank?: number
+          recommendation_strength?: number | null
+          rss?: number
+          top_sources?: Json | null
+          topic_cluster_id?: string | null
+          trust_source_density?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "industry_leaderboard_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "industry_leaderboard_topic_cluster_id_fkey"
+            columns: ["topic_cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topic_clusters"
             referencedColumns: ["id"]
           },
         ]
@@ -472,6 +843,156 @@ export type Database = {
         }
         Relationships: []
       }
+      proprietary_metrics_cache: {
+        Row: {
+          cag: number | null
+          cis_top: Json | null
+          coi: Json | null
+          computed_at: string
+          id: string
+          metrics: Json | null
+          rss: number | null
+          scan_id: string
+          tsd: number | null
+        }
+        Insert: {
+          cag?: number | null
+          cis_top?: Json | null
+          coi?: Json | null
+          computed_at?: string
+          id?: string
+          metrics?: Json | null
+          rss?: number | null
+          scan_id: string
+          tsd?: number | null
+        }
+        Update: {
+          cag?: number | null
+          cis_top?: Json | null
+          coi?: Json | null
+          computed_at?: string
+          id?: string
+          metrics?: Json | null
+          rss?: number | null
+          scan_id?: string
+          tsd?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proprietary_metrics_cache_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: true
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_outcomes: {
+        Row: {
+          actual_impact: number | null
+          baseline_rss: number | null
+          id: string
+          measured_at: string
+          recommendation_id: string
+          rss_after_14_days: number | null
+          rss_after_30_days: number | null
+          success_flag: boolean | null
+          user_id: string
+        }
+        Insert: {
+          actual_impact?: number | null
+          baseline_rss?: number | null
+          id?: string
+          measured_at?: string
+          recommendation_id: string
+          rss_after_14_days?: number | null
+          rss_after_30_days?: number | null
+          success_flag?: boolean | null
+          user_id: string
+        }
+        Update: {
+          actual_impact?: number | null
+          baseline_rss?: number | null
+          id?: string
+          measured_at?: string
+          recommendation_id?: string
+          rss_after_14_days?: number | null
+          rss_after_30_days?: number | null
+          success_flag?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_outcomes_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendations: {
+        Row: {
+          category: string
+          completed_at: string | null
+          confidence: number
+          created_at: string
+          description: string | null
+          difficulty: string
+          evidence: Json
+          expected_impact: number
+          id: string
+          scan_id: string | null
+          status: string
+          time_estimate_minutes: number | null
+          title: string
+          tool_link: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          confidence?: number
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          evidence: Json
+          expected_impact?: number
+          id?: string
+          scan_id?: string | null
+          status?: string
+          time_estimate_minutes?: number | null
+          title: string
+          tool_link?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          confidence?: number
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          evidence?: Json
+          expected_impact?: number
+          id?: string
+          scan_id?: string | null
+          status?: string
+          time_estimate_minutes?: number | null
+          title?: string
+          tool_link?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_domains: {
         Row: {
           created_at: string
@@ -495,8 +1016,17 @@ export type Database = {
       }
       scan_results: {
         Row: {
+          chatgpt_cited: boolean | null
+          chatgpt_competitors: string[] | null
+          chatgpt_mentioned: boolean | null
+          chatgpt_response: string | null
           citation_rank: number | null
+          citation_urls: Json | null
           cited: boolean | null
+          claude_cited: boolean | null
+          claude_competitors: string[] | null
+          claude_mentioned: boolean | null
+          claude_response: string | null
           created_at: string
           gemini_cited: boolean | null
           gemini_competitors: string[] | null
@@ -504,14 +1034,27 @@ export type Database = {
           gemini_response: string | null
           id: number
           mentioned: boolean | null
+          perplexity_cited: boolean | null
+          perplexity_competitors: string[] | null
+          perplexity_mentioned: boolean | null
+          perplexity_response: string | null
           prompt: string
           scan_id: string
           top_cited_domains: string[] | null
           used_results: string[] | null
         }
         Insert: {
+          chatgpt_cited?: boolean | null
+          chatgpt_competitors?: string[] | null
+          chatgpt_mentioned?: boolean | null
+          chatgpt_response?: string | null
           citation_rank?: number | null
+          citation_urls?: Json | null
           cited?: boolean | null
+          claude_cited?: boolean | null
+          claude_competitors?: string[] | null
+          claude_mentioned?: boolean | null
+          claude_response?: string | null
           created_at?: string
           gemini_cited?: boolean | null
           gemini_competitors?: string[] | null
@@ -519,14 +1062,27 @@ export type Database = {
           gemini_response?: string | null
           id?: number
           mentioned?: boolean | null
+          perplexity_cited?: boolean | null
+          perplexity_competitors?: string[] | null
+          perplexity_mentioned?: boolean | null
+          perplexity_response?: string | null
           prompt: string
           scan_id: string
           top_cited_domains?: string[] | null
           used_results?: string[] | null
         }
         Update: {
+          chatgpt_cited?: boolean | null
+          chatgpt_competitors?: string[] | null
+          chatgpt_mentioned?: boolean | null
+          chatgpt_response?: string | null
           citation_rank?: number | null
+          citation_urls?: Json | null
           cited?: boolean | null
+          claude_cited?: boolean | null
+          claude_competitors?: string[] | null
+          claude_mentioned?: boolean | null
+          claude_response?: string | null
           created_at?: string
           gemini_cited?: boolean | null
           gemini_competitors?: string[] | null
@@ -534,6 +1090,10 @@ export type Database = {
           gemini_response?: string | null
           id?: number
           mentioned?: boolean | null
+          perplexity_cited?: boolean | null
+          perplexity_competitors?: string[] | null
+          perplexity_mentioned?: boolean | null
+          perplexity_response?: string | null
           prompt?: string
           scan_id?: string
           top_cited_domains?: string[] | null
@@ -553,31 +1113,40 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          industry_id: string | null
           is_auto_scan: boolean
+          language: string | null
           market: string
           project_domain: string
           prompts: string[]
           score: number | null
+          topic_cluster_id: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          industry_id?: string | null
           is_auto_scan?: boolean
+          language?: string | null
           market?: string
           project_domain: string
           prompts: string[]
           score?: number | null
+          topic_cluster_id?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          industry_id?: string | null
           is_auto_scan?: boolean
+          language?: string | null
           market?: string
           project_domain?: string
           prompts?: string[]
           score?: number | null
+          topic_cluster_id?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -750,6 +1319,41 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_clusters: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          industry_id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry_id: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry_id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity: {
         Row: {
           created_at: string
@@ -803,6 +1407,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_brand: { Args: { input: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

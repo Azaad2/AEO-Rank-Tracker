@@ -953,6 +953,24 @@ serve(async (req) => {
       console.error('⚠️ Failed to trigger rollup-intelligence:', rollupErr);
     }
 
+    // --- Evidence-first recommendations — fire-and-forget ---
+    try {
+      const recUrl = `${supabaseUrl}/functions/v1/generate-recommendations`;
+      fetch(recUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ scan_id: scan.id }),
+      }).then(() => console.log('✅ generate-recommendations triggered'))
+        .catch((e) => console.error('⚠️ generate-recommendations trigger failed:', e));
+    } catch (recErr) {
+      console.error('⚠️ Failed to trigger generate-recommendations:', recErr);
+    }
+
+
+
 
 
 

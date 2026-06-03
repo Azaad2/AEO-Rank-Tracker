@@ -1004,54 +1004,105 @@ export type Database = {
       recommendations: {
         Row: {
           category: string
+          competitor_examples: Json | null
           completed_at: string | null
           confidence: number
           created_at: string
           description: string | null
           difficulty: string
+          difficulty_weight: number | null
           evidence: Json
+          evidence_urls: string[] | null
+          execution_payload: Json | null
           expected_impact: number
+          first_seen_at: string | null
+          generated_by_version: string | null
           id: string
+          industry_benchmark: Json | null
+          industry_id: string | null
+          last_seen_scan_id: string | null
+          novelty_score: number | null
+          priority_score: number | null
+          projected_metric_delta: number | null
+          recommendation_type: string | null
+          recurrence_count: number | null
           scan_id: string | null
           status: string
+          supporting_asset_types: string[] | null
+          target_metric: string | null
           time_estimate_minutes: number | null
           title: string
           tool_link: string | null
           user_id: string
+          why_this_matters: string | null
         }
         Insert: {
           category: string
+          competitor_examples?: Json | null
           completed_at?: string | null
           confidence?: number
           created_at?: string
           description?: string | null
           difficulty?: string
+          difficulty_weight?: number | null
           evidence: Json
+          evidence_urls?: string[] | null
+          execution_payload?: Json | null
           expected_impact?: number
+          first_seen_at?: string | null
+          generated_by_version?: string | null
           id?: string
+          industry_benchmark?: Json | null
+          industry_id?: string | null
+          last_seen_scan_id?: string | null
+          novelty_score?: number | null
+          priority_score?: number | null
+          projected_metric_delta?: number | null
+          recommendation_type?: string | null
+          recurrence_count?: number | null
           scan_id?: string | null
           status?: string
+          supporting_asset_types?: string[] | null
+          target_metric?: string | null
           time_estimate_minutes?: number | null
           title: string
           tool_link?: string | null
           user_id: string
+          why_this_matters?: string | null
         }
         Update: {
           category?: string
+          competitor_examples?: Json | null
           completed_at?: string | null
           confidence?: number
           created_at?: string
           description?: string | null
           difficulty?: string
+          difficulty_weight?: number | null
           evidence?: Json
+          evidence_urls?: string[] | null
+          execution_payload?: Json | null
           expected_impact?: number
+          first_seen_at?: string | null
+          generated_by_version?: string | null
           id?: string
+          industry_benchmark?: Json | null
+          industry_id?: string | null
+          last_seen_scan_id?: string | null
+          novelty_score?: number | null
+          priority_score?: number | null
+          projected_metric_delta?: number | null
+          recommendation_type?: string | null
+          recurrence_count?: number | null
           scan_id?: string | null
           status?: string
+          supporting_asset_types?: string[] | null
+          target_metric?: string | null
           time_estimate_minutes?: number | null
           title?: string
           tool_link?: string | null
           user_id?: string
+          why_this_matters?: string | null
         }
         Relationships: [
           {

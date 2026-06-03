@@ -1,178 +1,128 @@
-# Phase 1, Chunk #4 — Anonymized Rollup Writer (the Moat)
+# Chunk #3 — Evidence-First Recommendation Engine
 
-## Goal
+Builds the engine that turns the moat (citations + metrics + global_intelligence) into prioritized, evidence-backed actions. Every recommendation cites its data, benchmarks against industry peers, and is structured for a future "Generate → Apply → Measure" loop.
 
-After every scan, write privacy-safe, aggregated citation intelligence into `global_intelligence` so the future Recommendation Engine and AI Visibility Index can answer industry-level questions like *"which asset types correlate with winning recommendations in SaaS CRM?"* — without ever storing a customer domain, prompt, content, or identifiable business data.
+## Core principles
 
-Per the user's explicit instruction: **asset-type intelligence is the moat**. We preserve `asset_type` as a first-class grouping dimension, not an aggregated-away attribute.
+1. **Evidence-first** — no recommendation without supporting rows from `citations`, `global_intelligence`, `proprietary_metrics_cache`, or `brand_observations`.
+2. **Priority-sorted** — `Impact × Confidence ÷ Difficulty` computed server-side.
+3. **Execution-ready** — schema and payload designed so a later worker can run Generate → Apply → Measure without migration.
 
-## Scope
+## Schema changes (extend existing `recommendations` table)
 
-1. Extend `global_intelligence` schema with asset-type + authority + position + frequency + temporal fields
-2. Privacy trigger update to validate the new fields
-3. New shared module: rollup grain + aggregation logic (pure, testable)
-4. New edge function `rollup-intelligence` (called from `scan` after `compute-metrics`)
-5. Integration hook in `scan/index.ts` (fire-and-forget, non-fatal)
-6. No dashboard, no recommendation engine, no backfill in this chunk
+Add columns (nullable, backfill-safe):
 
-## 1. Schema additions to `global_intelligence`
-
-New columns:
-
-- `asset_type text` — from Chunk #1's closed enum (comparison_page, listicle, reddit_thread, review_page, directory_listing, blog_article, news_article, forum_thread, landing_page, documentation_page, other)
-- `authority_score smallint` — domain authority at observation time (0–100), from `citation_sources`
-- `recommendation_position smallint` — avg position of the citation in the AI answer (1 = first, lower = better)
-- `citation_frequency integer` — total citations rolled into this row (distinct from `observation_count`, which counts unique prompts)
-- `first_observed_at timestamptz not null default now()`
-- `last_observed_at timestamptz not null default now()`
-
-Rollup grain (the unique key for upsert):
-
-```
-(industry_id, topic_cluster_id, engine, winning_brand, citation_domain,
- source_type, asset_type, prompt_template_hash, period_start)
+```text
+priority_score        numeric          -- impact * confidence / difficulty_weight
+difficulty_weight     smallint         -- 1=easy, 3=medium, 5=hard (derived from difficulty text)
+why_this_matters      text             -- short narrative (≤280 chars)
+industry_benchmark    jsonb            -- { metric, peer_avg, peer_median, user_value, gap }
+competitor_examples   jsonb            -- [{ brand, value, asset_type }]
+supporting_asset_types text[]          -- ['comparison_page','reddit_thread',...]
+recommendation_type   text             -- 'comparison_page_gap' | 'reddit_presence' | 'authority' | ...
+target_metric         text             -- 'RSS' | 'CAG' | 'TSD' | 'CIS' | 'COI'
+projected_metric_delta numeric         -- e.g. +7 RSS pts
+execution_payload     jsonb            -- structured spec for future auto-execution
+industry_id           uuid             -- denormalized for analytics
+generated_by_version  text             -- engine version tag for A/B + audit
 ```
 
-This grain is intentional: it keeps asset_type as a separate dimension so queries like *"top 10 asset_types that win in industry X this month"* are a single GROUP BY — no de-normalization needed later.
+Index: `(user_id, scan_id, priority_score desc)`.
+No data deletion. Old rows simply have NULL in new columns.
 
-Migration adds:
+## Recommendation rule library (`_shared/recommendations.ts`)
 
-- New columns above
-- `UNIQUE` constraint on the grain (for `ON CONFLICT … DO UPDATE`)
-- Indexes: `(industry_id, asset_type)`, `(industry_id, source_type, asset_type)`, `(winning_brand, asset_type)`, `(last_observed_at)`
-- Update `enforce_global_intelligence_privacy` trigger to:
-  - Validate `asset_type` against the closed enum (or NULL)
-  - Clamp `authority_score` to 0–100
-  - Clamp `recommendation_position` to 1–50
-  - Re-assert no URLs/emails leak into `winning_brand` (existing rule)
+Pure functions, each returns `RecommendationCandidate | null` given a `RecommendationContext` (scan, citations, metrics, peer rollups). Initial set:
 
-## 2. What gets written (and what does NOT)
+- `comparisonPageGap` — compares user comparison_page count vs industry peers from `global_intelligence`.
+- `redditPresenceGap` — reddit_thread asset_type density.
+- `listicleInclusion` — appearances in listicle asset_type.
+- `directoryListingGap` — directory_listing presence.
+- `reviewProfileGap` — review_page presence on G2/Capterra/Trustpilot class domains.
+- `authorityLift` — domains where peers have higher `authority_score`.
+- `positionImprovement` — prompts where user cited but `recommendation_position` > peer median.
+- `tsdLift` — Trust Source Density below peer median.
+- `cagClose` — Citation Authority Gap negative outliers.
 
-For every classified citation from the scan, we derive an **anonymized observation**:
+Each rule emits:
 
-
-| Field                                    | Source                                                 | Notes                        |
-| ---------------------------------------- | ------------------------------------------------------ | ---------------------------- |
-| `industry_id`                            | scan's resolved industry                               | nullable if unresolved       |
-| `topic_cluster_id`                       | scan_result's topic cluster                            | nullable                     |
-| `engine`                                 | scan_result.engine                                     | required                     |
-| `winning_brand`                          | normalized via `public.normalize_brand()`              | NULL if not a winning brand  |
-| `citation_domain`                        | citation.domain (no path, no query)                    | required                     |
-| `source_type`                            | citation.source_type                                   | from Chunk #1                |
-| `asset_type`                             | citation.asset_type                                    | **new — the moat dimension** |
-| `authority_score`                        | citation_sources.authority_score                       | snapshot                     |
-| `recommendation_position`                | citation.position averaged per grain                   | smaller = better             |
-| `prompt_template_hash`                   | sha256(normalized_prompt_template)                     | privacy-safe                 |
-| `observation_count`                      | distinct prompts in this scan that produced this grain | &nbsp;                       |
-| `citation_frequency`                     | total citations matching this grain                    | &nbsp;                       |
-| `first_observed_at` / `last_observed_at` | now() on insert; last updated on upsert                | &nbsp;                       |
-| `period_start` / `period_end`            | day-truncated bucket                                   | &nbsp;                       |
-
-
-**Never written** (explicit privacy guarantees, repeated from architecture doc):
-
-- Customer's own domain
-- Raw prompts or prompt text
-- User IDs, scan IDs, project IDs
-- Uploaded content
-- API keys
-- Any field that would let an outsider reverse-engineer who ran the scan
-
-The privacy trigger enforces these constraints at the DB layer so a buggy writer cannot accidentally leak data.
-
-## 3. Prompt template hashing
-
-`prompt_template_hash` must be **stable across scans and customers** so the moat compounds:
-
-- Normalize prompt: lowercase, collapse whitespace, strip the customer's own brand name, strip URLs/emails/numbers
-- Replace recognized brand mentions with `<BRAND>` placeholder
-- `sha256(normalized)` → first 16 hex chars
-
-Shared helper `hashPromptTemplate(prompt, ownBrand, knownBrands[])` in `_shared/intelligence.ts`, fully deterministic.
-
-## 4. Rollup pipeline
-
-New edge function `rollup-intelligence` (verify_jwt = false, internal):
-
-- Input: `{ scanId }`
-- Loads via service-role: scan + scan_results + citations + citation_sources + brand_observations + the scan's industry + topic_clusters
-- For each `(scan_result, citation)` pair:
-  - Build a grain tuple per the unique key above
-  - Aggregate `observation_count`, `citation_frequency`, average `recommendation_position`
-  - Determine `winning_brand` per grain: the brand the citation favored, normalized via `brand_detected` (Chunk #1) joined with `brand_observations` for confirmation; NULL if no clear winning brand
-- Batch upsert into `global_intelligence` using `ON CONFLICT (<grain>) DO UPDATE SET`:
-  - `observation_count = global_intelligence.observation_count + EXCLUDED.observation_count`
-  - `citation_frequency = global_intelligence.citation_frequency + EXCLUDED.citation_frequency`
-  - `recommendation_position = weighted_avg(prev, prev_count, new, new_count)`
-  - `authority_score = max(prev, EXCLUDED)` (authority only grows in practice)
-  - `last_observed_at = now()`
-  - `first_observed_at` untouched
-- Failures logged; never break the scan.
-
-Shared helpers in `supabase/functions/_shared/intelligence.ts`:
-
-- `buildGrainRows(scanContext, citations, brandObs)` → `GrainRow[]` (pure)
-- `hashPromptTemplate(prompt, ownBrand, knownBrands)` → string (pure)
-- `mergeWeightedPosition(prev, prevN, curr, currN)` → number (pure)
-
-All pure, unit-testable; only the edge function touches Supabase.
-
-## 5. Scan integration
-
-In `scan/index.ts`, after `compute-metrics` is invoked, fire-and-forget invoke `rollup-intelligence`. Same fault model as `auto-optimize` and `compute-metrics` — non-fatal, background, logged on failure.
-
-Ordering: `citations pipeline` → `compute-metrics` → `rollup-intelligence`. The rollup depends on classified citations (Chunk #1) being persisted, which they already are by the time it runs.
-
-## 6. What this chunk does NOT do
-
-- No recommendation engine (Chunk #3 will read this table)
-- No dashboard surfaces (Chunk #5)
-- No backfill of historic scans (Chunk #6 — will re-use the same rollup function with a `{scanIds: [...]}` batch input)
-- No cross-scan competitor RSS yet (open question from Chunk #2 — lands when this dataset has enough volume)
-
-## 7. Future queries this unlocks (validation of the design)
-
-The user's explicit ask — *"which asset types correlate with winning recommendations in this industry?"* — becomes:
-
-```sql
-SELECT asset_type,
-       SUM(citation_frequency) AS total_citations,
-       SUM(observation_count)  AS unique_prompts,
-       AVG(recommendation_position) AS avg_position,
-       COUNT(DISTINCT winning_brand) AS winning_brand_diversity
-FROM   public.global_intelligence
-WHERE  industry_id = $1
-  AND  winning_brand IS NOT NULL
-  AND  last_observed_at > now() - interval '30 days'
-GROUP  BY asset_type
-ORDER  BY total_citations DESC;
+```text
+{
+  recommendation_type, title, description, why_this_matters,
+  category, target_metric, projected_metric_delta,
+  expected_impact (0-100), confidence (0-100),
+  difficulty ('easy'|'medium'|'hard'), difficulty_weight,
+  time_estimate_minutes,
+  evidence: { user_value, peer_sample_size, peer_avg, peer_median, source_grain },
+  industry_benchmark: { metric, peer_avg, peer_median, user_value, gap },
+  competitor_examples: [{ brand, value, asset_type }],  // anonymized brands only
+  supporting_asset_types: [...],
+  execution_payload: { action, generator, inputs, expected_artifacts }
+}
 ```
 
-Other queries this design supports out-of-the-box:
+Confidence is data-driven: scales with `peer_sample_size` and `classification_confidence` from Chunk #1; capped at 95.
+Impact is the projected metric delta normalized 0–100 against the engine's deltas table.
+Difficulty is rule-defined, with `difficulty_weight ∈ {1,3,5}`.
 
-- *"Top source_types per engine for industry X"* — GROUP BY engine, source_type
-- *"Which brands dominate comparison_pages vs reddit_threads in SaaS CRM?"* — GROUP BY asset_type, winning_brand
-- *"Authority distribution by asset_type"* — AVG(authority_score) GROUP BY asset_type
-- *"Asset-type momentum"* — compare period_start buckets
+## Edge function `generate-recommendations`
 
-Because the grain keeps `asset_type` separate, none of these require a schema change.
+`verify_jwt = false` (internal, scan-pipeline-invoked). Accepts `{ scan_id }`.
 
-## Technical details (engineer-facing)
+Steps:
 
-- All writes go through service-role client; RLS already allows public SELECT and service INSERT
-- Upsert uses Postgres `INSERT … ON CONFLICT (<grain>) DO UPDATE`; the unique constraint we add is the conflict target
-- Weighted position merge: `(prev * prevN + curr * currN) / (prevN + currN)` rounded to nearest int
-- `period_start` truncated to UTC day so the same scan run never spans buckets
-- `prompt_template_hash` is 16 hex chars (collision risk negligible for industry-scoped queries; full sha256 is overkill and bloats indexes)
-- Brand normalization reuses existing `public.normalize_brand()` SQL function for consistency with `brand_observations`
-- Idempotency: re-running `rollup-intelligence` for the same `scanId` would double-count; we guard by tracking `rolled_up_at timestamptz` on the `scans` table and short-circuiting if set
-- Batch size: upserts chunked at 500 rows per statement to stay under request limits
+1. Load scan, scan_results, citations (with classified asset_type), proprietary_metrics_cache (latest + previous), brand_observations.
+2. Resolve `industry_id` and `topic_cluster_id` for the scan.
+3. Pull peer rollups from `global_intelligence` filtered by `industry_id`, optionally `topic_cluster_id`. Aggregate by `asset_type` to compute `peer_avg`, `peer_median`, `peer_sample_size`, top-3 anonymized brands by `citation_frequency`.
+4. Run every rule in the library; drop rules with `peer_sample_size < 3` or missing evidence (no recommendation without evidence).
+5. Compute `priority_score = expected_impact * confidence / difficulty_weight`.
+6. Delete previous `recommendations` rows for `(user_id, scan_id)` then bulk-insert new set sorted by `priority_score desc`.
+7. Cap at top 12 to prevent overload (configurable; spillover stored with status `suppressed`).
 
-## Open question (low-risk)
+## Pipeline integration
 
-For citations where Chunk #1 left `asset_type = 'other'` with low confidence, do we still write them to `global_intelligence`? Proposal: yes, because absence is also signal — but tag them so future queries can exclude them. Implemented by simply storing `asset_type = 'other'`; no extra column needed.  
-Approved. Add classification_confidence to the rollup, preserve momentum calculations (or enough data to compute them later), and ensure winning_brand_diversity can be queried efficiently. Keep asset_type='other' in the dataset. Proceed with the build.
+In `supabase/functions/scan/index.ts`, after `compute-metrics` and `rollup-intelligence` are dispatched (fire-and-forget), additionally dispatch `generate-recommendations`. Non-fatal: scan completion does not depend on it. Logs only; no user-visible error.
 
----
+Note: rollup must finish before recommendations to use latest peer data. Two options:
 
-Approve and I'll build this chunk (one migration + one new edge function + one shared module + `scan/index.ts` hook).
+- (a) Best-effort: recommendations may use yesterday's `global_intelligence`. Acceptable now; documented.
+- (b) Add a 5s soft delay or chain via `await` inside the dispatcher. Plan picks **(a)** for simplicity and to keep scan latency unchanged.
+
+## Future-proofing (no code now, just structure)
+
+`execution_payload` is shaped to drive a later `execute-recommendation` worker:
+
+```text
+{
+  "action": "generate_comparison_page",
+  "generator": "lovable-ai/gemini-2.5-flash",
+  "inputs": { "competitor_brands": [...], "topic_cluster_id": "...", "target_url_pattern": "/compare/..." },
+  "expected_artifacts": [{ "type": "content_asset", "asset_type": "comparison_page" }],
+  "measurement": { "metric": "RSS", "horizon_days": 14 }
+}
+```
+
+The future loop reads this payload, calls a generator, writes to `content_assets`, and tracks impact in `recommendation_outcomes` (already exists).
+
+## What this chunk does NOT do
+
+- No UI changes. (Dashboard rewrite is Chunk #5.)
+- No execution worker. (Future chunk.)
+- No backfill for historical scans. (Chunk #6.)
+- No new LLM calls — engine is deterministic; uses only data already in DB.
+
+## Files
+
+- `supabase/migrations/<ts>_recommendations_evidence.sql` — additive columns + index.
+- `supabase/functions/_shared/recommendations.ts` — rule library + types + scoring.
+- `supabase/functions/generate-recommendations/index.ts` — new edge function.
+- `supabase/functions/scan/index.ts` — dispatch new function (fire-and-forget).
+- `src/integrations/supabase/types.ts` — regenerated.
+
+## Acceptance
+
+- Running a scan inserts `recommendations` rows where every row has non-null `evidence`, `industry_benchmark`, `priority_score`, `why_this_matters`.
+- Rows are returned by `ActionPlan.tsx` ordered by `priority_score` (component currently orders by `created_at`; UI work deferred to Chunk #5, but data is already correct).
+- No recommendation appears when `peer_sample_size < 3`.
+    
+  Approved. Add evidence_urls to recommendation records and add recommendation_novelty_score (or equivalent suppression logic for repeated recommendations). Everything else looks good. Proceed with implementation.

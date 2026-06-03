@@ -515,43 +515,64 @@ export type Database = {
       }
       global_intelligence: {
         Row: {
+          asset_type: string | null
+          authority_score: number | null
           citation_domain: string | null
+          citation_frequency: number
+          classification_confidence: number | null
           created_at: string
           engine: string
+          first_observed_at: string
           id: string
           industry_id: string | null
+          last_observed_at: string
           observation_count: number
           period_end: string
           period_start: string
           prompt_template_hash: string
+          recommendation_position: number | null
           source_type: string | null
           topic_cluster_id: string | null
           winning_brand: string | null
         }
         Insert: {
+          asset_type?: string | null
+          authority_score?: number | null
           citation_domain?: string | null
+          citation_frequency?: number
+          classification_confidence?: number | null
           created_at?: string
           engine: string
+          first_observed_at?: string
           id?: string
           industry_id?: string | null
+          last_observed_at?: string
           observation_count?: number
           period_end?: string
           period_start?: string
           prompt_template_hash: string
+          recommendation_position?: number | null
           source_type?: string | null
           topic_cluster_id?: string | null
           winning_brand?: string | null
         }
         Update: {
+          asset_type?: string | null
+          authority_score?: number | null
           citation_domain?: string | null
+          citation_frequency?: number
+          classification_confidence?: number | null
           created_at?: string
           engine?: string
+          first_observed_at?: string
           id?: string
           industry_id?: string | null
+          last_observed_at?: string
           observation_count?: number
           period_end?: string
           period_start?: string
           prompt_template_hash?: string
+          recommendation_position?: number | null
           source_type?: string | null
           topic_cluster_id?: string | null
           winning_brand?: string | null
@@ -1168,6 +1189,7 @@ export type Database = {
           market: string
           project_domain: string
           prompts: string[]
+          rolled_up_at: string | null
           score: number | null
           topic_cluster_id: string | null
           user_id: string | null
@@ -1181,6 +1203,7 @@ export type Database = {
           market?: string
           project_domain: string
           prompts: string[]
+          rolled_up_at?: string | null
           score?: number | null
           topic_cluster_id?: string | null
           user_id?: string | null
@@ -1194,6 +1217,7 @@ export type Database = {
           market?: string
           project_domain?: string
           prompts?: string[]
+          rolled_up_at?: string | null
           score?: number | null
           topic_cluster_id?: string | null
           user_id?: string | null

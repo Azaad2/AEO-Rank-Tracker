@@ -937,6 +937,22 @@ serve(async (req) => {
       console.error('⚠️ Failed to trigger compute-metrics:', metricsErr);
     }
 
+    // --- Anonymized global intelligence rollup — fire-and-forget ---
+    try {
+      const rollupUrl = `${supabaseUrl}/functions/v1/rollup-intelligence`;
+      fetch(rollupUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({ scanId: scan.id }),
+      }).then(() => console.log('✅ rollup-intelligence triggered'))
+        .catch((e) => console.error('⚠️ rollup-intelligence trigger failed:', e));
+    } catch (rollupErr) {
+      console.error('⚠️ Failed to trigger rollup-intelligence:', rollupErr);
+    }
+
 
 
 

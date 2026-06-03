@@ -634,6 +634,8 @@ serve(async (req) => {
         perplexityCited: result.perplexityCited,
         perplexityResponse: result.perplexityResponse,
         perplexityCompetitors: result.perplexityCompetitors,
+        perplexityCitationsRaw: result.perplexityCitationsRaw,
+        searchCitationsRaw: result.searchCitationsRaw,
       });
     }
 

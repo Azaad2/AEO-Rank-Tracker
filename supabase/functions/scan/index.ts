@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import {
+  classifyCitations,
+  extractCitationsFromText,
+  extractStructuredCitations,
+  type ClassifiedCitation,
+  type Engine,
+} from "../_shared/citations.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +58,8 @@ interface RowResult {
   perplexityCited: boolean;
   perplexityResponse: string;
   perplexityCompetitors: string[];
+  perplexityCitationsRaw: string[];
+  searchCitationsRaw: Array<{ url: string }>;
 }
 
 // Helper: normalize domain
@@ -456,6 +465,212 @@ function aggregateScore(rows: RowResult[]): number {
   return Math.round(sum / rows.length);
 }
 
+// ============================================================
+// Citation intelligence pipeline (Phase 1 / Chunk #1)
+// ============================================================
+
+interface CitationPipelineArgs {
+  supabase: any;
+  rows: RowResult[];
+  insertedResults: Array<{ id: number; prompt: string }>;
+  targetDomain: string;
+  lovableApiKey?: string;
+}
+
+function normalizeBrandLocal(input: string | null | undefined): string | null {
+  if (!input) return null;
+  let s = input.toLowerCase().trim();
+  s = s.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  s = s.replace(/\.(com|io|co|net|org|ai|app|dev)(\/.*)?$/i, '');
+  s = s.replace(/\s+(inc|ltd|llc|gmbh|corp|co)\.?$/i, '').trim();
+  return s || null;
+}
+
+async function runCitationPipeline(args: CitationPipelineArgs): Promise<void> {
+  const { supabase, rows, insertedResults, targetDomain, lovableApiKey } = args;
+  if (insertedResults.length === 0) return;
+
+  const targetBrandNorm = normalizeBrandLocal(targetDomain);
+
+  // Resolve industry_id for the scan's domain if available (best-effort).
+  let industryId: string | null = null;
+  try {
+    const { data: saved } = await supabase
+      .from('saved_domains')
+      .select('industry_id')
+      .eq('domain', targetDomain)
+      .limit(1)
+      .maybeSingle();
+    if (saved?.industry_id) industryId = saved.industry_id;
+  } catch { /* table may not have industry_id; ignore */ }
+
+  // Map prompt -> scan_result_id
+  const resultIdByPrompt = new Map<string, number>();
+  for (const r of insertedResults) resultIdByPrompt.set(r.prompt, r.id);
+
+  // Build per-engine extraction batches keyed by scan_result_id
+  type Batch = { scan_result_id: number; engine: Engine; citations: ReturnType<typeof extractCitationsFromText> };
+  const batches: Batch[] = [];
+  const competitorBrandsByPrompt = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    const srId = resultIdByPrompt.get(row.prompt);
+    if (!srId) continue;
+
+    // Track competitor brand names from each engine for cites_brand attribution
+    const compSet = new Set<string>();
+    [...(row.geminiCompetitors || []), ...(row.perplexityCompetitors || [])]
+      .forEach(c => { const n = normalizeBrandLocal(c); if (n) compSet.add(n); });
+    competitorBrandsByPrompt.set(row.prompt, compSet);
+
+    if (row.geminiResponse) {
+      batches.push({ scan_result_id: srId, engine: 'gemini', citations: extractCitationsFromText(row.geminiResponse) });
+    }
+    if (row.perplexityResponse) {
+      const fromText = extractCitationsFromText(row.perplexityResponse);
+      const fromStruct = extractStructuredCitations(row.perplexityCitationsRaw || []);
+      const merged = mergeUnique(fromStruct, fromText);
+      batches.push({ scan_result_id: srId, engine: 'perplexity', citations: merged });
+    }
+    if (row.searchCitationsRaw && row.searchCitationsRaw.length > 0) {
+      batches.push({ scan_result_id: srId, engine: 'search', citations: extractStructuredCitations(row.searchCitationsRaw) });
+    }
+  }
+
+  if (batches.length === 0) return;
+
+  // Flat list for classification (preserves engine/srId via index)
+  const flat: Array<{ url: string; domain: string; position: number; title?: string; snippet?: string; _src: number }> = [];
+  batches.forEach((b, bi) => {
+    b.citations.forEach(c => flat.push({ ...c, _src: bi }));
+  });
+
+  // Dedupe URLs for classification, classify once per URL
+  const uniqByUrl = new Map<string, { url: string; domain: string; position: number; title?: string; snippet?: string }>();
+  for (const c of flat) if (!uniqByUrl.has(c.url)) uniqByUrl.set(c.url, c);
+
+  const classified = await classifyCitations([...uniqByUrl.values()], {
+    lovableApiKey,
+    enableLlm: true,
+  });
+  const classByUrl = new Map<string, ClassifiedCitation>();
+  for (const c of classified) classByUrl.set(c.url, c);
+
+  // Build citations rows
+  const citationsRows: any[] = [];
+  const contentAssetsByKey = new Map<string, any>(); // key = normBrand|url
+  const sourcesByDomain = new Map<string, ClassifiedCitation>();
+
+  for (const c of flat) {
+    const cls = classByUrl.get(c.url);
+    if (!cls) continue;
+    const batch = batches[c._src];
+
+    // Brand attribution: prefer LLM-detected, else heuristic — does any competitor name appear in url/title?
+    let citesBrand: string | null = cls.brand_detected ? normalizeBrandLocal(cls.brand_detected) : null;
+    if (!citesBrand) {
+      const promptKey = [...resultIdByPrompt.entries()].find(([, v]) => v === batch.scan_result_id)?.[0];
+      const compSet = promptKey ? competitorBrandsByPrompt.get(promptKey) : undefined;
+      const hay = `${c.url} ${c.title ?? ''}`.toLowerCase();
+      if (targetBrandNorm && hay.includes(targetBrandNorm)) citesBrand = targetBrandNorm;
+      else if (compSet) for (const b of compSet) if (b.length >= 3 && hay.includes(b)) { citesBrand = b; break; }
+    }
+
+    citationsRows.push({
+      scan_result_id: batch.scan_result_id,
+      engine: batch.engine,
+      url: c.url,
+      domain: c.domain,
+      source_type: cls.source_type,
+      asset_type: cls.asset_type,
+      cites_brand: citesBrand,
+      position: c.position,
+      title: c.title ?? null,
+    });
+
+    // citation_sources upsert candidate
+    if (!sourcesByDomain.has(c.domain)) sourcesByDomain.set(c.domain, cls);
+
+    // content_assets upsert candidate (keyed by brand+url)
+    const brandForAsset = citesBrand ?? 'unknown';
+    const key = `${brandForAsset}|${c.url}`;
+    if (!contentAssetsByKey.has(key)) {
+      contentAssetsByKey.set(key, {
+        brand_name: brandForAsset,
+        normalized_brand: brandForAsset,
+        url: c.url,
+        domain: c.domain,
+        asset_type: cls.asset_type,
+        source_type: cls.source_type,
+        industry_id: industryId,
+        authority_score: cls.authority_score,
+        title: c.title ?? null,
+      });
+    }
+  }
+
+  // Insert citations (bulk)
+  if (citationsRows.length > 0) {
+    const { error } = await supabase.from('citations').insert(citationsRows);
+    if (error) console.error('citations insert error', error);
+  }
+
+  // Upsert citation_sources
+  if (sourcesByDomain.size > 0) {
+    const sourceRows = [...sourcesByDomain.entries()].map(([domain, cls]) => ({
+      domain,
+      domain_type: cls.source_type,
+      authority_score: cls.authority_score,
+      classification_method: cls.classification_method,
+    }));
+    const { error } = await supabase
+      .from('citation_sources')
+      .upsert(sourceRows, { onConflict: 'domain', ignoreDuplicates: false });
+    if (error) console.error('citation_sources upsert error', error);
+  }
+
+  // Upsert content_assets (increment citation_count + bump last_seen on conflict)
+  if (contentAssetsByKey.size > 0) {
+    const assetRows = [...contentAssetsByKey.values()];
+    // First, try inserts ignoring duplicates
+    const { error: insErr } = await supabase
+      .from('content_assets')
+      .upsert(assetRows, { onConflict: 'normalized_brand,url', ignoreDuplicates: true });
+    if (insErr) console.error('content_assets insert error', insErr);
+
+    // Then, for each, bump citation_count and last_seen + fill missing title
+    for (const a of assetRows) {
+      const { data: existing } = await supabase
+        .from('content_assets')
+        .select('id, citation_count, title')
+        .eq('normalized_brand', a.normalized_brand)
+        .eq('url', a.url)
+        .maybeSingle();
+      if (existing) {
+        await supabase
+          .from('content_assets')
+          .update({
+            citation_count: (existing.citation_count || 0) + 1,
+            last_seen: new Date().toISOString(),
+            title: existing.title ?? a.title,
+          })
+          .eq('id', existing.id);
+      }
+    }
+  }
+
+  console.log(`📚 Citation pipeline: ${citationsRows.length} citations, ${sourcesByDomain.size} domains, ${contentAssetsByKey.size} assets`);
+}
+
+function mergeUnique<T extends { url: string }>(a: T[], b: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const x of [...a, ...b]) if (!seen.has(x.url)) { seen.add(x.url); out.push(x); }
+  return out;
+}
+
+
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -589,6 +804,8 @@ serve(async (req) => {
         perplexityCited: perplexityAnalysis?.brandCited || false,
         perplexityResponse: perplexityAnalysis?.response || '',
         perplexityCompetitors: perplexityAnalysis?.competitors || [],
+        perplexityCitationsRaw: perplexityAnalysis?.citations || [],
+        searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
         perplexityUsed: !!perplexityAnalysis,
@@ -623,6 +840,8 @@ serve(async (req) => {
         perplexityCited: result.perplexityCited,
         perplexityResponse: result.perplexityResponse,
         perplexityCompetitors: result.perplexityCompetitors,
+        perplexityCitationsRaw: result.perplexityCitationsRaw,
+        searchCitationsRaw: result.searchCitationsRaw,
       });
     }
 
@@ -672,16 +891,36 @@ serve(async (req) => {
       gemini_cited: row.geminiCited,
       gemini_response: row.geminiResponse,
       gemini_competitors: row.geminiCompetitors,
+      // Perplexity columns
+      perplexity_mentioned: row.perplexityMentioned,
+      perplexity_cited: row.perplexityCited,
+      perplexity_response: row.perplexityResponse,
+      perplexity_competitors: row.perplexityCompetitors,
     }));
 
-    const { error: resultsError } = await supabase
+    const { data: insertedResults, error: resultsError } = await supabase
       .from('scan_results')
-      .insert(scanResultsData);
+      .insert(scanResultsData)
+      .select('id, prompt');
 
     if (resultsError) {
       console.error('Results insert error:', resultsError);
       throw new Error('Failed to save results');
     }
+
+    // --- Citation intelligence pipeline (additive; non-fatal on failure) ---
+    try {
+      await runCitationPipeline({
+        supabase,
+        rows,
+        insertedResults: insertedResults ?? [],
+        targetDomain,
+        lovableApiKey: Deno.env.get('LOVABLE_API_KEY') ?? undefined,
+      });
+    } catch (citErr) {
+      console.error('⚠️ Citation pipeline failed (non-fatal):', citErr);
+    }
+
 
     // --- Issue 1: Increment credit usage ---
     if (userId && !isAdmin) {

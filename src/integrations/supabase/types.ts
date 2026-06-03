@@ -260,6 +260,7 @@ export type Database = {
       }
       citations: {
         Row: {
+          asset_type: string | null
           cites_brand: string | null
           created_at: string
           domain: string
@@ -268,9 +269,11 @@ export type Database = {
           position: number | null
           scan_result_id: number
           source_type: string | null
+          title: string | null
           url: string
         }
         Insert: {
+          asset_type?: string | null
           cites_brand?: string | null
           created_at?: string
           domain: string
@@ -279,9 +282,11 @@ export type Database = {
           position?: number | null
           scan_result_id: number
           source_type?: string | null
+          title?: string | null
           url: string
         }
         Update: {
+          asset_type?: string | null
           cites_brand?: string | null
           created_at?: string
           domain?: string
@@ -290,6 +295,7 @@ export type Database = {
           position?: number | null
           scan_result_id?: number
           source_type?: string | null
+          title?: string | null
           url?: string
         }
         Relationships: [
@@ -308,11 +314,14 @@ export type Database = {
           authority_score: number | null
           brand_name: string
           citation_count: number
+          domain: string | null
           first_seen: string
           id: string
           industry_id: string | null
           last_seen: string
           normalized_brand: string
+          source_type: string | null
+          title: string | null
           url: string
         }
         Insert: {
@@ -320,11 +329,14 @@ export type Database = {
           authority_score?: number | null
           brand_name: string
           citation_count?: number
+          domain?: string | null
           first_seen?: string
           id?: string
           industry_id?: string | null
           last_seen?: string
           normalized_brand: string
+          source_type?: string | null
+          title?: string | null
           url: string
         }
         Update: {
@@ -332,11 +344,14 @@ export type Database = {
           authority_score?: number | null
           brand_name?: string
           citation_count?: number
+          domain?: string | null
           first_seen?: string
           id?: string
           industry_id?: string | null
           last_seen?: string
           normalized_brand?: string
+          source_type?: string | null
+          title?: string | null
           url?: string
         }
         Relationships: [

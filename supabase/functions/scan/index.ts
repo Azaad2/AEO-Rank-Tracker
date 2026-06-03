@@ -58,6 +58,8 @@ interface RowResult {
   perplexityCited: boolean;
   perplexityResponse: string;
   perplexityCompetitors: string[];
+  perplexityCitationsRaw: string[];
+  searchCitationsRaw: Array<{ url: string }>;
 }
 
 // Helper: normalize domain

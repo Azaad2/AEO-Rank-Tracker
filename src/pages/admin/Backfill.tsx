@@ -23,7 +23,7 @@ interface FailedRow {
 }
 
 export default function Backfill() {
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const [counts, setCounts] = useState<StatusCounts>({});
   const [total, setTotal] = useState(0);
   const [failures, setFailures] = useState<FailedRow[]>([]);

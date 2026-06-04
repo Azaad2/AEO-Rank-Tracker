@@ -1,89 +1,224 @@
-# Chunk #6 — Resumable Backfill Job
+# Role-Based Authorization Foundation
 
-Backfills all historical `scans` through the Chunk #1–#4 pipeline (citations → metrics → recommendations → global_intelligence rollup) without double-counting and with full resume support.
+Replace the hardcoded `hello@aimentionyou.com` admin check (used in 2 frontend files, 1 edge function, and 2 RLS policies) with a proper `user_roles` table and `has_role()` security-definer function. Adds `admin`, `analyst`, and `agency_admin` roles for future use.
 
-## Core requirements (per your instruction)
+---
 
-1. **Resumable** — interruption-safe; resumes from last completed scan.
-2. **Idempotent** — re-running the job produces identical state, never inflates `observation_count` or `citation_frequency` in `global_intelligence`.
-3. **Progress-tracked** — every scan's backfill state is recorded; operator can query "what % done, what failed, what's pending".
-4. **Batched** — processes N scans per invocation (default 25), respects edge function timeout.
+## 1. Current state audit
 
-## New table: `backfill_jobs`
+### Hardcoded-email gates
 
-Tracks one row per scan being backfilled. Single source of truth for resume + idempotency.
+- `src/lib/admin.ts` → `ADMIN_EMAILS = ['hello@aimentionyou.com']`
+- `src/pages/admin/Backfill.tsx` → calls `isAdminUser(user)`
+- `supabase/functions/backfill-scans/index.ts` → `ADMIN_EMAIL` constant, compares `user.email`
 
-Columns:
+### Current RLS on the 4 tables in scope
 
-- `scan_id` (PK, FK → scans)
-- `status` — `pending | in_progress | citations_done | metrics_done | recs_done | rollup_done | completed | failed | skipped`
-- `stage_checksums` JSONB — per-stage content hash so we can detect "already processed this exact input" on re-runs
-- `error` text, `attempts` int, `last_attempt_at`, `completed_at`, `created_at`, `updated_at`
-- Index on `status` for fast "next batch" queries
 
-The status enum is a strict ladder. Resumption picks up at the first non-done stage. Each stage is itself idempotent (see below), so re-entering a stage is safe.
+| Table                                    | Policy                              | Cmd                  | Roles         | Predicate                                                     |
+| ---------------------------------------- | ----------------------------------- | -------------------- | ------------- | ------------------------------------------------------------- |
+| `backfill_jobs`                          | Admins can view backfill jobs       | SELECT               | authenticated | `auth.users.email = 'hello@aimentionyou.com'` ❌ hardcoded     |
+| `global_intelligence_scan_contributions` | Admins can view contributions       | SELECT               | authenticated | same hardcoded email ❌                                        |
+| `global_intelligence`                    | Global intelligence public readable | SELECT               | public        | `true` ⚠️ intentional (anonymized rollups, public-readable)   |
+| `global_intelligence`                    | Service writes global intelligence  | INSERT               | public        | `true` ⚠️ relies on service-role bypass — should be tightened |
+| `recommendations`                        | Users view/update/delete own        | SELECT/UPDATE/DELETE | authenticated | `auth.uid() = user_id` ✅ correct, no change                   |
+| `recommendations`                        | Service insert recommendations      | INSERT               | public        | `true` ⚠️ relies on service-role bypass                       |
 
-## Idempotency strategy per stage
 
-- **Citations** (`citations` table): delete-then-insert scoped to `scan_result_id` inside a transaction. Same scan twice = same rows.
-- **Metrics** (`proprietary_metrics_cache`): already keyed by `(scan_id, metric_period)` — upsert.
-- **Recommendations** (`recommendations`): delete `WHERE scan_id = X AND source = 'engine_v1'` then re-insert. Manual user edits preserved by filtering on `source`.
-- **Rollup** (`global_intelligence`) — the critical one:
-  - Add a new table `global_intelligence_scan_contributions(scan_id, grain_key, observation_count, citation_frequency, contributed_at)` recording exactly what each scan contributed.
-  - Rollup writer becomes: `for each grain → upsert global_intelligence delta = (new_value - previous_contribution_for_this_scan)`. So re-running a scan subtracts its old contribution and adds the new one — net effect zero on a clean re-run, correct on a changed re-run.
-  - First-time contributions just add. This is what guarantees "never double-count."
+**Findings**
 
-## New edge function: `backfill-scans`
+- Two policies (`backfill_jobs`, `contributions`) hardcode the email. **Migrate to `has_role(auth.uid(),'admin')`.**
+- `global_intelligence` is intentionally public-readable (anonymized peer data). Keep `SELECT` open; tighten `INSERT` to `service_role` only.
+- `recommendations` per-user policies are correct. Tighten its `INSERT` policy similarly.
+- No write-side RLS on `backfill_jobs` or `contributions` — only service-role writes (via edge functions). Add explicit admin write policies for future console actions; service role bypasses RLS regardless.
 
-`supabase/functions/backfill-scans/index.ts` — invocable by cron or manually.
+---
 
-Body:
+## 2. Proposed migration (single file)
 
-```json
-{ "batch_size": 25, "max_runtime_seconds": 50, "only_failed": false, "scan_ids": [] }
+```sql
+-- 2.1 Enum
+CREATE TYPE public.app_role AS ENUM ('admin','analyst','agency_admin');
+
+-- 2.2 Table
+CREATE TABLE public.user_roles (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role       public.app_role NOT NULL,
+  granted_by uuid REFERENCES auth.users(id),
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, role)
+);
+CREATE INDEX idx_user_roles_user ON public.user_roles(user_id);
+
+-- 2.3 Grants (auth-only; never expose role list to anon)
+GRANT SELECT ON public.user_roles TO authenticated;
+GRANT ALL    ON public.user_roles TO service_role;
+
+-- 2.4 RLS
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can see their own roles"
+  ON public.user_roles FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admin management of roles happens via service-role only (no admin-self-grant exploit).
+-- Edge function or SQL console required to insert/delete role rows.
+
+-- 2.5 Security-definer helper (avoids recursive RLS on user_roles)
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, anon;
+
+-- 2.6 Replace hardcoded-email policies
+DROP POLICY IF EXISTS "Admins can view backfill jobs"     ON public.backfill_jobs;
+DROP POLICY IF EXISTS "Admins can view contributions"     ON public.global_intelligence_scan_contributions;
+
+CREATE POLICY "Admins read backfill jobs"
+  ON public.backfill_jobs FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins manage backfill jobs"
+  ON public.backfill_jobs FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+CREATE POLICY "Admins read contributions"
+  ON public.global_intelligence_scan_contributions FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- 2.7 Tighten existing service-role-bypass INSERT policies
+-- (service_role bypasses RLS anyway; restricting to it makes intent explicit and
+--  prevents accidental client inserts if grants ever widen.)
+DROP POLICY IF EXISTS "Service writes global intelligence" ON public.global_intelligence;
+CREATE POLICY "Service writes global intelligence"
+  ON public.global_intelligence FOR INSERT TO service_role
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service insert recommendations" ON public.recommendations;
+CREATE POLICY "Service inserts recommendations"
+  ON public.recommendations FOR INSERT TO service_role
+  WITH CHECK (true);
+
+-- 2.8 Data migration: grant admin to the existing hardcoded admin email
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'::public.app_role
+FROM auth.users
+WHERE lower(email) = 'hello@aimentionyou.com'
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
-Flow per invocation:
+**Notes**
 
-1. Claim up to `batch_size` rows from `backfill_jobs` where `status IN ('pending','failed','in_progress')` using `FOR UPDATE SKIP LOCKED` → mark `in_progress`.
-2. For each scan, run stages in order, advancing `status` after each stage commits.
-3. On error: set `status='failed'`, increment `attempts`, store `error`. Cap retries at 5.
-4. Exit when `max_runtime_seconds` elapses or batch is empty. Always return `{ processed, succeeded, failed, remaining }`.
+- `recommendations` per-user policies are unchanged.
+- `global_intelligence` public-read is unchanged (intentional anonymized exposure).
+- No data is destroyed; the seed insert is idempotent.
 
-Auth: `verify_jwt=false`, gated by service-role check + admin role check (existing pattern in `bulk-scan`).
+---
 
-## Seeding the queue
+## 3. Code changes (after migration approved)
 
-One-time SQL (run as part of the migration) inserts all existing `scans.id` into `backfill_jobs` with `status='pending'`. New scans are NOT auto-enqueued — the live pipeline already runs the same stages on fresh scans.
+### `src/lib/admin.ts` — replace allowlist with DB-backed check
 
-## Operator surface
+```ts
+import { supabase } from '@/integrations/supabase/client';
+export type AppRole = 'admin' | 'analyst' | 'agency_admin';
 
-- Admin page `/admin/backfill` (new, simple): shows aggregate counts by status, a "Run batch now" button (invokes the edge function), and a table of recent failures with their `error` text.
-- Optional cron (commented in `supabase/config.toml` instructions, not auto-enabled) to call `backfill-scans` every 5 minutes.
+export async function userHasRole(userId: string, role: AppRole) {
+  const { data, error } = await supabase
+    .rpc('has_role', { _user_id: userId, _role: role });
+  return !error && data === true;
+}
+```
 
-## Files
+### New hook `src/hooks/useUserRole.ts`
 
-- New migration: `backfill_jobs` table + `global_intelligence_scan_contributions` table + grants + RLS (admin-only) + seed insert from `scans`.
-- New: `supabase/functions/backfill-scans/index.ts`
-- New: `supabase/functions/_shared/backfill.ts` (stage runners; reuse `_shared/citations.ts`, `_shared/metrics.ts`, `_shared/recommendations.ts`, `_shared/intelligence.ts`)
-- Edited: `supabase/functions/rollup-intelligence/index.ts` — switch to delta-via-contributions model so live scans and backfill share one idempotent path.
-- Edited: `supabase/config.toml` — register `backfill-scans` with `verify_jwt=false`.
-- New: `src/pages/admin/Backfill.tsx` (admin-gated, mirrors existing `BulkScan` styling).
-- Edited: `src/App.tsx` — add `/admin/backfill` route.
+Returns `{ isAdmin, isAnalyst, isAgencyAdmin, loading }` — wraps a single `user_roles` select for the current user. Cached per session.
 
-## Acceptance
+### `src/pages/admin/Backfill.tsx`
 
-- Running the job twice on the same scan yields identical `global_intelligence` totals (verified by snapshot-diff).
-- Killing the job mid-batch and re-invoking resumes from the next pending scan with no data loss or duplication.
-- `backfill_jobs` always reflects truth: `completed` rows are never re-processed unless explicitly re-queued.
-- Admin page shows live progress (`X / Y completed, Z failed`).
-- No changes to the live scan pipeline's behavior beyond the rollup writer using contributions (which is a strict improvement for live scans too).
+Replace `isAdminUser(user)` with `const { isAdmin, loading } = useUserRole()`.
 
-## Out of scope
+### `src/pages/admin/BulkScan.tsx`
 
-- No changes to dashboard UI.
-- No re-classification model changes — backfill uses current `_shared/citations.ts` rules as-is.
-- No deletion of legacy `optimization_tasks` data.  
+Same swap (already uses hardcoded check or no check — audit and align).
+
+### New `src/components/auth/AdminGuard.tsx`
+
+Wraps `AuthGuard` + role check, for reuse on every future admin page.
+
+### `supabase/functions/backfill-scans/index.ts`
+
+Replace `ADMIN_EMAIL` comparison with:
+
+```ts
+const { data: isAdmin } = await sb.rpc('has_role', {
+  _user_id: data.user.id, _role: 'admin'
+});
+if (!isAdmin) return forbidden;
+```
+
+Keep the service-role bypass (`token === SERVICE_KEY`) for cron.
+
+### `_shared/` — new `requireRole.ts`
+
+Reusable `requireAdmin(req)` helper so future admin edge functions don't reinvent this.
+
+---
+
+## 4. What's NOT changing
+
+- `recommendations` user policies — already correctly scoped to `auth.uid()`.
+- `global_intelligence` public read — intentional anonymized exposure for peer benchmarks.
+- Edge functions that already use `SUPABASE_SERVICE_ROLE_KEY` bypass RLS as designed; only the human-auth path is being modernized.
+- No removal of `hello@aimentionyou.com` from anywhere except as a hardcoded gate — the email remains the support contact in copy/footer.
+
+---
+
+## 5. Order of operations
+
+1. **You approve the migration** → I run it (creates table, function, seeds your admin row, swaps the 4 policies).
+2. **Verify**: `SELECT public.has_role(auth.uid(),'admin')` returns `true` for `hello@aimentionyou.com`.
+3. **Code swap**: update `admin.ts`, add `useUserRole`, `AdminGuard`, update Backfill page + edge function.
+4. **Smoke test** `/admin/backfill` → expect access; sign in as a non-admin → expect Forbidden.
+5. Future: grant additional admins via `INSERT INTO public.user_roles(user_id, role) VALUES (...,'admin');`
+
+---
+
+## 6. Open question
+
+Which account besides `hello@aimentionyou.com` (if any) should also receive `admin` on day one? If just that one, the seed in §2.8 is sufficient. Otherwise, give me the emails and I'll add them to the data migration.  
   
-  
-Approved. Add contribution_hash and engine_version to global_intelligence_scan_contributions so future reprocessing can distinguish between logic versions. Also add processed_rows and estimated_remaining_rows to backfill_jobs for operational visibility. Everything else looks correct. Proceed with implementation
+Approved.
+
+Add one additional index:
+
+CREATE INDEX idx_user_roles_role  
+ON public.user_roles(role);
+
+Change:
+
+GRANT EXECUTE ON FUNCTION public.has_role(...)  
+TO authenticated, anon;
+
+to:
+
+GRANT EXECUTE ON FUNCTION public.has_role(...)  
+TO authenticated;
+
+Keep global_intelligence public-readable.
+
+Keep recommendations ownership policies unchanged.
+
+Seed only [hello@aimentionyou.com](mailto:hello@aimentionyou.com) as admin initially.
+
+Proceed with the migration and role-system refactor.

@@ -162,7 +162,13 @@ async function requireAdmin(req: Request): Promise<{ ok: true } | { ok: false; e
   });
   const { data, error } = await sb.auth.getUser();
   if (error || !data?.user) return { ok: false, error: 'unauthorized' };
-  if (data.user.email?.toLowerCase() !== ADMIN_EMAIL) return { ok: false, error: 'forbidden' };
+  // Role check via has_role() — source of truth is public.user_roles
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+  const { data: isAdmin, error: roleErr } = await admin.rpc('has_role', {
+    _user_id: data.user.id,
+    _role: 'admin',
+  });
+  if (roleErr || isAdmin !== true) return { ok: false, error: 'forbidden' };
   return { ok: true };
 }
 

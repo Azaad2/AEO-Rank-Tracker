@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
-import { AuthGuard } from '@/components/auth/AuthGuard';
+import { AdminGuard } from '@/components/auth/AdminGuard';
 import { useAuth } from '@/hooks/useAuth';
-import { isAdminUser } from '@/lib/admin';
+import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -144,13 +144,14 @@ function BulkScanContent() {
   const [elapsedAvgMs, setElapsedAvgMs] = useState(0);
   const stopRef = useRef(false);
 
+  const { isAdmin, loading: roleLoading } = useUserRole();
   useEffect(() => {
-    if (!user) return;
-    if (!isAdminUser(user)) {
+    if (!user || roleLoading) return;
+    if (!isAdmin) {
       toast.error('Admin access required');
       navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, isAdmin, roleLoading, navigate]);
 
   const parsedFromPaste = useMemo(() => parsePastedList(pasted), [pasted]);
   const activeRows = mode === 'paste' ? parsedFromPaste : csvRows;
@@ -478,8 +479,8 @@ function BulkScanContent() {
 
 export default function BulkScan() {
   return (
-    <AuthGuard>
+    <AdminGuard>
       <BulkScanContent />
-    </AuthGuard>
+    </AdminGuard>
   );
 }

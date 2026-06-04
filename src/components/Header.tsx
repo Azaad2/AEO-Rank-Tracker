@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ToolsDropdown } from "./ToolsDropdown";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/hooks/useAuth";
-import { isAdminUser } from "@/lib/admin";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
 import logo from "@/assets/logo-light.png";
 
 export const Header = () => {
   const { user, isLoading, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
 
   const getInitials = (email: string) => {
     return email.charAt(0).toUpperCase();
@@ -78,7 +79,7 @@ export const Header = () => {
             >
               Blog
             </Link>
-            {isAdminUser(user) && (
+            {isAdmin && (
               <Link
                 to="/admin/bulk-scan"
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

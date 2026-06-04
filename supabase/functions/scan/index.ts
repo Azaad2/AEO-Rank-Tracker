@@ -679,25 +679,23 @@ serve(async (req) => {
   try {
     const { domain, promptsText, market = 'en-US', userId, adminBulk }: ScanRequest & { userId?: string; adminBulk?: boolean } = await req.json();
 
-    const ADMIN_EMAILS = ['hello@aimentionyou.com'];
     let isAdmin = false;
     if (adminBulk && userId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const adminCheckClient = createClient(supabaseUrl, supabaseServiceKey);
-      const { data: profile } = await adminCheckClient
-        .from('profiles')
-        .select('email')
-        .eq('id', userId)
-        .maybeSingle();
-      isAdmin = !!profile?.email && ADMIN_EMAILS.includes(profile.email.toLowerCase());
+      const { data: hasAdmin } = await adminCheckClient.rpc('has_role', {
+        _user_id: userId,
+        _role: 'admin',
+      });
+      isAdmin = hasAdmin === true;
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: 'Admin access required for bulk scans' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      console.log('🔓 Admin bulk-scan mode: limits bypassed for', profile?.email);
+      console.log('🔓 Admin bulk-scan mode: limits bypassed for', userId);
     }
 
     if (!domain || !promptsText) {

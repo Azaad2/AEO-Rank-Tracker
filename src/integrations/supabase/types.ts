@@ -139,6 +139,56 @@ export type Database = {
           },
         ]
       }
+      backfill_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          estimated_remaining_rows: number | null
+          last_attempt_at: string | null
+          processed_rows: number
+          scan_id: string
+          stage_checksums: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          estimated_remaining_rows?: number | null
+          last_attempt_at?: string | null
+          processed_rows?: number
+          scan_id: string
+          stage_checksums?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          estimated_remaining_rows?: number | null
+          last_attempt_at?: string | null
+          processed_rows?: number
+          scan_id?: string
+          stage_checksums?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backfill_jobs_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: true
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_aliases: {
         Row: {
           alias: string
@@ -590,6 +640,57 @@ export type Database = {
             columns: ["topic_cluster_id"]
             isOneToOne: false
             referencedRelation: "topic_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_intelligence_scan_contributions: {
+        Row: {
+          citation_frequency: number
+          contributed_at: string
+          contribution_hash: string
+          engine_version: string
+          global_intelligence_id: string | null
+          grain_key: string
+          id: string
+          observation_count: number
+          scan_id: string
+        }
+        Insert: {
+          citation_frequency?: number
+          contributed_at?: string
+          contribution_hash: string
+          engine_version: string
+          global_intelligence_id?: string | null
+          grain_key: string
+          id?: string
+          observation_count?: number
+          scan_id: string
+        }
+        Update: {
+          citation_frequency?: number
+          contributed_at?: string
+          contribution_hash?: string
+          engine_version?: string
+          global_intelligence_id?: string | null
+          grain_key?: string
+          id?: string
+          observation_count?: number
+          scan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_intelligence_scan_contributi_global_intelligence_id_fkey"
+            columns: ["global_intelligence_id"]
+            isOneToOne: false
+            referencedRelation: "global_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "global_intelligence_scan_contributions_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
             referencedColumns: ["id"]
           },
         ]

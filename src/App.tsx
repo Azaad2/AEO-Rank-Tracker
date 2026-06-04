@@ -39,6 +39,8 @@ import GEOOptimizationChecker from "./pages/tools/GEOOptimizationChecker";
 import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";
@@ -99,6 +101,8 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             {/* Auth pages */}
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/domain/:domain" element={<DomainDetail />} />
             <Route path="/integrations" element={<Integrations />} />

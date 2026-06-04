@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,6 +134,17 @@ export function AuthForm({ mode, onSubmit, onToggleMode, isLoading = false }: Au
               </p>
             )}
           </div>
+
+          {mode === 'signin' && (
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-yellow-400 hover:text-yellow-300 text-xs"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           <Button
             type="submit"

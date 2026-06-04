@@ -135,6 +135,17 @@ export function AuthForm({ mode, onSubmit, onToggleMode, isLoading = false }: Au
             )}
           </div>
 
+          {mode === 'signin' && (
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-yellow-400 hover:text-yellow-300 text-xs"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           <Button
             type="submit"
             disabled={loading}

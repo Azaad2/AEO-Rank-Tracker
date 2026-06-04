@@ -1,128 +1,108 @@
-# Chunk #3 — Evidence-First Recommendation Engine
+# Chunk #5 — Dashboard Rewrite: Recommendation Intelligence First
 
-Builds the engine that turns the moat (citations + metrics + global_intelligence) into prioritized, evidence-backed actions. Every recommendation cites its data, benchmarks against industry peers, and is structured for a future "Generate → Apply → Measure" loop.
+Reframes the dashboard from "visibility score reporter" to "recommendation intelligence platform." The default landing tab becomes **Recommendation Intelligence**; **Why Competitors Win** becomes the second tab and the hero feature. Metrics, history, and scans move into supporting roles.
 
-## Core principles
+## Information architecture
 
-1. **Evidence-first** — no recommendation without supporting rows from `citations`, `global_intelligence`, `proprietary_metrics_cache`, or `brand_observations`.
-2. **Priority-sorted** — `Impact × Confidence ÷ Difficulty` computed server-side.
-3. **Execution-ready** — schema and payload designed so a later worker can run Generate → Apply → Measure without migration.
-
-## Schema changes (extend existing `recommendations` table)
-
-Add columns (nullable, backfill-safe):
+New tab order (replaces current 6 tabs in `src/pages/Dashboard.tsx`):
 
 ```text
-priority_score        numeric          -- impact * confidence / difficulty_weight
-difficulty_weight     smallint         -- 1=easy, 3=medium, 5=hard (derived from difficulty text)
-why_this_matters      text             -- short narrative (≤280 chars)
-industry_benchmark    jsonb            -- { metric, peer_avg, peer_median, user_value, gap }
-competitor_examples   jsonb            -- [{ brand, value, asset_type }]
-supporting_asset_types text[]          -- ['comparison_page','reddit_thread',...]
-recommendation_type   text             -- 'comparison_page_gap' | 'reddit_presence' | 'authority' | ...
-target_metric         text             -- 'RSS' | 'CAG' | 'TSD' | 'CIS' | 'COI'
-projected_metric_delta numeric         -- e.g. +7 RSS pts
-execution_payload     jsonb            -- structured spec for future auto-execution
-industry_id           uuid             -- denormalized for analytics
-generated_by_version  text             -- engine version tag for A/B + audit
+1. Recommendations         ← default landing, prioritized actions with evidence
+2. Why Competitors Win     ← hero view: asset-type intelligence + benchmarks
+3. Metrics & Explainability ← RSS/CAG/TSD/CIS/COI with deltas and narratives
+4. My Domains              ← existing SavedDomains
+5. Scans                   ← QuickScan + ScanHistory + CreditUsage (collapsed)
+6. AI Assistant            ← existing
 ```
 
-Index: `(user_id, scan_id, priority_score desc)`.
-No data deletion. Old rows simply have NULL in new columns.
+`Action Plan` and `Auto-Fix Results` tabs are merged into the new Recommendations tab. `Competitors` is replaced by `Why Competitors Win`. Overview is removed — its widgets relocate.
 
-## Recommendation rule library (`_shared/recommendations.ts`)
+## Tab 1 — Recommendations (landing)
 
-Pure functions, each returns `RecommendationCandidate | null` given a `RecommendationContext` (scan, citations, metrics, peer rollups). Initial set:
+New component `src/components/dashboard/RecommendationIntelligence.tsx`. Reads from the upgraded `recommendations` table (Chunk #3 columns).
 
-- `comparisonPageGap` — compares user comparison_page count vs industry peers from `global_intelligence`.
-- `redditPresenceGap` — reddit_thread asset_type density.
-- `listicleInclusion` — appearances in listicle asset_type.
-- `directoryListingGap` — directory_listing presence.
-- `reviewProfileGap` — review_page presence on G2/Capterra/Trustpilot class domains.
-- `authorityLift` — domains where peers have higher `authority_score`.
-- `positionImprovement` — prompts where user cited but `recommendation_position` > peer median.
-- `tsdLift` — Trust Source Density below peer median.
-- `cagClose` — Citation Authority Gap negative outliers.
+Layout:
 
-Each rule emits:
+- **Header strip** — "X prioritized actions • projected impact +Y RSS pts" pulled from sum of `projected_metric_delta`. One filter chip row: `All / Quick Wins / High Impact / By Metric`.
+- **Recommendation cards** (sorted by `priority_score desc`). Each card shows:
+  - Title + `target_metric` chip (RSS/CAG/TSD) + difficulty badge + time estimate.
+  - **Priority score** as a small numeric badge (e.g. `P 162`).
+  - **Why this matters** paragraph (`why_this_matters` field) — always visible, no expansion needed.
+  - **Industry benchmark row** — peer median vs user value vs gap, rendered as a tiny inline bar (`industry_benchmark` JSON).
+  - **Top competitors strip** — 3 anonymized chips from `competitor_examples` with their value per asset_type.
+  - **Evidence drawer** (collapsible) — `evidence_urls` listed as outbound links, plus raw `evidence` JSON key/values rendered as a definition list. "No recommendation without evidence" enforced visually — if a card has empty evidence the card itself isn't rendered.
+  - **Recurrence note** — if `recurrence_count > 1`, show "Seen in N scans" + the novelty-decayed priority so users understand why it's not at the top anymore.
+  - Actions: `Mark done` (existing toggle), `Generate fix` (only if `execution_payload.generator !== 'manual'`, wired to existing `audit-fix`/`auto-optimize` flows when applicable), `Snooze` (sets `status='snoozed'`).
+- Empty state: prompts the user to run a scan; identical to current `ActionPlan` empty state but worded as "Run a scan to surface evidence-bound recommendations."
+- Reuses `optimization_tasks` for the old auto-fix items via a small "Legacy tasks" disclosure at the bottom (so nothing the user already had disappears).
 
-```text
-{
-  recommendation_type, title, description, why_this_matters,
-  category, target_metric, projected_metric_delta,
-  expected_impact (0-100), confidence (0-100),
-  difficulty ('easy'|'medium'|'hard'), difficulty_weight,
-  time_estimate_minutes,
-  evidence: { user_value, peer_sample_size, peer_avg, peer_median, source_grain },
-  industry_benchmark: { metric, peer_avg, peer_median, user_value, gap },
-  competitor_examples: [{ brand, value, asset_type }],  // anonymized brands only
-  supporting_asset_types: [...],
-  execution_payload: { action, generator, inputs, expected_artifacts }
-}
-```
+## Tab 2 — Why Competitors Win (hero)
 
-Confidence is data-driven: scales with `peer_sample_size` and `classification_confidence` from Chunk #1; capped at 95.
-Impact is the projected metric delta normalized 0–100 against the engine's deltas table.
-Difficulty is rule-defined, with `difficulty_weight ∈ {1,3,5}`.
+New component `src/components/dashboard/WhyCompetitorsWin.tsx`. This is the moat made visible.
 
-## Edge function `generate-recommendations`
+Three stacked sections:
 
-`verify_jwt = false` (internal, scan-pipeline-invoked). Accepts `{ scan_id }`.
+1. **Asset-type breakdown** — bar chart per `asset_type` showing `peer_median` vs `user_value`, computed from the latest scan's recommendations' `industry_benchmark` payloads (already grain-aligned to industry). Bars are color-coded by gap severity. Clicking a bar filters the section below.
+2. **Competitor leaderboard by asset type** — table of anonymized brands with columns: brand, asset_type, citation_frequency, avg authority_score, avg recommendation_position. Pulled live from `global_intelligence` filtered by the user's scan's `industry_id`/`topic_cluster_id` via a tiny edge function `peer-insights` (returns aggregated, anonymized data — no raw rows leak past RLS).
+3. **Narrative summary** — pulled from `proprietary_metrics_cache.narrative` plus a generated sentence "Competitors lead you on: comparison_page (+12), reddit_thread (+8), review_page (+5)" derived client-side from the same benchmark deltas.
 
-Steps:
+Key UX rule: every claim ("competitors lead by X") links to its evidence — either the rec card on Tab 1 or the leaderboard row.
 
-1. Load scan, scan_results, citations (with classified asset_type), proprietary_metrics_cache (latest + previous), brand_observations.
-2. Resolve `industry_id` and `topic_cluster_id` for the scan.
-3. Pull peer rollups from `global_intelligence` filtered by `industry_id`, optionally `topic_cluster_id`. Aggregate by `asset_type` to compute `peer_avg`, `peer_median`, `peer_sample_size`, top-3 anonymized brands by `citation_frequency`.
-4. Run every rule in the library; drop rules with `peer_sample_size < 3` or missing evidence (no recommendation without evidence).
-5. Compute `priority_score = expected_impact * confidence / difficulty_weight`.
-6. Delete previous `recommendations` rows for `(user_id, scan_id)` then bulk-insert new set sorted by `priority_score desc`.
-7. Cap at top 12 to prevent overload (configurable; spillover stored with status `suppressed`).
+## Tab 3 — Metrics & Explainability
 
-## Pipeline integration
+New component `src/components/dashboard/MetricsExplain.tsx`. Replaces the old "Overview" score-first view.
 
-In `supabase/functions/scan/index.ts`, after `compute-metrics` and `rollup-intelligence` are dispatched (fire-and-forget), additionally dispatch `generate-recommendations`. Non-fatal: scan completion does not depend on it. Logs only; no user-visible error.
+- Five metric tiles: RSS, CAG, TSD, CIS, COI. Each tile shows current value, delta vs previous scan (from `proprietary_metrics_cache.deltas`), and confidence bar from `confidence_score`.
+- Click a tile → drawer opens showing `*_breakdown` JSON rendered as factor list ("Reddit citations +12%", "Comparison pages +4", etc.) and the `narrative` string. This is the Chunk #2 explainability payload finally surfacing.
+- Sample size shown as a small "n=…" footer per tile from `sample_size`.
 
-Note: rollup must finish before recommendations to use latest peer data. Two options:
+## Tab 4 — My Domains
 
-- (a) Best-effort: recommendations may use yesterday's `global_intelligence`. Acceptable now; documented.
-- (b) Add a 5s soft delay or chain via `await` inside the dispatcher. Plan picks **(a)** for simplicity and to keep scan latency unchanged.
+Unchanged. Existing `SavedDomains` component.
 
-## Future-proofing (no code now, just structure)
+## Tab 5 — Scans
 
-`execution_payload` is shaped to drive a later `execute-recommendation` worker:
+Combines `QuickScan` + `ScanHistory` + `CreditUsage` into a single tab so they stop competing with the recommendation surface. `UserProfile` header stays above the tabs.
 
-```text
-{
-  "action": "generate_comparison_page",
-  "generator": "lovable-ai/gemini-2.5-flash",
-  "inputs": { "competitor_brands": [...], "topic_cluster_id": "...", "target_url_pattern": "/compare/..." },
-  "expected_artifacts": [{ "type": "content_asset", "asset_type": "comparison_page" }],
-  "measurement": { "metric": "RSS", "horizon_days": 14 }
-}
-```
+## Tab 6 — AI Assistant
 
-The future loop reads this payload, calls a generator, writes to `content_assets`, and tracks impact in `recommendation_outcomes` (already exists).
-
-## What this chunk does NOT do
-
-- No UI changes. (Dashboard rewrite is Chunk #5.)
-- No execution worker. (Future chunk.)
-- No backfill for historical scans. (Chunk #6.)
-- No new LLM calls — engine is deterministic; uses only data already in DB.
+Unchanged.
 
 ## Files
 
-- `supabase/migrations/<ts>_recommendations_evidence.sql` — additive columns + index.
-- `supabase/functions/_shared/recommendations.ts` — rule library + types + scoring.
-- `supabase/functions/generate-recommendations/index.ts` — new edge function.
-- `supabase/functions/scan/index.ts` — dispatch new function (fire-and-forget).
-- `src/integrations/supabase/types.ts` — regenerated.
+- New: `src/components/dashboard/RecommendationIntelligence.tsx`
+- New: `src/components/dashboard/RecommendationCard.tsx` (used by the above)
+- New: `src/components/dashboard/WhyCompetitorsWin.tsx`
+- New: `src/components/dashboard/MetricsExplain.tsx`
+- New: `src/components/dashboard/AssetTypeBenchmarkChart.tsx` (small recharts wrapper used by tabs 2 + 3)
+- New edge function: `supabase/functions/peer-insights/index.ts` — returns anonymized peer aggregates filtered by `scan_id`. `verify_jwt = false`, but validates the requesting user owns the scan via service-role read.
+- Edited: `src/pages/Dashboard.tsx` — tab order, default tab, removed Overview/Action Plan/Competitors/Auto-Fix tabs.
+- Edited: `src/components/dashboard/ActionPlan.tsx` — kept as fallback rendering for `optimization_tasks` only, embedded as the "Legacy tasks" disclosure inside Recommendations.
+
+## Data dependencies (all already exist)
+
+- `recommendations` — Chunk #3 columns: `priority_score`, `why_this_matters`, `industry_benchmark`, `competitor_examples`, `supporting_asset_types`, `evidence_urls`, `novelty_score`, `recurrence_count`, `execution_payload`, `target_metric`, `projected_metric_delta`.
+- `proprietary_metrics_cache` — Chunk #2 columns: `rss/cag/tsd/cis_top/coi`, `*_breakdown`, `deltas`, `explanation`, `narrative`, `confidence_score`, `sample_size`.
+- `global_intelligence` — Chunk #4 grain: `asset_type`, `authority_score`, `recommendation_position`, `citation_frequency`, `winning_brand` (already anonymized).
+- `scans.industry_id` / `topic_cluster_id` — used as the join key throughout.
+
+No new tables. No new migrations.
+
+## What this chunk does NOT do
+
+- No edits to scan engine, citations pipeline, metrics engine, recommendations engine, or rollup writer.
+- No new content generation. The "Generate fix" button reuses existing `audit-fix`/`auto-optimize` edge functions only.
+- No removal of `optimization_tasks` data; old tasks remain accessible via the Legacy disclosure.
+- No backfill (that is Chunk #6).
+- No design system changes — sticks to existing arcade-dark tokens (`bg-black`, `bg-gray-900`, `text-yellow-400`, `pt-32` page padding).
 
 ## Acceptance
 
-- Running a scan inserts `recommendations` rows where every row has non-null `evidence`, `industry_benchmark`, `priority_score`, `why_this_matters`.
-- Rows are returned by `ActionPlan.tsx` ordered by `priority_score` (component currently orders by `created_at`; UI work deferred to Chunk #5, but data is already correct).
-- No recommendation appears when `peer_sample_size < 3`.
+- Loading `/dashboard` lands on **Recommendations** by default.
+- Every visible recommendation card shows non-empty evidence (URLs or evidence JSON); cards without evidence are filtered out client-side as a safety net.
+- **Why Competitors Win** renders an asset-type chart and a competitor leaderboard for any scan whose `industry_id` is set and has ≥3 peer brands in `global_intelligence`.
+- Metric tiles open a drawer with the breakdown narrative — never a raw number without explanation.
+- All existing routes/buttons that linked to `?tab=action-plan`, `?tab=competitors`, `?tab=auto-fix` continue to work (redirected to the new tabs).
     
-  Approved. Add evidence_urls to recommendation records and add recommendation_novelty_score (or equivalent suppression logic for repeated recommendations). Everything else looks good. Proceed with implementation.
+    
+  Approved. Build the dashboard around Recommendation Intelligence, not visibility scores. Recommendation Intelligence should be the landing page. Why Competitors Win should be the second major view and treated as the hero feature. Metrics should support decisions rather than lead the experience. Use the explainability data from Chunk #2 and recommendation evidence from Chunk #3 throughout the UI

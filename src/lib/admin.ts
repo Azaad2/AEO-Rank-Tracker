@@ -1,8 +1,19 @@
-import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-export const ADMIN_EMAILS = ['hello@aimentionyou.com'];
+export type AppRole = 'admin' | 'analyst' | 'agency_admin';
 
-export function isAdminUser(user: Pick<User, 'email'> | null | undefined): boolean {
-  if (!user?.email) return false;
-  return ADMIN_EMAILS.includes(user.email.toLowerCase());
+/**
+ * Check whether a user has a given role via the database `has_role()` function.
+ * Source of truth: public.user_roles (NOT email allowlists).
+ */
+export async function userHasRole(userId: string, role: AppRole): Promise<boolean> {
+  const { data, error } = await supabase.rpc('has_role', {
+    _user_id: userId,
+    _role: role,
+  });
+  if (error) {
+    console.warn('has_role check failed:', error.message);
+    return false;
+  }
+  return data === true;
 }

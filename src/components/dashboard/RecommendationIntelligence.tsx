@@ -95,14 +95,16 @@ export function RecommendationIntelligence() {
     );
   }
 
-  const filters: { key: Filter; label: string; count: number }[] = [
-    { key: 'all', label: 'All', count: evidenceBound.length },
-    { key: 'quick', label: 'Quick Wins', count: evidenceBound.filter((r) => r.difficulty === 'easy').length },
-    { key: 'high', label: 'High Impact', count: evidenceBound.filter((r) => (r.priority_score ?? 0) >= 100).length },
-    { key: 'rss', label: 'RSS', count: evidenceBound.filter((r) => r.target_metric === 'RSS').length },
-    { key: 'cag', label: 'CAG', count: evidenceBound.filter((r) => r.target_metric === 'CAG').length },
-    { key: 'tsd', label: 'TSD', count: evidenceBound.filter((r) => r.target_metric === 'TSD').length },
-  ].filter((f) => f.count > 0 || f.key === 'all');
+  const filters: { key: Filter; label: string; count: number }[] = (
+    [
+      { key: 'all', label: 'All', count: evidenceBound.length },
+      { key: 'quick', label: 'Quick Wins', count: evidenceBound.filter((r) => r.difficulty === 'easy').length },
+      { key: 'high', label: 'High Impact', count: evidenceBound.filter((r) => (r.priority_score ?? 0) >= 100).length },
+      { key: 'rss', label: 'RSS', count: evidenceBound.filter((r) => r.target_metric === 'RSS').length },
+      { key: 'cag', label: 'CAG', count: evidenceBound.filter((r) => r.target_metric === 'CAG').length },
+      { key: 'tsd', label: 'TSD', count: evidenceBound.filter((r) => r.target_metric === 'TSD').length },
+    ] as { key: Filter; label: string; count: number }[]
+  ).filter((f) => f.count > 0 || f.key === 'all');
 
   return (
     <div className="space-y-5">

@@ -479,8 +479,8 @@ function BulkScanContent() {
 
 export default function BulkScan() {
   return (
-    <AuthGuard>
+    <AdminGuard>
       <BulkScanContent />
-    </AuthGuard>
+    </AdminGuard>
   );
 }

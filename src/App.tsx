@@ -39,6 +39,8 @@ import GEOOptimizationChecker from "./pages/tools/GEOOptimizationChecker";
 import AICitationTracker from "./pages/tools/AICitationTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";

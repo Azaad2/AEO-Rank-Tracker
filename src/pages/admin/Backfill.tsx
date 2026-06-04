@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
-import { AuthGuard } from '@/components/auth/AuthGuard';
+import { AdminGuard } from '@/components/auth/AdminGuard';
 import { useAuth } from '@/hooks/useAuth';
-import { isAdminUser } from '@/lib/admin';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ interface FailedRow {
   last_attempt_at: string | null;
 }
 
-export default function Backfill() {
+function BackfillContent() {
   const { user, isLoading: loading } = useAuth();
   const [counts, setCounts] = useState<StatusCounts>({});
   const [total, setTotal] = useState(0);
@@ -81,23 +80,12 @@ export default function Backfill() {
   if (loading) {
     return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-yellow-400" /></div>;
   }
-  if (!isAdminUser(user)) {
-    return (
-      <AuthGuard>
-        <div className="min-h-screen bg-black text-white pt-32 px-6">
-          <h1 className="text-2xl text-yellow-400">Forbidden</h1>
-          <p className="text-gray-400">Admin access required.</p>
-        </div>
-      </AuthGuard>
-    );
-  }
 
   const done = counts['completed'] ?? 0;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white">
         <Header />
         <main className="pt-32 px-6 pb-16 max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
@@ -173,6 +161,13 @@ export default function Backfill() {
           </Card>
         </main>
       </div>
-    </AuthGuard>
+  );
+}
+
+export default function Backfill() {
+  return (
+    <AdminGuard>
+      <BackfillContent />
+    </AdminGuard>
   );
 }

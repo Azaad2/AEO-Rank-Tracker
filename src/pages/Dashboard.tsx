@@ -175,72 +175,116 @@ function DashboardContent() {
         planPrice={plan?.price_monthly || 0} 
       />
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-gray-800 border border-gray-700 w-full flex flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <LayoutDashboard className="h-3.5 w-3.5" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="domains" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <Globe className="h-3.5 w-3.5" />
-            My Domains
-          </TabsTrigger>
-          <TabsTrigger value="action-plan" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <ListChecks className="h-3.5 w-3.5" />
-            Action Plan
-          </TabsTrigger>
-          <TabsTrigger value="competitors" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <Swords className="h-3.5 w-3.5" />
-            Competitors
-          </TabsTrigger>
-          <TabsTrigger value="auto-fix" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            Auto-Fix Results
-          </TabsTrigger>
-          <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
-            <Bot className="h-3.5 w-3.5" />
-            AI Assistant
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6 mt-6">
-          <CreditUsage
-            promptsUsed={subscription?.prompts_used || 0}
-            promptsLimit={plan?.prompts_limit || 5}
-            scansUsed={subscription?.scans_used || 0}
-            scansLimit={plan?.scans_limit || 1}
-          />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuickScan onScanComplete={() => fetchUserData()} />
-            <ScanHistory />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="domains" className="mt-6">
-          <SavedDomains />
-        </TabsContent>
-
-        <TabsContent value="action-plan" className="mt-6">
-          <ActionPlan />
-        </TabsContent>
-
-        <TabsContent value="competitors" className="mt-6">
-          <CompetitorWatch />
-        </TabsContent>
-
-        <TabsContent value="auto-fix" className="mt-6">
-          <AutoFixResults />
-        </TabsContent>
-
-        <TabsContent value="ai-assistant" className="mt-6">
-          <AIAssistant
-            chatMessagesUsed={subscription?.chat_messages_used || 0}
-            chatLimit={plan?.chat_limit ?? 10}
-            onMessageSent={() => fetchUserData()}
-          />
-        </TabsContent>
-      </Tabs>
+      <DashboardTabs subscription={subscription} plan={plan} onChanged={fetchUserData} />
     </div>
+  );
+}
+
+function DashboardTabs({
+  subscription,
+  plan,
+  onChanged,
+}: {
+  subscription: SubscriptionData | null;
+  plan: PlanData | null;
+  onChanged: () => void;
+}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  // Legacy redirects
+  const initial = (() => {
+    switch (tabParam) {
+      case 'action-plan':
+      case 'auto-fix':
+      case 'overview':
+        return 'recommendations';
+      case 'competitors':
+        return 'why-win';
+      case 'domains':
+        return 'domains';
+      case 'ai-assistant':
+        return 'ai-assistant';
+      case 'scans':
+        return 'scans';
+      case 'metrics':
+        return 'metrics';
+      default:
+        return 'recommendations';
+    }
+  })();
+  const [tab, setTab] = useState(initial);
+
+  const handleTabChange = (v: string) => {
+    setTab(v);
+    setSearchParams({ tab: v }, { replace: true });
+  };
+
+  return (
+    <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="bg-gray-800 border border-gray-700 w-full flex flex-wrap h-auto gap-1 p-1">
+        <TabsTrigger value="recommendations" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <Sparkles className="h-3.5 w-3.5" />
+          Recommendations
+        </TabsTrigger>
+        <TabsTrigger value="why-win" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <Swords className="h-3.5 w-3.5" />
+          Why Competitors Win
+        </TabsTrigger>
+        <TabsTrigger value="metrics" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <BarChart3 className="h-3.5 w-3.5" />
+          Metrics
+        </TabsTrigger>
+        <TabsTrigger value="domains" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <Globe className="h-3.5 w-3.5" />
+          My Domains
+        </TabsTrigger>
+        <TabsTrigger value="scans" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <Radar className="h-3.5 w-3.5" />
+          Scans
+        </TabsTrigger>
+        <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <Bot className="h-3.5 w-3.5" />
+          AI Assistant
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="recommendations" className="mt-6">
+        <RecommendationIntelligence />
+      </TabsContent>
+
+      <TabsContent value="why-win" className="mt-6">
+        <WhyCompetitorsWin />
+      </TabsContent>
+
+      <TabsContent value="metrics" className="mt-6">
+        <MetricsExplain />
+      </TabsContent>
+
+      <TabsContent value="domains" className="mt-6">
+        <SavedDomains />
+      </TabsContent>
+
+      <TabsContent value="scans" className="mt-6 space-y-6">
+        <CreditUsage
+          promptsUsed={subscription?.prompts_used || 0}
+          promptsLimit={plan?.prompts_limit || 5}
+          scansUsed={subscription?.scans_used || 0}
+          scansLimit={plan?.scans_limit || 1}
+        />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <QuickScan onScanComplete={onChanged} />
+          <ScanHistory />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="ai-assistant" className="mt-6">
+        <AIAssistant
+          chatMessagesUsed={subscription?.chat_messages_used || 0}
+          chatLimit={plan?.chat_limit ?? 10}
+          onMessageSent={onChanged}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
 

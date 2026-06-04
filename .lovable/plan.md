@@ -1,108 +1,89 @@
-# Chunk #5 — Dashboard Rewrite: Recommendation Intelligence First
+# Chunk #6 — Resumable Backfill Job
 
-Reframes the dashboard from "visibility score reporter" to "recommendation intelligence platform." The default landing tab becomes **Recommendation Intelligence**; **Why Competitors Win** becomes the second tab and the hero feature. Metrics, history, and scans move into supporting roles.
+Backfills all historical `scans` through the Chunk #1–#4 pipeline (citations → metrics → recommendations → global_intelligence rollup) without double-counting and with full resume support.
 
-## Information architecture
+## Core requirements (per your instruction)
 
-New tab order (replaces current 6 tabs in `src/pages/Dashboard.tsx`):
+1. **Resumable** — interruption-safe; resumes from last completed scan.
+2. **Idempotent** — re-running the job produces identical state, never inflates `observation_count` or `citation_frequency` in `global_intelligence`.
+3. **Progress-tracked** — every scan's backfill state is recorded; operator can query "what % done, what failed, what's pending".
+4. **Batched** — processes N scans per invocation (default 25), respects edge function timeout.
 
-```text
-1. Recommendations         ← default landing, prioritized actions with evidence
-2. Why Competitors Win     ← hero view: asset-type intelligence + benchmarks
-3. Metrics & Explainability ← RSS/CAG/TSD/CIS/COI with deltas and narratives
-4. My Domains              ← existing SavedDomains
-5. Scans                   ← QuickScan + ScanHistory + CreditUsage (collapsed)
-6. AI Assistant            ← existing
+## New table: `backfill_jobs`
+
+Tracks one row per scan being backfilled. Single source of truth for resume + idempotency.
+
+Columns:
+
+- `scan_id` (PK, FK → scans)
+- `status` — `pending | in_progress | citations_done | metrics_done | recs_done | rollup_done | completed | failed | skipped`
+- `stage_checksums` JSONB — per-stage content hash so we can detect "already processed this exact input" on re-runs
+- `error` text, `attempts` int, `last_attempt_at`, `completed_at`, `created_at`, `updated_at`
+- Index on `status` for fast "next batch" queries
+
+The status enum is a strict ladder. Resumption picks up at the first non-done stage. Each stage is itself idempotent (see below), so re-entering a stage is safe.
+
+## Idempotency strategy per stage
+
+- **Citations** (`citations` table): delete-then-insert scoped to `scan_result_id` inside a transaction. Same scan twice = same rows.
+- **Metrics** (`proprietary_metrics_cache`): already keyed by `(scan_id, metric_period)` — upsert.
+- **Recommendations** (`recommendations`): delete `WHERE scan_id = X AND source = 'engine_v1'` then re-insert. Manual user edits preserved by filtering on `source`.
+- **Rollup** (`global_intelligence`) — the critical one:
+  - Add a new table `global_intelligence_scan_contributions(scan_id, grain_key, observation_count, citation_frequency, contributed_at)` recording exactly what each scan contributed.
+  - Rollup writer becomes: `for each grain → upsert global_intelligence delta = (new_value - previous_contribution_for_this_scan)`. So re-running a scan subtracts its old contribution and adds the new one — net effect zero on a clean re-run, correct on a changed re-run.
+  - First-time contributions just add. This is what guarantees "never double-count."
+
+## New edge function: `backfill-scans`
+
+`supabase/functions/backfill-scans/index.ts` — invocable by cron or manually.
+
+Body:
+
+```json
+{ "batch_size": 25, "max_runtime_seconds": 50, "only_failed": false, "scan_ids": [] }
 ```
 
-`Action Plan` and `Auto-Fix Results` tabs are merged into the new Recommendations tab. `Competitors` is replaced by `Why Competitors Win`. Overview is removed — its widgets relocate.
+Flow per invocation:
 
-## Tab 1 — Recommendations (landing)
+1. Claim up to `batch_size` rows from `backfill_jobs` where `status IN ('pending','failed','in_progress')` using `FOR UPDATE SKIP LOCKED` → mark `in_progress`.
+2. For each scan, run stages in order, advancing `status` after each stage commits.
+3. On error: set `status='failed'`, increment `attempts`, store `error`. Cap retries at 5.
+4. Exit when `max_runtime_seconds` elapses or batch is empty. Always return `{ processed, succeeded, failed, remaining }`.
 
-New component `src/components/dashboard/RecommendationIntelligence.tsx`. Reads from the upgraded `recommendations` table (Chunk #3 columns).
+Auth: `verify_jwt=false`, gated by service-role check + admin role check (existing pattern in `bulk-scan`).
 
-Layout:
+## Seeding the queue
 
-- **Header strip** — "X prioritized actions • projected impact +Y RSS pts" pulled from sum of `projected_metric_delta`. One filter chip row: `All / Quick Wins / High Impact / By Metric`.
-- **Recommendation cards** (sorted by `priority_score desc`). Each card shows:
-  - Title + `target_metric` chip (RSS/CAG/TSD) + difficulty badge + time estimate.
-  - **Priority score** as a small numeric badge (e.g. `P 162`).
-  - **Why this matters** paragraph (`why_this_matters` field) — always visible, no expansion needed.
-  - **Industry benchmark row** — peer median vs user value vs gap, rendered as a tiny inline bar (`industry_benchmark` JSON).
-  - **Top competitors strip** — 3 anonymized chips from `competitor_examples` with their value per asset_type.
-  - **Evidence drawer** (collapsible) — `evidence_urls` listed as outbound links, plus raw `evidence` JSON key/values rendered as a definition list. "No recommendation without evidence" enforced visually — if a card has empty evidence the card itself isn't rendered.
-  - **Recurrence note** — if `recurrence_count > 1`, show "Seen in N scans" + the novelty-decayed priority so users understand why it's not at the top anymore.
-  - Actions: `Mark done` (existing toggle), `Generate fix` (only if `execution_payload.generator !== 'manual'`, wired to existing `audit-fix`/`auto-optimize` flows when applicable), `Snooze` (sets `status='snoozed'`).
-- Empty state: prompts the user to run a scan; identical to current `ActionPlan` empty state but worded as "Run a scan to surface evidence-bound recommendations."
-- Reuses `optimization_tasks` for the old auto-fix items via a small "Legacy tasks" disclosure at the bottom (so nothing the user already had disappears).
+One-time SQL (run as part of the migration) inserts all existing `scans.id` into `backfill_jobs` with `status='pending'`. New scans are NOT auto-enqueued — the live pipeline already runs the same stages on fresh scans.
 
-## Tab 2 — Why Competitors Win (hero)
+## Operator surface
 
-New component `src/components/dashboard/WhyCompetitorsWin.tsx`. This is the moat made visible.
-
-Three stacked sections:
-
-1. **Asset-type breakdown** — bar chart per `asset_type` showing `peer_median` vs `user_value`, computed from the latest scan's recommendations' `industry_benchmark` payloads (already grain-aligned to industry). Bars are color-coded by gap severity. Clicking a bar filters the section below.
-2. **Competitor leaderboard by asset type** — table of anonymized brands with columns: brand, asset_type, citation_frequency, avg authority_score, avg recommendation_position. Pulled live from `global_intelligence` filtered by the user's scan's `industry_id`/`topic_cluster_id` via a tiny edge function `peer-insights` (returns aggregated, anonymized data — no raw rows leak past RLS).
-3. **Narrative summary** — pulled from `proprietary_metrics_cache.narrative` plus a generated sentence "Competitors lead you on: comparison_page (+12), reddit_thread (+8), review_page (+5)" derived client-side from the same benchmark deltas.
-
-Key UX rule: every claim ("competitors lead by X") links to its evidence — either the rec card on Tab 1 or the leaderboard row.
-
-## Tab 3 — Metrics & Explainability
-
-New component `src/components/dashboard/MetricsExplain.tsx`. Replaces the old "Overview" score-first view.
-
-- Five metric tiles: RSS, CAG, TSD, CIS, COI. Each tile shows current value, delta vs previous scan (from `proprietary_metrics_cache.deltas`), and confidence bar from `confidence_score`.
-- Click a tile → drawer opens showing `*_breakdown` JSON rendered as factor list ("Reddit citations +12%", "Comparison pages +4", etc.) and the `narrative` string. This is the Chunk #2 explainability payload finally surfacing.
-- Sample size shown as a small "n=…" footer per tile from `sample_size`.
-
-## Tab 4 — My Domains
-
-Unchanged. Existing `SavedDomains` component.
-
-## Tab 5 — Scans
-
-Combines `QuickScan` + `ScanHistory` + `CreditUsage` into a single tab so they stop competing with the recommendation surface. `UserProfile` header stays above the tabs.
-
-## Tab 6 — AI Assistant
-
-Unchanged.
+- Admin page `/admin/backfill` (new, simple): shows aggregate counts by status, a "Run batch now" button (invokes the edge function), and a table of recent failures with their `error` text.
+- Optional cron (commented in `supabase/config.toml` instructions, not auto-enabled) to call `backfill-scans` every 5 minutes.
 
 ## Files
 
-- New: `src/components/dashboard/RecommendationIntelligence.tsx`
-- New: `src/components/dashboard/RecommendationCard.tsx` (used by the above)
-- New: `src/components/dashboard/WhyCompetitorsWin.tsx`
-- New: `src/components/dashboard/MetricsExplain.tsx`
-- New: `src/components/dashboard/AssetTypeBenchmarkChart.tsx` (small recharts wrapper used by tabs 2 + 3)
-- New edge function: `supabase/functions/peer-insights/index.ts` — returns anonymized peer aggregates filtered by `scan_id`. `verify_jwt = false`, but validates the requesting user owns the scan via service-role read.
-- Edited: `src/pages/Dashboard.tsx` — tab order, default tab, removed Overview/Action Plan/Competitors/Auto-Fix tabs.
-- Edited: `src/components/dashboard/ActionPlan.tsx` — kept as fallback rendering for `optimization_tasks` only, embedded as the "Legacy tasks" disclosure inside Recommendations.
-
-## Data dependencies (all already exist)
-
-- `recommendations` — Chunk #3 columns: `priority_score`, `why_this_matters`, `industry_benchmark`, `competitor_examples`, `supporting_asset_types`, `evidence_urls`, `novelty_score`, `recurrence_count`, `execution_payload`, `target_metric`, `projected_metric_delta`.
-- `proprietary_metrics_cache` — Chunk #2 columns: `rss/cag/tsd/cis_top/coi`, `*_breakdown`, `deltas`, `explanation`, `narrative`, `confidence_score`, `sample_size`.
-- `global_intelligence` — Chunk #4 grain: `asset_type`, `authority_score`, `recommendation_position`, `citation_frequency`, `winning_brand` (already anonymized).
-- `scans.industry_id` / `topic_cluster_id` — used as the join key throughout.
-
-No new tables. No new migrations.
-
-## What this chunk does NOT do
-
-- No edits to scan engine, citations pipeline, metrics engine, recommendations engine, or rollup writer.
-- No new content generation. The "Generate fix" button reuses existing `audit-fix`/`auto-optimize` edge functions only.
-- No removal of `optimization_tasks` data; old tasks remain accessible via the Legacy disclosure.
-- No backfill (that is Chunk #6).
-- No design system changes — sticks to existing arcade-dark tokens (`bg-black`, `bg-gray-900`, `text-yellow-400`, `pt-32` page padding).
+- New migration: `backfill_jobs` table + `global_intelligence_scan_contributions` table + grants + RLS (admin-only) + seed insert from `scans`.
+- New: `supabase/functions/backfill-scans/index.ts`
+- New: `supabase/functions/_shared/backfill.ts` (stage runners; reuse `_shared/citations.ts`, `_shared/metrics.ts`, `_shared/recommendations.ts`, `_shared/intelligence.ts`)
+- Edited: `supabase/functions/rollup-intelligence/index.ts` — switch to delta-via-contributions model so live scans and backfill share one idempotent path.
+- Edited: `supabase/config.toml` — register `backfill-scans` with `verify_jwt=false`.
+- New: `src/pages/admin/Backfill.tsx` (admin-gated, mirrors existing `BulkScan` styling).
+- Edited: `src/App.tsx` — add `/admin/backfill` route.
 
 ## Acceptance
 
-- Loading `/dashboard` lands on **Recommendations** by default.
-- Every visible recommendation card shows non-empty evidence (URLs or evidence JSON); cards without evidence are filtered out client-side as a safety net.
-- **Why Competitors Win** renders an asset-type chart and a competitor leaderboard for any scan whose `industry_id` is set and has ≥3 peer brands in `global_intelligence`.
-- Metric tiles open a drawer with the breakdown narrative — never a raw number without explanation.
-- All existing routes/buttons that linked to `?tab=action-plan`, `?tab=competitors`, `?tab=auto-fix` continue to work (redirected to the new tabs).
-    
-    
-  Approved. Build the dashboard around Recommendation Intelligence, not visibility scores. Recommendation Intelligence should be the landing page. Why Competitors Win should be the second major view and treated as the hero feature. Metrics should support decisions rather than lead the experience. Use the explainability data from Chunk #2 and recommendation evidence from Chunk #3 throughout the UI
+- Running the job twice on the same scan yields identical `global_intelligence` totals (verified by snapshot-diff).
+- Killing the job mid-batch and re-invoking resumes from the next pending scan with no data loss or duplication.
+- `backfill_jobs` always reflects truth: `completed` rows are never re-processed unless explicitly re-queued.
+- Admin page shows live progress (`X / Y completed, Z failed`).
+- No changes to the live scan pipeline's behavior beyond the rollup writer using contributions (which is a strict improvement for live scans too).
+
+## Out of scope
+
+- No changes to dashboard UI.
+- No re-classification model changes — backfill uses current `_shared/citations.ts` rules as-is.
+- No deletion of legacy `optimization_tasks` data.  
+  
+  
+Approved. Add contribution_hash and engine_version to global_intelligence_scan_contributions so future reprocessing can distinguish between logic versions. Also add processed_rows and estimated_remaining_rows to backfill_jobs for operational visibility. Everything else looks correct. Proceed with implementation

@@ -43,6 +43,7 @@ import Dashboard from "./pages/Dashboard";
 import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";
 import BulkScan from "./pages/admin/BulkScan";
+import Backfill from "./pages/admin/Backfill";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";
@@ -102,6 +103,7 @@ const App = () => (
             <Route path="/dashboard/domain/:domain" element={<DomainDetail />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/admin/bulk-scan" element={<BulkScan />} />
+            <Route path="/admin/backfill" element={<Backfill />} />
             {/* Blog posts */}
             <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
             <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />

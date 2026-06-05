@@ -517,14 +517,12 @@ const Index = () => {
                 Recommendation Intelligence
               </span>
               <h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
-                See Exactly Why AI Recommends
-                <br />
-                <span className="text-yellow-400">Your Competitors Instead of You.</span>
+                Why AI Recommends Your Competitors — <span className="text-yellow-400">Not You.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                We show the asset gaps, content moves, and citation patterns that win in your industry — across ChatGPT, Gemini, and Perplexity. No prompt setup. Benchmarked against your peers in under 60 seconds.
+                Recommendation Intelligence reveals the asset gaps and citation patterns winning your industry across ChatGPT, Gemini, and Perplexity — in under 60 seconds.
               </p>
 
               <div className="pt-2">
@@ -541,26 +539,24 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Social proof */}
-              <div className="flex items-center justify-center gap-3 pt-4">
-                <div className="flex -space-x-2">
-                  {[
-                    "bg-gradient-to-br from-pink-400 to-red-500",
-                    "bg-gradient-to-br from-yellow-400 to-orange-500",
-                    "bg-gradient-to-br from-green-400 to-emerald-600",
-                    "bg-gradient-to-br from-blue-400 to-indigo-600",
-                    "bg-gradient-to-br from-purple-400 to-fuchsia-600",
-                  ].map((bg, i) => (
-                    <div
-                      key={i}
-                      className={`h-8 w-8 rounded-full ring-2 ring-black ${bg} flex items-center justify-center text-[10px] font-bold text-white`}
+              {/* AI engine trust row */}
+              <div className="flex flex-col items-center gap-3 pt-4">
+                <p className="text-xs uppercase tracking-wider text-gray-500">
+                  Analyzing recommendations from
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {["ChatGPT", "Gemini", "Perplexity", "Claude"].map((engine) => (
+                    <span
+                      key={engine}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs font-medium"
                     >
-                      {String.fromCharCode(65 + i)}
-                    </div>
+                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                      <span className="text-yellow-400">{engine}</span>
+                    </span>
                   ))}
                 </div>
-                <p className="text-xs md:text-sm text-gray-300">
-                  <span className="font-bold text-yellow-400">500+ brands</span> finding their AI opportunities
+                <p className="text-[11px] text-gray-500">
+                  Updated continuously · Citation-grade evidence
                 </p>
               </div>
             </div>

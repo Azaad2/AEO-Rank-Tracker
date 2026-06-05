@@ -510,30 +510,34 @@ const Index = () => {
       <Header />
       <div className="pt-32 p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Hero Section with Black Background - Mario Style */}
+          {/* Hero Section — Recommendation Intelligence positioning */}
           <div className="py-12 md:py-16 px-6 -mx-4 md:-mx-8">
             <div className="text-center space-y-6">
-              <h1 
+              <span className="inline-block px-3 py-1 bg-yellow-400/15 text-yellow-400 text-xs font-semibold rounded-full uppercase tracking-wider">
+                Recommendation Intelligence
+              </span>
+              <h1
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
-                AI Search Visibility Checker.
+                See Exactly Why AI Recommends
                 <br />
-                <span className="text-yellow-400">Stop Being Invisible to AI.</span>
+                <span className="text-yellow-400">Your Competitors Instead of You.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                The AI visibility platform that tracks brand mentions in ChatGPT, Gemini, and Perplexity. Learn how to track brand mentions in AI search and fix what's broken — with a personalised, prioritised action plan.
+                We show the asset gaps, content moves, and citation patterns that win in your industry — across ChatGPT, Gemini, and Perplexity. No prompt setup. Benchmarked against your peers in under 60 seconds.
               </p>
 
               <div className="pt-2">
-                <Button 
-                  onClick={scrollToScan} 
-                  size="lg" 
+                <Button
+                  onClick={scrollToScan}
+                  size="lg"
                   className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black"
                 >
                   {ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <p className="text-xs text-gray-400 mt-3">
-                  Most brands score below 30/100. See where you stand.
+                  The average brand misses 7 of the top 10 citation patterns in its industry.
                 </p>
               </div>
 
@@ -556,11 +560,44 @@ const Index = () => {
                   ))}
                 </div>
                 <p className="text-xs md:text-sm text-gray-300">
-                  <span className="font-bold text-yellow-400">500+ brands</span> tracking their AI visibility
+                  <span className="font-bold text-yellow-400">500+ brands</span> finding their AI opportunities
                 </p>
               </div>
             </div>
           </div>
+
+          {/* How AI Chooses Brands */}
+          {!scanData && (
+            <section className="py-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">How AI Chooses Brands</h2>
+                <p className="text-xs md:text-sm text-gray-400 mt-1">The loop we close for you.</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { icon: MessageSquare, label: "AI Question", desc: "Buyers ask ChatGPT, Gemini, Perplexity." },
+                  { icon: Users, label: "Competitor Appears", desc: "Someone else gets named — not you." },
+                  { icon: Swords, label: "We Show Why", desc: "Asset gaps + citation patterns." },
+                  { icon: Wrench, label: "You Fix It", desc: "Evidence-bound action plan." },
+                  { icon: Target, label: "AI Names You", desc: "Visibility compounds week over week." },
+                ].map((step, i) => (
+                  <div key={step.label} className="relative">
+                    <Card className="bg-gray-900 border-gray-800 h-full">
+                      <CardContent className="p-3 md:p-4 text-center space-y-2">
+                        <step.icon className="h-5 w-5 text-yellow-400 mx-auto" />
+                        <div className="text-xs md:text-sm font-semibold text-white">{step.label}</div>
+                        <div className="text-[10px] md:text-xs text-gray-400 leading-tight">{step.desc}</div>
+                      </CardContent>
+                    </Card>
+                    {i < 4 && (
+                      <ArrowRight className="hidden md:block absolute top-1/2 -right-2 -translate-y-1/2 h-3 w-3 text-yellow-400/60" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
 
         {/* Scan Input Section */}
         {!scanData && (

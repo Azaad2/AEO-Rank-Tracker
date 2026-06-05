@@ -1,224 +1,106 @@
-# Role-Based Authorization Foundation
+# Reposition Landing + Scan UX around Recommendation Intelligence
 
-Replace the hardcoded `hello@aimentionyou.com` admin check (used in 2 frontend files, 1 edge function, and 2 RLS policies) with a proper `user_roles` table and `has_role()` security-definer function. Adds `admin`, `analyst`, and `agency_admin` roles for future use.
+Today's homepage sells "AI Search Visibility Checker" and forces users to pick a business type, then write/edit prompts, before they get a score. The new product is about *opportunities and competitor wins*, not a score. This plan re-frames the landing page, the scan input, and the post-scan experience accordingly. Scope is **frontend only** — no edge function or schema changes.
 
----
+## 1. Reframe the hero (src/pages/Index.tsx)
 
-## 1. Current state audit
+Replace the "AI Search Visibility Checker / Stop Being Invisible" hero block with an opportunity-first headline.
 
-### Hardcoded-email gates
+- **Headline:** "See Exactly Why ChatGPT, Gemini, and Perplexity Recommend Your Competitors Instead of You"
+- **Subhead:** "Recommendation Intelligence shows the asset gaps, content moves, and citation patterns that win in your industry. Built on thousands of AI recommendation observations."
+- **Primary CTA:** "Find My Opportunities — Free" (replaces "Check My AI Visibility")
+- **Microcopy under CTA:** "No prompt setup. We benchmark you against your industry in under 60 seconds."
+- Keep the A/B test hook but switch defaults to the new copy.
+- Replace the "Most brands score below 30/100" line with "Average brand is missing 7 of the top 10 citation patterns in their industry."
 
-- `src/lib/admin.ts` → `ADMIN_EMAILS = ['hello@aimentionyou.com']`
-- `src/pages/admin/Backfill.tsx` → calls `isAdminUser(user)`
-- `supabase/functions/backfill-scans/index.ts` → `ADMIN_EMAIL` constant, compares `user.email`
+## 2. Strip prompt creation from the primary path
 
-### Current RLS on the 4 tables in scope
+The current scan card requires: domain → business type → optionally write a description → AI-generate prompts → edit textarea → scan. Replace with a single-field flow:
 
+- New scan card: domain input + big "Run Scan" button, nothing else by default.
+- Business type / prompt textarea move behind a single collapsible: **"Advanced: customize prompts"** (closed by default).
+- On submit with no prompts: auto-generate via the existing `generate-prompts` edge function using the domain (and inferred business type = "Other"), then immediately call `scan`. Show a single combined progress state ("Analyzing your industry…") rather than two steps.
+- Keep all existing limit checks and tracking events; just chain the calls.
 
-| Table                                    | Policy                              | Cmd                  | Roles         | Predicate                                                     |
-| ---------------------------------------- | ----------------------------------- | -------------------- | ------------- | ------------------------------------------------------------- |
-| `backfill_jobs`                          | Admins can view backfill jobs       | SELECT               | authenticated | `auth.users.email = 'hello@aimentionyou.com'` ❌ hardcoded     |
-| `global_intelligence_scan_contributions` | Admins can view contributions       | SELECT               | authenticated | same hardcoded email ❌                                        |
-| `global_intelligence`                    | Global intelligence public readable | SELECT               | public        | `true` ⚠️ intentional (anonymized rollups, public-readable)   |
-| `global_intelligence`                    | Service writes global intelligence  | INSERT               | public        | `true` ⚠️ relies on service-role bypass — should be tightened |
-| `recommendations`                        | Users view/update/delete own        | SELECT/UPDATE/DELETE | authenticated | `auth.uid() = user_id` ✅ correct, no change                   |
-| `recommendations`                        | Service insert recommendations      | INSERT               | public        | `true` ⚠️ relies on service-role bypass                       |
+## 3. Replace score-first post-scan with opportunity-first
 
+The post-scan card today leads with a giant numeric score. Restructure to lead with opportunities and competitor context. The score becomes a small secondary chip.
 
-**Findings**
+New post-scan layout (in `Index.tsx`, replacing the current Results Card header and the early sections of the results body):
 
-- Two policies (`backfill_jobs`, `contributions`) hardcode the email. **Migrate to `has_role(auth.uid(),'admin')`.**
-- `global_intelligence` is intentionally public-readable (anonymized peer data). Keep `SELECT` open; tighten `INSERT` to `service_role` only.
-- `recommendations` per-user policies are correct. Tighten its `INSERT` policy similarly.
-- No write-side RLS on `backfill_jobs` or `contributions` — only service-role writes (via edge functions). Add explicit admin write policies for future console actions; service role bypasses RLS regardless.
+1. **Opportunity headline strip** (full-width, yellow accent):
+  - "You're missing N high-impact opportunities competitors are using"
+  - Computed from `scanData.results` competitor counts + locked recommendation count.
+2. **Industry Benchmark strip** (new presentational component `IndustryBenchmarkStrip.tsx`):
+  - Three tiles: *Your visibility* / *Industry median* / *Top quartile*, with the score reduced to a small comparative bar. Uses the existing `34/100` industry baseline already referenced.
+3. **Why Competitors Win — preview** (new presentational component `WhyCompetitorsWinPreview.tsx`):
+  - Anonymized top 3 peer brands from `result.geminiCompetitors` aggregated across prompts.
+  - Per brand: name, # prompts they showed up in, "asset advantage" placeholder ("Strong on comparison pages").
+  - CTA: "See the full Why Competitors Win breakdown →" linking to `/dashboard?tab=why-win` (signed-in) or `/auth?redirect=/dashboard?tab=why-win` (guest).
+4. **Prompt-by-prompt visibility breakdown** moves *below* the above as a collapsible "Per-prompt diagnostics" (closed by default).
+5. The score number remains, but as a small badge inside the benchmark strip — not the page focal point.
 
----
+## 4. Surface Industry Benchmarks + Why Competitors Win on the landing page
 
-## 2. Proposed migration (single file)
+Add two new sections between the scan card and existing SEO content:
 
-```sql
--- 2.1 Enum
-CREATE TYPE public.app_role AS ENUM ('admin','analyst','agency_admin');
+- **"How your industry is winning right now"** — static teaser of the Why Competitors Win view: 3 example anonymized brand cards with asset-gap chips (Comparison pages, Reddit threads, Listicles). Uses the same visual language as `WhyCompetitorsWin.tsx`. Marketing-only, no live data on this section.
+- **"Industry Benchmarks built into every scan"** — three-tile graphic explaining what users see post-scan (Asset-type gap, Competitor leaderboard, Recommendation Intelligence). Each tile links to `/dashboard?tab=recommendations|why-win|metrics`.
 
--- 2.2 Table
-CREATE TABLE public.user_roles (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role       public.app_role NOT NULL,
-  granted_by uuid REFERENCES auth.users(id),
-  granted_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, role)
-);
-CREATE INDEX idx_user_roles_user ON public.user_roles(user_id);
+Replace the current "Built for Any Website…" and "Why AI SEO Visibility Matters" body copy to lead with competitor/benchmark language (keep the SEO-bearing keywords but reposition: "AI visibility tells you you're losing. Recommendation Intelligence tells you why and what to do.").
 
--- 2.3 Grants (auth-only; never expose role list to anon)
-GRANT SELECT ON public.user_roles TO authenticated;
-GRANT ALL    ON public.user_roles TO service_role;
+## 5. Post-scan upgrade banners
 
--- 2.4 RLS
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+Reword the two upgrade CTAs in `Index.tsx`:
 
-CREATE POLICY "Users can see their own roles"
-  ON public.user_roles FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
+- Post-unlock banner → "Track your gaps weekly. Get new competitor moves the moment they appear."
+- Post-optimization plan banner → "Save your action plan and watch competitors lose ground week over week."
 
--- Admin management of roles happens via service-role only (no admin-self-grant exploit).
--- Edge function or SQL console required to insert/delete role rows.
+## 6. Tracking & A/B safety
 
--- 2.5 Security-definer helper (avoids recursive RLS on user_roles)
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
+- Keep all existing `trackEvent` calls; add `opportunity_cta_click`, `benchmark_strip_view`, `competitor_preview_click` events for the new sections.
+- A/B test variant values: extend the existing `headline` and `cta` variants in `useABTest` consumers with new defaults but do not remove old variants — they remain valid alternates.
 
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, anon;
+## Files touched
 
--- 2.6 Replace hardcoded-email policies
-DROP POLICY IF EXISTS "Admins can view backfill jobs"     ON public.backfill_jobs;
-DROP POLICY IF EXISTS "Admins can view contributions"     ON public.global_intelligence_scan_contributions;
-
-CREATE POLICY "Admins read backfill jobs"
-  ON public.backfill_jobs FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins manage backfill jobs"
-  ON public.backfill_jobs FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
-CREATE POLICY "Admins read contributions"
-  ON public.global_intelligence_scan_contributions FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-
--- 2.7 Tighten existing service-role-bypass INSERT policies
--- (service_role bypasses RLS anyway; restricting to it makes intent explicit and
---  prevents accidental client inserts if grants ever widen.)
-DROP POLICY IF EXISTS "Service writes global intelligence" ON public.global_intelligence;
-CREATE POLICY "Service writes global intelligence"
-  ON public.global_intelligence FOR INSERT TO service_role
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Service insert recommendations" ON public.recommendations;
-CREATE POLICY "Service inserts recommendations"
-  ON public.recommendations FOR INSERT TO service_role
-  WITH CHECK (true);
-
--- 2.8 Data migration: grant admin to the existing hardcoded admin email
-INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin'::public.app_role
-FROM auth.users
-WHERE lower(email) = 'hello@aimentionyou.com'
-ON CONFLICT (user_id, role) DO NOTHING;
+```
+src/pages/Index.tsx                                   (major)
+src/components/IndustryBenchmarkStrip.tsx             (new, presentational)
+src/components/WhyCompetitorsWinPreview.tsx           (new, presentational)
+src/components/LandingBenchmarkTeaser.tsx             (new, marketing section)
 ```
 
-**Notes**
+## Out of scope
 
-- `recommendations` per-user policies are unchanged.
-- `global_intelligence` public-read is unchanged (intentional anonymized exposure).
-- No data is destroyed; the seed insert is idempotent.
+- No changes to `scan` edge function, recommendations schema, dashboard tabs, or `WhyCompetitorsWin.tsx`.
+- No changes to pricing, auth, or onboarding flows beyond copy.
+- No changes to the email-gate / unlock mechanic — only the surrounding presentation.
 
----
+## Technical notes
 
-## 3. Code changes (after migration approved)
-
-### `src/lib/admin.ts` — replace allowlist with DB-backed check
-
-```ts
-import { supabase } from '@/integrations/supabase/client';
-export type AppRole = 'admin' | 'analyst' | 'agency_admin';
-
-export async function userHasRole(userId: string, role: AppRole) {
-  const { data, error } = await supabase
-    .rpc('has_role', { _user_id: userId, _role: role });
-  return !error && data === true;
-}
-```
-
-### New hook `src/hooks/useUserRole.ts`
-
-Returns `{ isAdmin, isAnalyst, isAgencyAdmin, loading }` — wraps a single `user_roles` select for the current user. Cached per session.
-
-### `src/pages/admin/Backfill.tsx`
-
-Replace `isAdminUser(user)` with `const { isAdmin, loading } = useUserRole()`.
-
-### `src/pages/admin/BulkScan.tsx`
-
-Same swap (already uses hardcoded check or no check — audit and align).
-
-### New `src/components/auth/AdminGuard.tsx`
-
-Wraps `AuthGuard` + role check, for reuse on every future admin page.
-
-### `supabase/functions/backfill-scans/index.ts`
-
-Replace `ADMIN_EMAIL` comparison with:
-
-```ts
-const { data: isAdmin } = await sb.rpc('has_role', {
-  _user_id: data.user.id, _role: 'admin'
-});
-if (!isAdmin) return forbidden;
-```
-
-Keep the service-role bypass (`token === SERVICE_KEY`) for cron.
-
-### `_shared/` — new `requireRole.ts`
-
-Reusable `requireAdmin(req)` helper so future admin edge functions don't reinvent this.
-
----
-
-## 4. What's NOT changing
-
-- `recommendations` user policies — already correctly scoped to `auth.uid()`.
-- `global_intelligence` public read — intentional anonymized exposure for peer benchmarks.
-- Edge functions that already use `SUPABASE_SERVICE_ROLE_KEY` bypass RLS as designed; only the human-auth path is being modernized.
-- No removal of `hello@aimentionyou.com` from anywhere except as a hardcoded gate — the email remains the support contact in copy/footer.
-
----
-
-## 5. Order of operations
-
-1. **You approve the migration** → I run it (creates table, function, seeds your admin row, swaps the 4 policies).
-2. **Verify**: `SELECT public.has_role(auth.uid(),'admin')` returns `true` for `hello@aimentionyou.com`.
-3. **Code swap**: update `admin.ts`, add `useUserRole`, `AdminGuard`, update Backfill page + edge function.
-4. **Smoke test** `/admin/backfill` → expect access; sign in as a non-admin → expect Forbidden.
-5. Future: grant additional admins via `INSERT INTO public.user_roles(user_id, role) VALUES (...,'admin');`
-
----
-
-## 6. Open question
-
-Which account besides `hello@aimentionyou.com` (if any) should also receive `admin` on day one? If just that one, the seed in §2.8 is sufficient. Otherwise, give me the emails and I'll add them to the data migration.  
+- New components are pure presentation; they accept `scanData` props from `Index.tsx`.
+- Do not hardcode Industry Median = 34 and Top Quartile = 55. Use estimated benchmarks or real data only
+- Auto-prompt path reuses `supabase.functions.invoke('generate-prompts', …)` already imported in `Index.tsx`; on failure we fall back to the existing `BUSINESS_TYPE_PROMPTS.Other` template so the scan never blocks on prompt generation.  
+Add an optional Competitor field beside Domain in the primary scan flow.  
   
-Approved.
+One Additional Section I'd Add
+  Between Hero and Scan:
+  ```
+  How AI Chooses Brands
+  ```
+  Visual:
+  ```
+  AI Question
+  ↓
+  Competitor Appears
+  ↓
+  We Show Why
+  ↓
+  You Fix It
+  ↓
+  AI Mentions You More
+  ```
+    
 
-Add one additional index:
 
-CREATE INDEX idx_user_roles_role  
-ON public.user_roles(role);
-
-Change:
-
-GRANT EXECUTE ON FUNCTION public.has_role(...)  
-TO authenticated, anon;
-
-to:
-
-GRANT EXECUTE ON FUNCTION public.has_role(...)  
-TO authenticated;
-
-Keep global_intelligence public-readable.
-
-Keep recommendations ownership policies unchanged.
-
-Seed only [hello@aimentionyou.com](mailto:hello@aimentionyou.com) as admin initially.
-
-Proceed with the migration and role-system refactor.
+&nbsp;

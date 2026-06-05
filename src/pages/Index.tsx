@@ -517,14 +517,12 @@ const Index = () => {
                 Recommendation Intelligence
               </span>
               <h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
-                See Exactly Why AI Recommends
-                <br />
-                <span className="text-yellow-400">Your Competitors Instead of You.</span>
+                Why AI Recommends Your Competitors — <span className="text-yellow-400">Not You.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                We show the asset gaps, content moves, and citation patterns that win in your industry — across ChatGPT, Gemini, and Perplexity. No prompt setup. Benchmarked against your peers in under 60 seconds.
+                Recommendation Intelligence reveals the asset gaps and citation patterns winning your industry across ChatGPT, Gemini, and Perplexity — in under 60 seconds.
               </p>
 
               <div className="pt-2">
@@ -541,30 +539,137 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Social proof */}
-              <div className="flex items-center justify-center gap-3 pt-4">
-                <div className="flex -space-x-2">
-                  {[
-                    "bg-gradient-to-br from-pink-400 to-red-500",
-                    "bg-gradient-to-br from-yellow-400 to-orange-500",
-                    "bg-gradient-to-br from-green-400 to-emerald-600",
-                    "bg-gradient-to-br from-blue-400 to-indigo-600",
-                    "bg-gradient-to-br from-purple-400 to-fuchsia-600",
-                  ].map((bg, i) => (
-                    <div
-                      key={i}
-                      className={`h-8 w-8 rounded-full ring-2 ring-black ${bg} flex items-center justify-center text-[10px] font-bold text-white`}
+              {/* AI engine trust row */}
+              <div className="flex flex-col items-center gap-3 pt-4">
+                <p className="text-xs uppercase tracking-wider text-gray-500">
+                  Analyzing recommendations from
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {["ChatGPT", "Gemini", "Perplexity", "Claude"].map((engine) => (
+                    <span
+                      key={engine}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800 text-xs font-medium"
                     >
-                      {String.fromCharCode(65 + i)}
-                    </div>
+                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                      <span className="text-yellow-400">{engine}</span>
+                    </span>
                   ))}
                 </div>
-                <p className="text-xs md:text-sm text-gray-300">
-                  <span className="font-bold text-yellow-400">500+ brands</span> finding their AI opportunities
+                <p className="text-[11px] text-gray-500">
+                  Updated continuously · Citation-grade evidence
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Example competitor intelligence report — static illustrative output */}
+          {!scanData && (
+            <section className="py-2">
+              <div className="text-center mb-4 space-y-1">
+                <span className="inline-block px-2 py-0.5 bg-yellow-400/15 text-yellow-400 text-[10px] font-semibold rounded uppercase tracking-wider">
+                  Example output
+                </span>
+                <h2 className="text-xl md:text-2xl font-bold text-white">What you get back in 60 seconds</h2>
+                <p className="text-xs md:text-sm text-gray-400">
+                  A real-shape report — this is what every scan returns.
+                </p>
+              </div>
+
+              <Card className="bg-gray-900 border-yellow-400/40 shadow-[0_0_30px_rgba(250,204,21,0.08)]">
+                <CardHeader className="pb-3 border-b border-gray-800">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500">Domain scanned</div>
+                      <CardTitle className="text-white text-base md:text-lg">project-management.com</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
+                        Top Recommendation
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-300 border border-red-500/30">
+                        Not Mentioned
+                      </span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 md:p-6 space-y-5">
+                  {/* Prompt */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] uppercase tracking-wider text-gray-500">Prompt tested</div>
+                    <div className="flex items-start gap-2">
+                      <MessageSquare className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm md:text-base text-white font-medium">
+                        "best project management software for remote teams"
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Who got cited */}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-black/40 border border-gray-800">
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">AI cited</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Asana", "Monday", "ClickUp"].map((c) => (
+                          <span key={c} className="text-xs px-2 py-1 rounded bg-yellow-400/10 text-yellow-300 border border-yellow-400/30 font-medium">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-black/40 border border-gray-800">
+                      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Your brand</div>
+                      <div className="text-sm text-red-300 font-medium flex items-center gap-2">
+                        <Lock className="h-3.5 w-3.5" /> Not mentioned in any answer
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Why they win */}
+                  <div className="space-y-2">
+                    <div className="text-[10px] uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                      <Swords className="h-3 w-3 text-yellow-400" /> Why competitors win
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { brand: "Asana", reason: "Strong on /alternatives pages + active on Reddit r/productivity" },
+                        { brand: "Monday", reason: 'Owns 4 listicles ("Top 10 PM tools 2026") in AI training data' },
+                        { brand: "ClickUp", reason: "Claimed G2 & Capterra profiles, active public changelog" },
+                      ].map((item) => (
+                        <div key={item.brand} className="flex items-start gap-2 p-2.5 rounded bg-black/40 border border-gray-800">
+                          <span className="text-xs font-semibold text-yellow-400 min-w-[60px]">{item.brand}</span>
+                          <span className="text-xs text-gray-300 leading-snug">{item.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Your move */}
+                  <div className="p-4 rounded-lg bg-yellow-400/10 border border-yellow-400/40">
+                    <div className="flex items-start gap-3">
+                      <Wrench className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="text-[10px] uppercase tracking-wider text-yellow-400 mb-1">Your move</div>
+                        <div className="text-sm md:text-base text-white font-semibold">
+                          Publish "/alternatives/asana" + claim your G2 profile
+                        </div>
+                        <div className="text-xs text-yellow-300/80 mt-1">
+                          Expected impact: <span className="font-semibold">High</span> · Top recommendation
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={scrollToScan}
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                  >
+                    Run this on your domain
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
           {/* How AI Chooses Brands */}
           {!scanData && (
@@ -575,11 +680,11 @@ const Index = () => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                  { icon: MessageSquare, label: "AI Question", desc: "Buyers ask ChatGPT, Gemini, Perplexity." },
-                  { icon: Users, label: "Competitor Appears", desc: "Someone else gets named — not you." },
-                  { icon: Swords, label: "We Show Why", desc: "Asset gaps + citation patterns." },
-                  { icon: Wrench, label: "You Fix It", desc: "Evidence-bound action plan." },
-                  { icon: Target, label: "AI Names You", desc: "Visibility compounds week over week." },
+                  { icon: MessageSquare, label: "AI Question", desc: "Buyers ask ChatGPT, Gemini, Perplexity.", example: '"best CRM for small agencies"' },
+                  { icon: Users, label: "Competitor Appears", desc: "Someone else gets named — not you.", example: "Cited via a G2 comparison page" },
+                  { icon: Swords, label: "We Show Why", desc: "Asset gaps + citation patterns.", example: "Missing: comparison pages, Reddit, reviews" },
+                  { icon: Wrench, label: "You Fix It", desc: "Evidence-bound action plan.", example: 'Ship "/vs/competitor" + claim G2' },
+                  { icon: Target, label: "AI Names You", desc: "Visibility compounds week over week.", example: "Mentions appear in ~2 weeks" },
                 ].map((step, i) => (
                   <div key={step.label} className="relative">
                     <Card className="bg-gray-900 border-gray-800 h-full">
@@ -587,6 +692,9 @@ const Index = () => {
                         <step.icon className="h-5 w-5 text-yellow-400 mx-auto" />
                         <div className="text-xs md:text-sm font-semibold text-white">{step.label}</div>
                         <div className="text-[10px] md:text-xs text-gray-400 leading-tight">{step.desc}</div>
+                        <div className="text-[10px] text-yellow-400/70 italic leading-tight pt-1 border-t border-gray-800">
+                          {step.example}
+                        </div>
                       </CardContent>
                     </Card>
                     {i < 4 && (
@@ -597,6 +705,7 @@ const Index = () => {
               </div>
             </section>
           )}
+
 
 
         {/* Scan Input Section — simplified single-field flow */}

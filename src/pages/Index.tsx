@@ -599,175 +599,213 @@ const Index = () => {
           )}
 
 
-        {/* Scan Input Section */}
+        {/* Scan Input Section — simplified single-field flow */}
         {!scanData && (
-        <section id="scan" className="scroll-mt-8 -mt-4">
-          <Card className="shadow-lg bg-gray-900 border-gray-700">
+        <section id="scan" className="scroll-mt-8">
+          <Card className="shadow-lg bg-gray-900 border-yellow-400/40">
           <CardHeader>
-            <CardTitle className="text-white">Enter Scan Details</CardTitle>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Target className="h-5 w-5 text-yellow-400" />
+              Find your AI opportunities
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Provide your domain and the prompts/keywords you want to analyze
+              Enter your domain. We'll auto-generate the right prompts and benchmark you against your industry.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="domain" className="text-sm font-medium text-gray-300">
-                Domain
-              </label>
-              <Input
-                id="domain"
-                placeholder="bndbox.com"
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                onFocus={() => trackEvent('form_interaction', { field: 'domain' })}
-                disabled={isScanning}
-                className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-              />
-            </div>
-
-             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
-                What's your business type?
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(BUSINESS_TYPE_PROMPTS).map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant={selectedBusinessType === type ? "default" : "outline"}
-                    size="sm"
-                    disabled={isScanning || isGeneratingPrompts}
-                    className={
-                      selectedBusinessType === type
-                        ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                        : "border-gray-600 text-gray-300 hover:bg-gray-700"
-                    }
-                    onClick={() => {
-                      setSelectedBusinessType(type);
-                      const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'yourdomain.com';
-                      const prompts = BUSINESS_TYPE_PROMPTS[type]
-                        .map((p) => p.replace(/\{domain\}/g, domainName))
-                        .join('\n');
-                      setPromptsText(prompts);
-                      trackEvent('business_type_selected', { type });
-                    }}
-                  >
-                    {type}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant={selectedBusinessType === 'Custom' ? "default" : "outline"}
-                  size="sm"
-                  disabled={isScanning || isGeneratingPrompts}
-                  className={
-                    selectedBusinessType === 'Custom'
-                      ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                      : "border-gray-600 text-gray-300 hover:bg-gray-700"
-                  }
-                  onClick={() => setSelectedBusinessType('Custom')}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Custom
-                </Button>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="domain" className="text-sm font-medium text-gray-300">
+                  Your domain <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  id="domain"
+                  placeholder="yourbrand.com"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  onFocus={() => trackEvent('form_interaction', { field: 'domain' })}
+                  disabled={isScanning}
+                  className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                />
               </div>
-
-              {selectedBusinessType === 'Custom' && (
-                <div className="mt-3 space-y-2">
-                  <Input
-                    placeholder="Describe your business, e.g. 'Online pet food subscription service'"
-                    value={customDescription}
-                    onChange={(e) => setCustomDescription(e.target.value)}
-                    disabled={isGeneratingPrompts}
-                    className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isGeneratingPrompts || !customDescription.trim()}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                    onClick={async () => {
-                      setIsGeneratingPrompts(true);
-                      trackEvent('custom_prompts_generation', { description: customDescription });
-                      try {
-                        const { data, error } = await supabase.functions.invoke('generate-prompts', {
-                          body: {
-                            industry: customDescription.trim(),
-                            businessDescription: customDescription.trim(),
-                            targetAudience: 'general',
-                          },
-                        });
-                        if (error) throw error;
-                        const prompts = (data.prompts || [])
-                          .slice(0, 5)
-                          .map((p: any) => p.prompt || p)
-                          .join('\n');
-                        setPromptsText(prompts);
-                        toast({ title: 'Prompts generated!', description: '5 AI-tailored prompts added.' });
-                      } catch (err) {
-                        console.error('Prompt generation error:', err);
-                        toast({ title: 'Generation failed', description: 'Please try again or enter prompts manually.', variant: 'destructive' });
-                      } finally {
-                        setIsGeneratingPrompts(false);
-                      }
-                    }}
-                  >
-                    {isGeneratingPrompts ? (
-                      <>
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-1 h-3 w-3" />
-                        Generate Prompts with AI
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
-                Prompts/Keywords (one per line)
-              </label>
-              <Textarea
-                id="prompts"
-                placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
-                value={promptsText}
-                onChange={(e) => setPromptsText(e.target.value)}
-                onFocus={() => trackEvent('form_interaction', { field: 'prompts' })}
-                disabled={isScanning}
-                rows={6}
-                className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-              />
-              <p className="text-xs text-gray-500">
-                Maximum 15 prompts. Separate by line break or comma.
-              </p>
+              <div className="space-y-2">
+                <label htmlFor="competitor" className="text-sm font-medium text-gray-300">
+                  Top competitor <span className="text-gray-500 text-xs font-normal">(optional)</span>
+                </label>
+                <Input
+                  id="competitor"
+                  placeholder="competitor.com"
+                  value={competitor}
+                  onChange={(e) => setCompetitor(e.target.value)}
+                  onFocus={() => trackEvent('form_interaction', { field: 'competitor' })}
+                  disabled={isScanning}
+                  className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
             </div>
 
             <Button
               onClick={handleScan}
-              disabled={isScanning}
+              disabled={isScanning || !domain.trim()}
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
               size="lg"
             >
               {isScanning ? (
-  <>
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-    Scanning your brand across AI platforms...
-  </>
-) : (
-  "Run Free AI Scan"
-)}
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing your industry...
+                </>
+              ) : (
+                <>
+                  {ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
 
             <ScanProgressBar isScanning={isScanning} />
+
+            {/* Advanced collapsible — prompt customization is now optional */}
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 pt-2"
+                  disabled={isScanning}
+                >
+                  <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                  Advanced: customize prompts
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">
+                    Business type
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(BUSINESS_TYPE_PROMPTS).map((type) => (
+                      <Button
+                        key={type}
+                        type="button"
+                        variant={selectedBusinessType === type ? "default" : "outline"}
+                        size="sm"
+                        disabled={isScanning || isGeneratingPrompts}
+                        className={
+                          selectedBusinessType === type
+                            ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                            : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                        }
+                        onClick={() => {
+                          setSelectedBusinessType(type);
+                          const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'yourdomain.com';
+                          const prompts = BUSINESS_TYPE_PROMPTS[type]
+                            .map((p) => p.replace(/\{domain\}/g, domainName))
+                            .join('\n');
+                          setPromptsText(prompts);
+                          trackEvent('business_type_selected', { type });
+                        }}
+                      >
+                        {type}
+                      </Button>
+                    ))}
+                    <Button
+                      type="button"
+                      variant={selectedBusinessType === 'Custom' ? "default" : "outline"}
+                      size="sm"
+                      disabled={isScanning || isGeneratingPrompts}
+                      className={
+                        selectedBusinessType === 'Custom'
+                          ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                          : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                      }
+                      onClick={() => setSelectedBusinessType('Custom')}
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Custom
+                    </Button>
+                  </div>
+
+                  {selectedBusinessType === 'Custom' && (
+                    <div className="mt-3 space-y-2">
+                      <Input
+                        placeholder="Describe your business, e.g. 'Online pet food subscription service'"
+                        value={customDescription}
+                        onChange={(e) => setCustomDescription(e.target.value)}
+                        disabled={isGeneratingPrompts}
+                        className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isGeneratingPrompts || !customDescription.trim()}
+                        className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                        onClick={async () => {
+                          setIsGeneratingPrompts(true);
+                          trackEvent('custom_prompts_generation', { description: customDescription });
+                          try {
+                            const { data, error } = await supabase.functions.invoke('generate-prompts', {
+                              body: {
+                                industry: customDescription.trim(),
+                                businessDescription: customDescription.trim(),
+                                targetAudience: 'general',
+                              },
+                            });
+                            if (error) throw error;
+                            const prompts = (data.prompts || [])
+                              .slice(0, 5)
+                              .map((p: any) => p.prompt || p)
+                              .join('\n');
+                            setPromptsText(prompts);
+                            toast({ title: 'Prompts generated!', description: '5 AI-tailored prompts added.' });
+                          } catch (err) {
+                            console.error('Prompt generation error:', err);
+                            toast({ title: 'Generation failed', description: 'Please try again or enter prompts manually.', variant: 'destructive' });
+                          } finally {
+                            setIsGeneratingPrompts(false);
+                          }
+                        }}
+                      >
+                        {isGeneratingPrompts ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-1 h-3 w-3" />
+                            Generate Prompts with AI
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
+                    Prompts/Keywords (one per line)
+                  </label>
+                  <Textarea
+                    id="prompts"
+                    placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
+                    value={promptsText}
+                    onChange={(e) => setPromptsText(e.target.value)}
+                    onFocus={() => trackEvent('form_interaction', { field: 'prompts' })}
+                    disabled={isScanning}
+                    rows={6}
+                    className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Leave blank to auto-generate. Max 15 prompts.
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
         </section>
         )}
+
 
         {/* Results Section */}
         {scanData && (

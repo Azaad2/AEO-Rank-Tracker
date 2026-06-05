@@ -807,209 +807,147 @@ const Index = () => {
         )}
 
 
-        {/* Results Section */}
-        {scanData && (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <CardTitle>AI Search Visibility Results</CardTitle>
-                  <CardDescription>
-                    Project: {scanData.project} • {scanData.promptsCount} prompts analyzed
-                    {scanData.meta && (
-                      <span className="text-primary ml-2">
-                        (Gemini: {scanData.meta.geminiAnalysisUsed || 0}/{scanData.meta.totalPrompts})
-                      </span>
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">AI Visibility Score</p>
-                    <p className={`text-3xl font-bold ${getScoreColor(scanData.score)}`}>
-                      {scanData.score}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your score: {scanData.score}/100 — based on how often AI assistants mention and cite your brand for category queries. Industry average: 34/100.
+        {/* Results — opportunity-first layout */}
+        {scanData && (() => {
+          // Derive opportunity metrics from scanData
+          const totalPrompts = scanData.results.length;
+          const promptsMissingIn = scanData.results.filter(
+            (r) => !r.mentioned && !r.geminiMentioned && !r.perplexityMentioned
+          ).length;
+          const competitorSet = new Set<string>();
+          for (const r of scanData.results) {
+            [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
+              .map((c) => c.trim().toLowerCase())
+              .filter(Boolean)
+              .forEach((c) => competitorSet.add(c));
+          }
+          const competitorsFound = competitorSet.size;
+          const opportunities = promptsMissingIn + Math.min(competitorsFound, 5);
+
+          return (
+            <div className="space-y-5">
+              {/* Opportunity headline strip */}
+              <Card className="bg-gradient-to-r from-yellow-400/15 to-transparent border-yellow-400/50">
+                <CardContent className="p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="text-xs uppercase tracking-wider text-yellow-400 font-semibold mb-1">
+                      Opportunities found
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-white">
+                      You're missing {opportunities} high-impact opportunit{opportunities === 1 ? 'y' : 'ies'}
+                      <span className="text-gray-400 text-base font-normal"> competitors are already using.</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {scanData.project} • {totalPrompts} prompts analyzed
                     </p>
                   </div>
-                  {isUnlocked ? (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={downloadCSV}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        CSV
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {isUnlocked ? (
+                      <>
+                        <Button onClick={downloadCSV} variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          <Download className="mr-2 h-4 w-4" /> CSV
+                        </Button>
+                        <Button onClick={downloadPDF} variant="outline" size="sm" disabled={isDownloadingPDF} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          {isDownloadingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                          Report
+                        </Button>
+                        <Button onClick={sendReportEmail} variant="outline" size="sm" disabled={isSendingEmail} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                          Email
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={openEmailModal} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
+                        <Lock className="mr-2 h-4 w-4" />
+                        Unlock all opportunities
                       </Button>
-                      <Button
-                        onClick={downloadPDF}
-                        variant="outline"
-                        size="sm"
-                        disabled={isDownloadingPDF}
-                      >
-                        {isDownloadingPDF ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileText className="mr-2 h-4 w-4" />
-                        )}
-                        Report
-                      </Button>
-                      <Button
-                        onClick={sendReportEmail}
-                        variant="outline"
-                        size="sm"
-                        disabled={isSendingEmail}
-                      >
-                        {isSendingEmail ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Mail className="mr-2 h-4 w-4" />
-                        )}
-                        Email
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={openEmailModal}
-                      variant="outline"
-                      size="sm"
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Industry Benchmark strip — score reduced to small chip */}
+              <IndustryBenchmarkStrip
+                score={scanData.score}
+                competitorsFound={competitorsFound}
+                promptsMissingIn={promptsMissingIn}
+                totalPrompts={totalPrompts}
+              />
+
+              {/* Why Competitors Win preview */}
+              <WhyCompetitorsWinPreview
+                results={scanData.results}
+                onTrack={() => trackEvent('competitor_preview_click', { domain: scanData.project })}
+              />
+
+              {/* Per-prompt diagnostics moved into collapsible */}
+              <Card className="bg-gray-900 border-gray-800">
+                <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-800/40 transition"
                     >
-                      <Lock className="mr-2 h-4 w-4" />
-                      Unlock
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* What this means - explainer */}
-              <div className="mb-5 p-4 rounded-lg bg-muted/40 border border-border/60">
-                <p className="text-sm font-medium mb-1">What this shows</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  For each prompt we asked the AI engines about your category, we measured how visible your brand was.
-                  <span className="block mt-1">
-                    <span className="font-medium text-foreground">Mentioned</span> = your brand name appeared in the AI's answer.{" "}
-                    <span className="font-medium text-foreground">Cited</span> = your website was linked as a source.
-                  </span>
-                  <span className="block mt-1">
-                    The bar shows your <span className="font-medium text-foreground">visibility score</span> for that prompt across Google Gemini and ChatGPT-style search results (0–100%).
-                  </span>
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {scanData.results.map((result, idx) => {
-                  const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
-
-                  // Per-prompt visibility: 4 signals (search mention, search cite, gemini mention, gemini cite)
-                  const signals = [
-                    result.mentioned,
-                    result.cited,
-                    result.geminiMentioned,
-                    result.geminiCited,
-                  ];
-                  const hits = signals.filter(Boolean).length;
-                  const pct = Math.round((hits / signals.length) * 100);
-
-                  const barColor =
-                    pct >= 70 ? "bg-success" : pct >= 40 ? "bg-yellow-500" : "bg-destructive";
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-4 border rounded-lg ${isLocked ? "relative" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <p className={`font-medium text-sm flex-1 ${isLocked ? "blur-sm select-none" : ""}`}>
-                          {idx + 1}. {isLocked ? "Locked prompt content — unlock to view" : result.prompt}
-                        </p>
-                        <span
-                          className={`text-sm font-bold whitespace-nowrap ${
-                            isLocked ? "blur-sm select-none" : ""
-                          } ${
-                            pct >= 70 ? "text-success" : pct >= 40 ? "text-yellow-500" : "text-destructive"
-                          }`}
-                        >
-                          {pct}% visible
-                        </span>
+                      <div className="flex items-center gap-2 text-white">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${showDiagnostics ? 'rotate-180' : ''}`} />
+                        <span className="font-medium">Per-prompt diagnostics</span>
+                        <span className="text-xs text-gray-500">({totalPrompts} prompts)</span>
                       </div>
+                      <span className="text-xs text-gray-500">{showDiagnostics ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {scanData.results.map((result, idx) => {
+                          const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
+                          const signals = [result.mentioned, result.cited, result.geminiMentioned, result.geminiCited];
+                          const hits = signals.filter(Boolean).length;
+                          const pct = Math.round((hits / signals.length) * 100);
+                          const barColor = pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-500";
 
-                      {/* Bar graph */}
-                      <div className={`h-3 w-full bg-secondary rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
-                        <div
-                          className={`h-full ${barColor} transition-all`}
-                          style={{ width: `${isLocked ? 30 : pct}%` }}
-                        />
+                          return (
+                            <div key={idx} className={`p-4 border border-gray-800 rounded-lg bg-black/30 ${isLocked ? "relative" : ""}`}>
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <p className={`font-medium text-sm flex-1 text-white ${isLocked ? "blur-sm select-none" : ""}`}>
+                                  {idx + 1}. {isLocked ? "Locked prompt — unlock to view" : result.prompt}
+                                </p>
+                                <span className={`text-sm font-bold whitespace-nowrap ${isLocked ? "blur-sm select-none" : ""} ${pct >= 70 ? "text-green-400" : pct >= 40 ? "text-yellow-400" : "text-red-400"}`}>
+                                  {pct}% visible
+                                </span>
+                              </div>
+                              <div className={`h-2 w-full bg-gray-800 rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
+                                <div className={`h-full ${barColor} transition-all`} style={{ width: `${isLocked ? 30 : pct}%` }} />
+                              </div>
+                              {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
+                                <p className="text-xs text-gray-400 mt-2">
+                                  <span className="font-medium text-gray-200">Competitors here:</span>{" "}
+                                  {result.geminiCompetitors.slice(0, 3).join(", ")}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      {/* Signal breakdown chips */}
-                      <div className={`flex flex-wrap gap-2 mt-3 text-xs ${isLocked ? "blur-sm select-none" : ""}`}>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.geminiMentioned
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.geminiMentioned ? "✓" : "—"} Gemini mentioned you
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.geminiCited
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.geminiCited ? "✓" : "—"} Gemini cited your site
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.mentioned
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.mentioned ? "✓" : "—"} ChatGPT/Search mentioned you
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.cited
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.cited ? "✓" : "—"} ChatGPT/Search cited your site
-                        </span>
-                      </div>
-
-                      {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-3">
-                          <span className="font-medium text-foreground">Competitors appearing here:</span>{" "}
-                          {result.geminiCompetitors.slice(0, 3).join(", ")}
-                        </p>
+                      {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
+                        <div className="mt-4 p-4 border border-gray-800 rounded-lg bg-black/30 text-center">
+                          <p className="text-sm text-gray-400 mb-3">
+                            <Lock className="inline-block h-4 w-4 mr-1" />
+                            {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
+                          </p>
+                          <Button onClick={openEmailModal} size="sm" className="bg-yellow-400 text-black hover:bg-yellow-500">
+                            Unlock All Results
+                          </Button>
+                        </div>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            </div>
+          );
+        })()}
 
-              {/* Unlock CTA for locked results */}
-              {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/30 text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    <Lock className="inline-block h-4 w-4 mr-1" />
-                    {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
-                  </p>
-                  <Button onClick={openEmailModal} size="sm">
-                    Unlock All Results
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {scanData && isUnlocked && (
           <div className="text-center mt-6">

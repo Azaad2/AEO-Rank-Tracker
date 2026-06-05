@@ -988,10 +988,10 @@ const Index = () => {
               </div>
               <div>
                 <h3 className="text-yellow-400 text-base md:text-lg font-bold">
-                  Track your score weekly
+                  Track your gaps weekly
                 </h3>
                 <p className="text-gray-300 text-sm mt-1">
-                  Get automated weekly scans, competitor alerts, and an action plan — <span className="text-white font-semibold">starting at $19/mo</span>.
+                  Get new competitor moves the moment they appear — plus an evidence-bound action plan, <span className="text-white font-semibold">starting at $19/mo</span>.
                 </p>
               </div>
             </div>
@@ -1022,10 +1022,10 @@ const Index = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
               <div className="flex-1">
                 <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2">
-                  Save this optimization plan to your dashboard
+                  Save your action plan and watch competitors lose ground
                 </h3>
                 <p className="text-sm md:text-base text-gray-300">
-                  Get weekly progress tracking, competitor alerts, and AI-powered task suggestions.
+                  Weekly Recommendation Intelligence, competitor-move alerts, and asset-gap tracking — week over week.
                 </p>
               </div>
               <Link to="/auth" className="shrink-0">
@@ -1062,6 +1062,9 @@ const Index = () => {
 
         {/* SEO Content Sections */}
         <div className="space-y-12 pt-8">
+          {/* Industry Benchmarks + Why Competitors Win teaser */}
+          <LandingBenchmarkTeaser />
+
           {/* Target Audience Section */}
           <section className="text-center space-y-4">
             <h2 className="text-3xl font-bold text-white">Built for Any Website That Cares About AI Search Visibility</h2>

@@ -199,53 +199,14 @@ const Index = () => {
   }, [trackEvent]);
 
   const handleScan = async () => {
-    if (!domain.trim() || !promptsText.trim()) {
+    if (!domain.trim()) {
       toast({
-        title: "Missing input",
-        description: "Please provide both domain and prompts",
+        title: "Domain required",
+        description: "Enter your domain to find your opportunities.",
         variant: "destructive",
       });
       return;
     }
-
-    // Check subscription limits for logged-in users
-    if (user) {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('scans_used, prompts_used, plan_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (sub) {
-        const { data: plan } = await supabase
-          .from('plans')
-          .select('scans_limit, prompts_limit')
-          .eq('id', sub.plan_id)
-          .single();
-        if (plan) {
-          const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
-          if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
-            toast({ title: 'Scan limit reached', description: 'Please upgrade your plan to continue scanning.', variant: 'destructive' });
-            return;
-          }
-          if ((sub.prompts_used ?? 0) + promptCount > plan.prompts_limit) {
-            toast({ title: 'Prompt limit reached', description: `You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.`, variant: 'destructive' });
-            return;
-          }
-        }
-      }
-    }
-
-    const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
-    
-    // Track scan initiation
-    trackEvent('scan_initiated', {
-      domain: domain.trim(),
-      prompt_count: promptCount,
-      is_authenticated: !!user,
-    });
 
     setIsScanning(true);
     setScanData(null);
@@ -254,10 +215,79 @@ const Index = () => {
     setUnlockedEmail(null);
 
     try {
+      // Auto-generate prompts if user did not supply any
+      let finalPrompts = promptsText.trim();
+      if (!finalPrompts) {
+        const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        try {
+          const { data: gen, error: genErr } = await supabase.functions.invoke('generate-prompts', {
+            body: {
+              industry: 'general',
+              businessDescription: `Website ${domainName}${competitor.trim() ? ` competing with ${competitor.trim()}` : ''}`,
+              targetAudience: 'general',
+            },
+          });
+          if (genErr) throw genErr;
+          finalPrompts = ((gen?.prompts || []) as any[])
+            .slice(0, 5)
+            .map((p: any) => (p.prompt || p))
+            .join('\n');
+        } catch (e) {
+          console.warn('Auto prompt generation failed, falling back', e);
+        }
+        if (!finalPrompts) {
+          finalPrompts = BUSINESS_TYPE_PROMPTS.Other
+            .map((p) => p.replace(/\{domain\}/g, domainName))
+            .join('\n');
+        }
+        setPromptsText(finalPrompts);
+      }
+
+      // Check subscription limits for logged-in users (now that we know prompt count)
+      const promptCount = finalPrompts.split(/[\n,]/).filter(p => p.trim()).length;
+      if (user) {
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('scans_used, prompts_used, plan_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (sub) {
+          const { data: plan } = await supabase
+            .from('plans')
+            .select('scans_limit, prompts_limit')
+            .eq('id', sub.plan_id)
+            .single();
+          if (plan) {
+            if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
+              toast({ title: 'Scan limit reached', description: 'Please upgrade your plan to continue scanning.', variant: 'destructive' });
+              setIsScanning(false);
+              return;
+            }
+            if ((sub.prompts_used ?? 0) + promptCount > plan.prompts_limit) {
+              toast({ title: 'Prompt limit reached', description: `You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.`, variant: 'destructive' });
+              setIsScanning(false);
+              return;
+            }
+          }
+        }
+      }
+
+      trackEvent('scan_initiated', {
+        domain: domain.trim(),
+        competitor: competitor.trim() || null,
+        prompt_count: promptCount,
+        auto_generated_prompts: !promptsText.trim(),
+        is_authenticated: !!user,
+      });
+
       const { data, error } = await supabase.functions.invoke('scan', {
         body: {
           domain: domain.trim(),
-          promptsText: promptsText.trim(),
+          competitor: competitor.trim() || undefined,
+          promptsText: finalPrompts,
           market: 'en-US',
           userId: user?.id,
         },
@@ -266,7 +296,6 @@ const Index = () => {
       if (error) throw error;
 
       setScanData(data);
-      // Store scan ID if returned from function
       if (data.scanId) {
         setScanId(data.scanId);
       }

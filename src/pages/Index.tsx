@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight, ChevronDown, Target, MessageSquare, Swords, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
@@ -22,6 +22,10 @@ import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
 import { OptimizationHub } from "@/components/OptimizationHub";
 import { ScanProgressBar } from "@/components/ScanProgressBar";
+import { IndustryBenchmarkStrip } from "@/components/IndustryBenchmarkStrip";
+import { WhyCompetitorsWinPreview } from "@/components/WhyCompetitorsWinPreview";
+import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import logo from "@/assets/logo-light.png";
 
@@ -82,6 +86,7 @@ const BUSINESS_TYPE_PROMPTS: Record<string, string[]> = {
 
 const Index = () => {
   const [domain, setDomain] = useState("");
+  const [competitor, setCompetitor] = useState("");
   const [promptsText, setPromptsText] = useState("");
   const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(null);
   const [customDescription, setCustomDescription] = useState('');
@@ -96,6 +101,8 @@ const Index = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
   
@@ -106,9 +113,9 @@ const Index = () => {
   const { variant: headlineVariant, trackConversion: trackHeadlineConversion } = useABTest('headline');
   const { variant: ctaVariant, trackConversion: trackCtaConversion } = useABTest('cta');
   
-  // Default values while loading
-  const headline = headlineVariant?.value || 'AI Search Visibility Checker';
-  const ctaText = ctaVariant?.value || 'Check My AI Visibility — Free';
+  // Default values while loading - repositioned around Recommendation Intelligence
+  const headline = headlineVariant?.value || 'See Exactly Why AI Recommends Competitors Instead of You';
+  const ctaText = ctaVariant?.value || 'Find My Opportunities — Free';
 
   // Track page view on mount
   useEffect(() => {
@@ -192,53 +199,14 @@ const Index = () => {
   }, [trackEvent]);
 
   const handleScan = async () => {
-    if (!domain.trim() || !promptsText.trim()) {
+    if (!domain.trim()) {
       toast({
-        title: "Missing input",
-        description: "Please provide both domain and prompts",
+        title: "Domain required",
+        description: "Enter your domain to find your opportunities.",
         variant: "destructive",
       });
       return;
     }
-
-    // Check subscription limits for logged-in users
-    if (user) {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('scans_used, prompts_used, plan_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (sub) {
-        const { data: plan } = await supabase
-          .from('plans')
-          .select('scans_limit, prompts_limit')
-          .eq('id', sub.plan_id)
-          .single();
-        if (plan) {
-          const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
-          if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
-            toast({ title: 'Scan limit reached', description: 'Please upgrade your plan to continue scanning.', variant: 'destructive' });
-            return;
-          }
-          if ((sub.prompts_used ?? 0) + promptCount > plan.prompts_limit) {
-            toast({ title: 'Prompt limit reached', description: `You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.`, variant: 'destructive' });
-            return;
-          }
-        }
-      }
-    }
-
-    const promptCount = promptsText.trim().split(/[\n,]/).filter(p => p.trim()).length;
-    
-    // Track scan initiation
-    trackEvent('scan_initiated', {
-      domain: domain.trim(),
-      prompt_count: promptCount,
-      is_authenticated: !!user,
-    });
 
     setIsScanning(true);
     setScanData(null);
@@ -247,10 +215,79 @@ const Index = () => {
     setUnlockedEmail(null);
 
     try {
+      // Auto-generate prompts if user did not supply any
+      let finalPrompts = promptsText.trim();
+      if (!finalPrompts) {
+        const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        try {
+          const { data: gen, error: genErr } = await supabase.functions.invoke('generate-prompts', {
+            body: {
+              industry: 'general',
+              businessDescription: `Website ${domainName}${competitor.trim() ? ` competing with ${competitor.trim()}` : ''}`,
+              targetAudience: 'general',
+            },
+          });
+          if (genErr) throw genErr;
+          finalPrompts = ((gen?.prompts || []) as any[])
+            .slice(0, 5)
+            .map((p: any) => (p.prompt || p))
+            .join('\n');
+        } catch (e) {
+          console.warn('Auto prompt generation failed, falling back', e);
+        }
+        if (!finalPrompts) {
+          finalPrompts = BUSINESS_TYPE_PROMPTS.Other
+            .map((p) => p.replace(/\{domain\}/g, domainName))
+            .join('\n');
+        }
+        setPromptsText(finalPrompts);
+      }
+
+      // Check subscription limits for logged-in users (now that we know prompt count)
+      const promptCount = finalPrompts.split(/[\n,]/).filter(p => p.trim()).length;
+      if (user) {
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('scans_used, prompts_used, plan_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (sub) {
+          const { data: plan } = await supabase
+            .from('plans')
+            .select('scans_limit, prompts_limit')
+            .eq('id', sub.plan_id)
+            .single();
+          if (plan) {
+            if (plan.scans_limit !== -1 && (sub.scans_used ?? 0) >= plan.scans_limit) {
+              toast({ title: 'Scan limit reached', description: 'Please upgrade your plan to continue scanning.', variant: 'destructive' });
+              setIsScanning(false);
+              return;
+            }
+            if ((sub.prompts_used ?? 0) + promptCount > plan.prompts_limit) {
+              toast({ title: 'Prompt limit reached', description: `You have ${plan.prompts_limit - (sub.prompts_used ?? 0)} prompts remaining. Please upgrade your plan.`, variant: 'destructive' });
+              setIsScanning(false);
+              return;
+            }
+          }
+        }
+      }
+
+      trackEvent('scan_initiated', {
+        domain: domain.trim(),
+        competitor: competitor.trim() || null,
+        prompt_count: promptCount,
+        auto_generated_prompts: !promptsText.trim(),
+        is_authenticated: !!user,
+      });
+
       const { data, error } = await supabase.functions.invoke('scan', {
         body: {
           domain: domain.trim(),
-          promptsText: promptsText.trim(),
+          competitor: competitor.trim() || undefined,
+          promptsText: finalPrompts,
           market: 'en-US',
           userId: user?.id,
         },
@@ -259,7 +296,6 @@ const Index = () => {
       if (error) throw error;
 
       setScanData(data);
-      // Store scan ID if returned from function
       if (data.scanId) {
         setScanId(data.scanId);
       }
@@ -474,30 +510,34 @@ const Index = () => {
       <Header />
       <div className="pt-32 p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Hero Section with Black Background - Mario Style */}
+          {/* Hero Section — Recommendation Intelligence positioning */}
           <div className="py-12 md:py-16 px-6 -mx-4 md:-mx-8">
             <div className="text-center space-y-6">
-              <h1 
+              <span className="inline-block px-3 py-1 bg-yellow-400/15 text-yellow-400 text-xs font-semibold rounded-full uppercase tracking-wider">
+                Recommendation Intelligence
+              </span>
+              <h1
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight tracking-tight drop-shadow-[0_0_10px_rgba(255,255,0,0.5)]"
               >
-                AI Search Visibility Checker.
+                See Exactly Why AI Recommends
                 <br />
-                <span className="text-yellow-400">Stop Being Invisible to AI.</span>
+                <span className="text-yellow-400">Your Competitors Instead of You.</span>
               </h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-sm md:text-base">
-                The AI visibility platform that tracks brand mentions in ChatGPT, Gemini, and Perplexity. Learn how to track brand mentions in AI search and fix what's broken — with a personalised, prioritised action plan.
+                We show the asset gaps, content moves, and citation patterns that win in your industry — across ChatGPT, Gemini, and Perplexity. No prompt setup. Benchmarked against your peers in under 60 seconds.
               </p>
 
               <div className="pt-2">
-                <Button 
-                  onClick={scrollToScan} 
-                  size="lg" 
+                <Button
+                  onClick={scrollToScan}
+                  size="lg"
                   className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black"
                 >
                   {ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <p className="text-xs text-gray-400 mt-3">
-                  Most brands score below 30/100. See where you stand.
+                  The average brand misses 7 of the top 10 citation patterns in its industry.
                 </p>
               </div>
 
@@ -520,385 +560,394 @@ const Index = () => {
                   ))}
                 </div>
                 <p className="text-xs md:text-sm text-gray-300">
-                  <span className="font-bold text-yellow-400">500+ brands</span> tracking their AI visibility
+                  <span className="font-bold text-yellow-400">500+ brands</span> finding their AI opportunities
                 </p>
               </div>
             </div>
           </div>
 
-        {/* Scan Input Section */}
+          {/* How AI Chooses Brands */}
+          {!scanData && (
+            <section className="py-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl md:text-2xl font-bold text-white">How AI Chooses Brands</h2>
+                <p className="text-xs md:text-sm text-gray-400 mt-1">The loop we close for you.</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { icon: MessageSquare, label: "AI Question", desc: "Buyers ask ChatGPT, Gemini, Perplexity." },
+                  { icon: Users, label: "Competitor Appears", desc: "Someone else gets named — not you." },
+                  { icon: Swords, label: "We Show Why", desc: "Asset gaps + citation patterns." },
+                  { icon: Wrench, label: "You Fix It", desc: "Evidence-bound action plan." },
+                  { icon: Target, label: "AI Names You", desc: "Visibility compounds week over week." },
+                ].map((step, i) => (
+                  <div key={step.label} className="relative">
+                    <Card className="bg-gray-900 border-gray-800 h-full">
+                      <CardContent className="p-3 md:p-4 text-center space-y-2">
+                        <step.icon className="h-5 w-5 text-yellow-400 mx-auto" />
+                        <div className="text-xs md:text-sm font-semibold text-white">{step.label}</div>
+                        <div className="text-[10px] md:text-xs text-gray-400 leading-tight">{step.desc}</div>
+                      </CardContent>
+                    </Card>
+                    {i < 4 && (
+                      <ArrowRight className="hidden md:block absolute top-1/2 -right-2 -translate-y-1/2 h-3 w-3 text-yellow-400/60" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+
+        {/* Scan Input Section — simplified single-field flow */}
         {!scanData && (
-        <section id="scan" className="scroll-mt-8 -mt-4">
-          <Card className="shadow-lg bg-gray-900 border-gray-700">
+        <section id="scan" className="scroll-mt-8">
+          <Card className="shadow-lg bg-gray-900 border-yellow-400/40">
           <CardHeader>
-            <CardTitle className="text-white">Enter Scan Details</CardTitle>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Target className="h-5 w-5 text-yellow-400" />
+              Find your AI opportunities
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Provide your domain and the prompts/keywords you want to analyze
+              Enter your domain. We'll auto-generate the right prompts and benchmark you against your industry.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="domain" className="text-sm font-medium text-gray-300">
-                Domain
-              </label>
-              <Input
-                id="domain"
-                placeholder="bndbox.com"
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                onFocus={() => trackEvent('form_interaction', { field: 'domain' })}
-                disabled={isScanning}
-                className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-              />
-            </div>
-
-             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">
-                What's your business type?
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(BUSINESS_TYPE_PROMPTS).map((type) => (
-                  <Button
-                    key={type}
-                    type="button"
-                    variant={selectedBusinessType === type ? "default" : "outline"}
-                    size="sm"
-                    disabled={isScanning || isGeneratingPrompts}
-                    className={
-                      selectedBusinessType === type
-                        ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                        : "border-gray-600 text-gray-300 hover:bg-gray-700"
-                    }
-                    onClick={() => {
-                      setSelectedBusinessType(type);
-                      const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'yourdomain.com';
-                      const prompts = BUSINESS_TYPE_PROMPTS[type]
-                        .map((p) => p.replace(/\{domain\}/g, domainName))
-                        .join('\n');
-                      setPromptsText(prompts);
-                      trackEvent('business_type_selected', { type });
-                    }}
-                  >
-                    {type}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  variant={selectedBusinessType === 'Custom' ? "default" : "outline"}
-                  size="sm"
-                  disabled={isScanning || isGeneratingPrompts}
-                  className={
-                    selectedBusinessType === 'Custom'
-                      ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                      : "border-gray-600 text-gray-300 hover:bg-gray-700"
-                  }
-                  onClick={() => setSelectedBusinessType('Custom')}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Custom
-                </Button>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="domain" className="text-sm font-medium text-gray-300">
+                  Your domain <span className="text-red-400">*</span>
+                </label>
+                <Input
+                  id="domain"
+                  placeholder="yourbrand.com"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  onFocus={() => trackEvent('form_interaction', { field: 'domain' })}
+                  disabled={isScanning}
+                  className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                />
               </div>
-
-              {selectedBusinessType === 'Custom' && (
-                <div className="mt-3 space-y-2">
-                  <Input
-                    placeholder="Describe your business, e.g. 'Online pet food subscription service'"
-                    value={customDescription}
-                    onChange={(e) => setCustomDescription(e.target.value)}
-                    disabled={isGeneratingPrompts}
-                    className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isGeneratingPrompts || !customDescription.trim()}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
-                    onClick={async () => {
-                      setIsGeneratingPrompts(true);
-                      trackEvent('custom_prompts_generation', { description: customDescription });
-                      try {
-                        const { data, error } = await supabase.functions.invoke('generate-prompts', {
-                          body: {
-                            industry: customDescription.trim(),
-                            businessDescription: customDescription.trim(),
-                            targetAudience: 'general',
-                          },
-                        });
-                        if (error) throw error;
-                        const prompts = (data.prompts || [])
-                          .slice(0, 5)
-                          .map((p: any) => p.prompt || p)
-                          .join('\n');
-                        setPromptsText(prompts);
-                        toast({ title: 'Prompts generated!', description: '5 AI-tailored prompts added.' });
-                      } catch (err) {
-                        console.error('Prompt generation error:', err);
-                        toast({ title: 'Generation failed', description: 'Please try again or enter prompts manually.', variant: 'destructive' });
-                      } finally {
-                        setIsGeneratingPrompts(false);
-                      }
-                    }}
-                  >
-                    {isGeneratingPrompts ? (
-                      <>
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-1 h-3 w-3" />
-                        Generate Prompts with AI
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
-                Prompts/Keywords (one per line)
-              </label>
-              <Textarea
-                id="prompts"
-                placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
-                value={promptsText}
-                onChange={(e) => setPromptsText(e.target.value)}
-                onFocus={() => trackEvent('form_interaction', { field: 'prompts' })}
-                disabled={isScanning}
-                rows={6}
-                className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-              />
-              <p className="text-xs text-gray-500">
-                Maximum 15 prompts. Separate by line break or comma.
-              </p>
+              <div className="space-y-2">
+                <label htmlFor="competitor" className="text-sm font-medium text-gray-300">
+                  Top competitor <span className="text-gray-500 text-xs font-normal">(optional)</span>
+                </label>
+                <Input
+                  id="competitor"
+                  placeholder="competitor.com"
+                  value={competitor}
+                  onChange={(e) => setCompetitor(e.target.value)}
+                  onFocus={() => trackEvent('form_interaction', { field: 'competitor' })}
+                  disabled={isScanning}
+                  className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
             </div>
 
             <Button
               onClick={handleScan}
-              disabled={isScanning}
+              disabled={isScanning || !domain.trim()}
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
               size="lg"
             >
               {isScanning ? (
-  <>
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-    Scanning your brand across AI platforms...
-  </>
-) : (
-  "Run Free AI Scan"
-)}
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing your industry...
+                </>
+              ) : (
+                <>
+                  {ctaText}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
 
             <ScanProgressBar isScanning={isScanning} />
+
+            {/* Advanced collapsible — prompt customization is now optional */}
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 pt-2"
+                  disabled={isScanning}
+                >
+                  <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                  Advanced: customize prompts
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">
+                    Business type
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(BUSINESS_TYPE_PROMPTS).map((type) => (
+                      <Button
+                        key={type}
+                        type="button"
+                        variant={selectedBusinessType === type ? "default" : "outline"}
+                        size="sm"
+                        disabled={isScanning || isGeneratingPrompts}
+                        className={
+                          selectedBusinessType === type
+                            ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                            : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                        }
+                        onClick={() => {
+                          setSelectedBusinessType(type);
+                          const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'yourdomain.com';
+                          const prompts = BUSINESS_TYPE_PROMPTS[type]
+                            .map((p) => p.replace(/\{domain\}/g, domainName))
+                            .join('\n');
+                          setPromptsText(prompts);
+                          trackEvent('business_type_selected', { type });
+                        }}
+                      >
+                        {type}
+                      </Button>
+                    ))}
+                    <Button
+                      type="button"
+                      variant={selectedBusinessType === 'Custom' ? "default" : "outline"}
+                      size="sm"
+                      disabled={isScanning || isGeneratingPrompts}
+                      className={
+                        selectedBusinessType === 'Custom'
+                          ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                          : "border-gray-600 text-gray-300 hover:bg-gray-700"
+                      }
+                      onClick={() => setSelectedBusinessType('Custom')}
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Custom
+                    </Button>
+                  </div>
+
+                  {selectedBusinessType === 'Custom' && (
+                    <div className="mt-3 space-y-2">
+                      <Input
+                        placeholder="Describe your business, e.g. 'Online pet food subscription service'"
+                        value={customDescription}
+                        onChange={(e) => setCustomDescription(e.target.value)}
+                        disabled={isGeneratingPrompts}
+                        className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isGeneratingPrompts || !customDescription.trim()}
+                        className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                        onClick={async () => {
+                          setIsGeneratingPrompts(true);
+                          trackEvent('custom_prompts_generation', { description: customDescription });
+                          try {
+                            const { data, error } = await supabase.functions.invoke('generate-prompts', {
+                              body: {
+                                industry: customDescription.trim(),
+                                businessDescription: customDescription.trim(),
+                                targetAudience: 'general',
+                              },
+                            });
+                            if (error) throw error;
+                            const prompts = (data.prompts || [])
+                              .slice(0, 5)
+                              .map((p: any) => p.prompt || p)
+                              .join('\n');
+                            setPromptsText(prompts);
+                            toast({ title: 'Prompts generated!', description: '5 AI-tailored prompts added.' });
+                          } catch (err) {
+                            console.error('Prompt generation error:', err);
+                            toast({ title: 'Generation failed', description: 'Please try again or enter prompts manually.', variant: 'destructive' });
+                          } finally {
+                            setIsGeneratingPrompts(false);
+                          }
+                        }}
+                      >
+                        {isGeneratingPrompts ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-1 h-3 w-3" />
+                            Generate Prompts with AI
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
+                    Prompts/Keywords (one per line)
+                  </label>
+                  <Textarea
+                    id="prompts"
+                    placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
+                    value={promptsText}
+                    onChange={(e) => setPromptsText(e.target.value)}
+                    onFocus={() => trackEvent('form_interaction', { field: 'prompts' })}
+                    disabled={isScanning}
+                    rows={6}
+                    className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Leave blank to auto-generate. Max 15 prompts.
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
         </section>
         )}
 
-        {/* Results Section */}
-        {scanData && (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <CardTitle>AI Search Visibility Results</CardTitle>
-                  <CardDescription>
-                    Project: {scanData.project} • {scanData.promptsCount} prompts analyzed
-                    {scanData.meta && (
-                      <span className="text-primary ml-2">
-                        (Gemini: {scanData.meta.geminiAnalysisUsed || 0}/{scanData.meta.totalPrompts})
-                      </span>
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">AI Visibility Score</p>
-                    <p className={`text-3xl font-bold ${getScoreColor(scanData.score)}`}>
-                      {scanData.score}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your score: {scanData.score}/100 — based on how often AI assistants mention and cite your brand for category queries. Industry average: 34/100.
+
+        {/* Results — opportunity-first layout */}
+        {scanData && (() => {
+          // Derive opportunity metrics from scanData
+          const totalPrompts = scanData.results.length;
+          const promptsMissingIn = scanData.results.filter(
+            (r) => !r.mentioned && !r.geminiMentioned && !r.perplexityMentioned
+          ).length;
+          const competitorSet = new Set<string>();
+          for (const r of scanData.results) {
+            [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
+              .map((c) => c.trim().toLowerCase())
+              .filter(Boolean)
+              .forEach((c) => competitorSet.add(c));
+          }
+          const competitorsFound = competitorSet.size;
+          const opportunities = promptsMissingIn + Math.min(competitorsFound, 5);
+
+          return (
+            <div className="space-y-5">
+              {/* Opportunity headline strip */}
+              <Card className="bg-gradient-to-r from-yellow-400/15 to-transparent border-yellow-400/50">
+                <CardContent className="p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="text-xs uppercase tracking-wider text-yellow-400 font-semibold mb-1">
+                      Opportunities found
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-white">
+                      You're missing {opportunities} high-impact opportunit{opportunities === 1 ? 'y' : 'ies'}
+                      <span className="text-gray-400 text-base font-normal"> competitors are already using.</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {scanData.project} • {totalPrompts} prompts analyzed
                     </p>
                   </div>
-                  {isUnlocked ? (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={downloadCSV}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        CSV
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {isUnlocked ? (
+                      <>
+                        <Button onClick={downloadCSV} variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          <Download className="mr-2 h-4 w-4" /> CSV
+                        </Button>
+                        <Button onClick={downloadPDF} variant="outline" size="sm" disabled={isDownloadingPDF} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          {isDownloadingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                          Report
+                        </Button>
+                        <Button onClick={sendReportEmail} variant="outline" size="sm" disabled={isSendingEmail} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                          {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                          Email
+                        </Button>
+                      </>
+                    ) : (
+                      <Button onClick={openEmailModal} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
+                        <Lock className="mr-2 h-4 w-4" />
+                        Unlock all opportunities
                       </Button>
-                      <Button
-                        onClick={downloadPDF}
-                        variant="outline"
-                        size="sm"
-                        disabled={isDownloadingPDF}
-                      >
-                        {isDownloadingPDF ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileText className="mr-2 h-4 w-4" />
-                        )}
-                        Report
-                      </Button>
-                      <Button
-                        onClick={sendReportEmail}
-                        variant="outline"
-                        size="sm"
-                        disabled={isSendingEmail}
-                      >
-                        {isSendingEmail ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Mail className="mr-2 h-4 w-4" />
-                        )}
-                        Email
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={openEmailModal}
-                      variant="outline"
-                      size="sm"
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Industry Benchmark strip — score reduced to small chip */}
+              <IndustryBenchmarkStrip
+                score={scanData.score}
+                competitorsFound={competitorsFound}
+                promptsMissingIn={promptsMissingIn}
+                totalPrompts={totalPrompts}
+              />
+
+              {/* Why Competitors Win preview */}
+              <WhyCompetitorsWinPreview
+                results={scanData.results}
+                onTrack={() => trackEvent('competitor_preview_click', { domain: scanData.project })}
+              />
+
+              {/* Per-prompt diagnostics moved into collapsible */}
+              <Card className="bg-gray-900 border-gray-800">
+                <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-800/40 transition"
                     >
-                      <Lock className="mr-2 h-4 w-4" />
-                      Unlock
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* What this means - explainer */}
-              <div className="mb-5 p-4 rounded-lg bg-muted/40 border border-border/60">
-                <p className="text-sm font-medium mb-1">What this shows</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  For each prompt we asked the AI engines about your category, we measured how visible your brand was.
-                  <span className="block mt-1">
-                    <span className="font-medium text-foreground">Mentioned</span> = your brand name appeared in the AI's answer.{" "}
-                    <span className="font-medium text-foreground">Cited</span> = your website was linked as a source.
-                  </span>
-                  <span className="block mt-1">
-                    The bar shows your <span className="font-medium text-foreground">visibility score</span> for that prompt across Google Gemini and ChatGPT-style search results (0–100%).
-                  </span>
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {scanData.results.map((result, idx) => {
-                  const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
-
-                  // Per-prompt visibility: 4 signals (search mention, search cite, gemini mention, gemini cite)
-                  const signals = [
-                    result.mentioned,
-                    result.cited,
-                    result.geminiMentioned,
-                    result.geminiCited,
-                  ];
-                  const hits = signals.filter(Boolean).length;
-                  const pct = Math.round((hits / signals.length) * 100);
-
-                  const barColor =
-                    pct >= 70 ? "bg-success" : pct >= 40 ? "bg-yellow-500" : "bg-destructive";
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-4 border rounded-lg ${isLocked ? "relative" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <p className={`font-medium text-sm flex-1 ${isLocked ? "blur-sm select-none" : ""}`}>
-                          {idx + 1}. {isLocked ? "Locked prompt content — unlock to view" : result.prompt}
-                        </p>
-                        <span
-                          className={`text-sm font-bold whitespace-nowrap ${
-                            isLocked ? "blur-sm select-none" : ""
-                          } ${
-                            pct >= 70 ? "text-success" : pct >= 40 ? "text-yellow-500" : "text-destructive"
-                          }`}
-                        >
-                          {pct}% visible
-                        </span>
+                      <div className="flex items-center gap-2 text-white">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${showDiagnostics ? 'rotate-180' : ''}`} />
+                        <span className="font-medium">Per-prompt diagnostics</span>
+                        <span className="text-xs text-gray-500">({totalPrompts} prompts)</span>
                       </div>
+                      <span className="text-xs text-gray-500">{showDiagnostics ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {scanData.results.map((result, idx) => {
+                          const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
+                          const signals = [result.mentioned, result.cited, result.geminiMentioned, result.geminiCited];
+                          const hits = signals.filter(Boolean).length;
+                          const pct = Math.round((hits / signals.length) * 100);
+                          const barColor = pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-500";
 
-                      {/* Bar graph */}
-                      <div className={`h-3 w-full bg-secondary rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
-                        <div
-                          className={`h-full ${barColor} transition-all`}
-                          style={{ width: `${isLocked ? 30 : pct}%` }}
-                        />
+                          return (
+                            <div key={idx} className={`p-4 border border-gray-800 rounded-lg bg-black/30 ${isLocked ? "relative" : ""}`}>
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <p className={`font-medium text-sm flex-1 text-white ${isLocked ? "blur-sm select-none" : ""}`}>
+                                  {idx + 1}. {isLocked ? "Locked prompt — unlock to view" : result.prompt}
+                                </p>
+                                <span className={`text-sm font-bold whitespace-nowrap ${isLocked ? "blur-sm select-none" : ""} ${pct >= 70 ? "text-green-400" : pct >= 40 ? "text-yellow-400" : "text-red-400"}`}>
+                                  {pct}% visible
+                                </span>
+                              </div>
+                              <div className={`h-2 w-full bg-gray-800 rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
+                                <div className={`h-full ${barColor} transition-all`} style={{ width: `${isLocked ? 30 : pct}%` }} />
+                              </div>
+                              {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
+                                <p className="text-xs text-gray-400 mt-2">
+                                  <span className="font-medium text-gray-200">Competitors here:</span>{" "}
+                                  {result.geminiCompetitors.slice(0, 3).join(", ")}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      {/* Signal breakdown chips */}
-                      <div className={`flex flex-wrap gap-2 mt-3 text-xs ${isLocked ? "blur-sm select-none" : ""}`}>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.geminiMentioned
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.geminiMentioned ? "✓" : "—"} Gemini mentioned you
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.geminiCited
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.geminiCited ? "✓" : "—"} Gemini cited your site
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.mentioned
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.mentioned ? "✓" : "—"} ChatGPT/Search mentioned you
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            result.cited
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {result.cited ? "✓" : "—"} ChatGPT/Search cited your site
-                        </span>
-                      </div>
-
-                      {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-3">
-                          <span className="font-medium text-foreground">Competitors appearing here:</span>{" "}
-                          {result.geminiCompetitors.slice(0, 3).join(", ")}
-                        </p>
+                      {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
+                        <div className="mt-4 p-4 border border-gray-800 rounded-lg bg-black/30 text-center">
+                          <p className="text-sm text-gray-400 mb-3">
+                            <Lock className="inline-block h-4 w-4 mr-1" />
+                            {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
+                          </p>
+                          <Button onClick={openEmailModal} size="sm" className="bg-yellow-400 text-black hover:bg-yellow-500">
+                            Unlock All Results
+                          </Button>
+                        </div>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            </div>
+          );
+        })()}
 
-              {/* Unlock CTA for locked results */}
-              {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/30 text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    <Lock className="inline-block h-4 w-4 mr-1" />
-                    {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
-                  </p>
-                  <Button onClick={openEmailModal} size="sm">
-                    Unlock All Results
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {scanData && isUnlocked && (
           <div className="text-center mt-6">
@@ -939,10 +988,10 @@ const Index = () => {
               </div>
               <div>
                 <h3 className="text-yellow-400 text-base md:text-lg font-bold">
-                  Track your score weekly
+                  Track your gaps weekly
                 </h3>
                 <p className="text-gray-300 text-sm mt-1">
-                  Get automated weekly scans, competitor alerts, and an action plan — <span className="text-white font-semibold">starting at $19/mo</span>.
+                  Get new competitor moves the moment they appear — plus an evidence-bound action plan, <span className="text-white font-semibold">starting at $19/mo</span>.
                 </p>
               </div>
             </div>
@@ -973,10 +1022,10 @@ const Index = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
               <div className="flex-1">
                 <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2">
-                  Save this optimization plan to your dashboard
+                  Save your action plan and watch competitors lose ground
                 </h3>
                 <p className="text-sm md:text-base text-gray-300">
-                  Get weekly progress tracking, competitor alerts, and AI-powered task suggestions.
+                  Weekly Recommendation Intelligence, competitor-move alerts, and asset-gap tracking — week over week.
                 </p>
               </div>
               <Link to="/auth" className="shrink-0">
@@ -1013,6 +1062,9 @@ const Index = () => {
 
         {/* SEO Content Sections */}
         <div className="space-y-12 pt-8">
+          {/* Industry Benchmarks + Why Competitors Win teaser */}
+          <LandingBenchmarkTeaser />
+
           {/* Target Audience Section */}
           <section className="text-center space-y-4">
             <h2 className="text-3xl font-bold text-white">Built for Any Website That Cares About AI Search Visibility</h2>

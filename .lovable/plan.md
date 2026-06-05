@@ -1,106 +1,97 @@
-# Reposition Landing + Scan UX around Recommendation Intelligence
+# Landing page polish — pre-publish
 
-Today's homepage sells "AI Search Visibility Checker" and forces users to pick a business type, then write/edit prompts, before they get a score. The new product is about *opportunities and competitor wins*, not a score. This plan re-frames the landing page, the scan input, and the post-scan experience accordingly. Scope is **frontend only** — no edge function or schema changes.
+Frontend-only refinements in `src/pages/Index.tsx` plus one CTA fix in `src/pages/About.tsx`. No edge function, schema, or backend work.
 
-## 1. Reframe the hero (src/pages/Index.tsx)
+## 1. Shorter hero headline
 
-Replace the "AI Search Visibility Checker / Stop Being Invisible" hero block with an opportunity-first headline.
+`src/pages/Index.tsx` (~L519–528):
 
-- **Headline:** "See Exactly Why ChatGPT, Gemini, and Perplexity Recommend Your Competitors Instead of You"
-- **Subhead:** "Recommendation Intelligence shows the asset gaps, content moves, and citation patterns that win in your industry. Built on thousands of AI recommendation observations."
-- **Primary CTA:** "Find My Opportunities — Free" (replaces "Check My AI Visibility")
-- **Microcopy under CTA:** "No prompt setup. We benchmark you against your industry in under 60 seconds."
-- Keep the A/B test hook but switch defaults to the new copy.
-- Replace the "Most brands score below 30/100" line with "Average brand is missing 7 of the top 10 citation patterns in their industry."
+- Replace two-line headline with a tighter one:
+  - **H1:** "Why AI Recommends Your Competitors — Not You."
+  - Yellow accent on "Not You."
+- Drop font sizes one step (`text-3xl sm:text-4xl md:text-5xl lg:text-6xl`) so the line fits on one row on desktop and two on mobile.
+- Trim subhead to one sentence: "Recommendation Intelligence reveals the asset gaps and citation patterns winning your industry across ChatGPT, Gemini, and Perplexity — in under 60 seconds."
 
-## 2. Strip prompt creation from the primary path
+## 2. Replace "500+ brands" social proof with AI-engine trust row
 
-The current scan card requires: domain → business type → optionally write a description → AI-generate prompts → edit textarea → scan. Replace with a single-field flow:
+`src/pages/Index.tsx` (~L544–565). The brand count isn't verified, so swap the avatar cluster + "500+ brands" line for an engine-coverage trust indicator:
 
-- New scan card: domain input + big "Run Scan" button, nothing else by default.
-- Business type / prompt textarea move behind a single collapsible: **"Advanced: customize prompts"** (closed by default).
-- On submit with no prompts: auto-generate via the existing `generate-prompts` edge function using the domain (and inferred business type = "Other"), then immediately call `scan`. Show a single combined progress state ("Analyzing your industry…") rather than two steps.
-- Keep all existing limit checks and tracking events; just chain the calls.
+```
+Analyzing recommendations from
+[ChatGPT]  [Gemini]  [Perplexity]  [Claude]
+Updated continuously · Citation-grade evidence
+```
 
-## 3. Replace score-first post-scan with opportunity-first
+- Render as 4 pill chips (text labels, no logos to avoid trademark issues) with a small check or sparkle icon.
+- Keep yellow accent on the engine names.
+- Remove the colored letter avatars and "500+ brands" string entirely.
 
-The post-scan card today leads with a giant numeric score. Restructure to lead with opportunities and competitor context. The score becomes a small secondary chip.
+## 3. Concrete examples inside "How AI Chooses Brands"
 
-New post-scan layout (in `Index.tsx`, replacing the current Results Card header and the early sections of the results body):
+`src/pages/Index.tsx` (~L569–599). Keep the 5-step flow; add a one-line concrete example under each step so the abstraction lands:
 
-1. **Opportunity headline strip** (full-width, yellow accent):
-  - "You're missing N high-impact opportunities competitors are using"
-  - Computed from `scanData.results` competitor counts + locked recommendation count.
-2. **Industry Benchmark strip** (new presentational component `IndustryBenchmarkStrip.tsx`):
-  - Three tiles: *Your visibility* / *Industry median* / *Top quartile*, with the score reduced to a small comparative bar. Uses the existing `34/100` industry baseline already referenced.
-3. **Why Competitors Win — preview** (new presentational component `WhyCompetitorsWinPreview.tsx`):
-  - Anonymized top 3 peer brands from `result.geminiCompetitors` aggregated across prompts.
-  - Per brand: name, # prompts they showed up in, "asset advantage" placeholder ("Strong on comparison pages").
-  - CTA: "See the full Why Competitors Win breakdown →" linking to `/dashboard?tab=why-win` (signed-in) or `/auth?redirect=/dashboard?tab=why-win` (guest).
-4. **Prompt-by-prompt visibility breakdown** moves *below* the above as a collapsible "Per-prompt diagnostics" (closed by default).
-5. The score number remains, but as a small badge inside the benchmark strip — not the page focal point.
 
-## 4. Surface Industry Benchmarks + Why Competitors Win on the landing page
+| Step               | Current desc                            | Add example                                                      |
+| ------------------ | --------------------------------------- | ---------------------------------------------------------------- |
+| AI Question        | Buyers ask ChatGPT, Gemini, Perplexity. | e.g. "best CRM for small agencies"                               |
+| Competitor Appears | Someone else gets named — not you.      | Cited via a G2 comparison page                                   |
+| We Show Why        | Asset gaps + citation patterns.         | You're missing comparison pages, Reddit threads, review profiles |
+| You Fix It         | Evidence-bound action plan.             | Ship a "/vs/competitor" page + claim G2 profile                  |
+| AI Names You       | Visibility compounds week over week.    | Mentions appear in Perplexity in ~2 weeks                        |
 
-Add two new sections between the scan card and existing SEO content:
 
-- **"How your industry is winning right now"** — static teaser of the Why Competitors Win view: 3 example anonymized brand cards with asset-gap chips (Comparison pages, Reddit threads, Listicles). Uses the same visual language as `WhyCompetitorsWin.tsx`. Marketing-only, no live data on this section.
-- **"Industry Benchmarks built into every scan"** — three-tile graphic explaining what users see post-scan (Asset-type gap, Competitor leaderboard, Recommendation Intelligence). Each tile links to `/dashboard?tab=recommendations|why-win|metrics`.
+Render the example as a smaller line below `desc` in a muted yellow (`text-yellow-400/70 text-[10px]`).
 
-Replace the current "Built for Any Website…" and "Why AI SEO Visibility Matters" body copy to lead with competitor/benchmark language (keep the SEO-bearing keywords but reposition: "AI visibility tells you you're losing. Recommendation Intelligence tells you why and what to do.").
+## 4. Real competitor intelligence example below the hero
 
-## 5. Post-scan upgrade banners
+New section inserted between the hero (~L567) and "How AI Chooses Brands" (L569). Static, hard-coded illustrative data so visitors instantly understand the output without scanning.
 
-Reword the two upgrade CTAs in `Index.tsx`:
+Layout: a single Card titled **"What you get back — example: project-management.com"** with three stacked rows:
 
-- Post-unlock banner → "Track your gaps weekly. Get new competitor moves the moment they appear."
-- Post-optimization plan banner → "Save your action plan and watch competitors lose ground week over week."
+```
+Prompt: "best project management software for remote teams"
+─────────────────────────────────────────────────────────
+Cited:    Asana · Monday · ClickUp        (3 competitors)
+You:      Not mentioned
+Why they win:
+  • Asana  — strong on /alternatives pages + Reddit r/productivity
+  • Monday — owns 4 listicles ("Top 10 PM tools 2026")
+  • ClickUp — claimed G2/Capterra profiles, active changelog
+Your move: Publish "/alternatives/asana" + claim G2 profile  →  +18% projected visibility
+```
 
-## 6. Tracking & A/B safety
+- Implement inline in `Index.tsx` (no new component file — keep scope tight).
+- Use existing `Card`, `Badge`, and yellow accents from the design system.
+- Small "Example output" badge in the corner so it's not mistaken for live data.
+- CTA at the bottom: "Run this on your domain →" that scrolls to `#scan`.
 
-- Keep all existing `trackEvent` calls; add `opportunity_cta_click`, `benchmark_strip_view`, `competitor_preview_click` events for the new sections.
-- A/B test variant values: extend the existing `headline` and `cta` variants in `useABTest` consumers with new defaults but do not remove old variants — they remain valid alternates.
+## 5. Replace remaining "Check My AI Visibility" CTAs
+
+- `src/pages/About.tsx:85` → "Find My Opportunities — Free"
+- Audit `src/pages/Index.tsx` for any lingering "Check My AI Visibility" strings; current copy already uses `ctaText` ("Find My Opportunities — Free") so this should just be the About page fix. Verify with a final grep before finishing.
+- Leave the blog FAQ string in `AIVisibilityCheckerGuide.tsx` alone — it's an editorial question, not a CTA.
+
+## Out of scope
+
+- A/B test variant catalog (defaults already updated; old variants remain valid).
+- `LandingBenchmarkTeaser.tsx`, `WhyCompetitorsWinPreview.tsx`, scan flow, dashboard, edge functions.
+- Logo usage for AI engines (text-only chips to avoid trademark risk).
 
 ## Files touched
 
 ```
-src/pages/Index.tsx                                   (major)
-src/components/IndustryBenchmarkStrip.tsx             (new, presentational)
-src/components/WhyCompetitorsWinPreview.tsx           (new, presentational)
-src/components/LandingBenchmarkTeaser.tsx             (new, marketing section)
+src/pages/Index.tsx   (hero copy, trust row, How-AI-Chooses examples, new example card)
+src/pages/About.tsx   (one CTA string)
 ```
 
-## Out of scope
+Approved.
 
-- No changes to `scan` edge function, recommendations schema, dashboard tabs, or `WhyCompetitorsWin.tsx`.
-- No changes to pricing, auth, or onboarding flows beyond copy.
-- No changes to the email-gate / unlock mechanic — only the surrounding presentation.
+Two final adjustments before publish:
 
-## Technical notes
+1. Remove "+18% projected visibility" from the example card and replace it with a non-numeric outcome label such as "Expected Impact: High" or "Top Recommendation".
+2. Make the example output card visually dominant and closely resemble an actual report users receive after a scan.
 
-- New components are pure presentation; they accept `scanData` props from `Index.tsx`.
-- Do not hardcode Industry Median = 34 and Top Quartile = 55. Use estimated benchmarks or real data only
-- Auto-prompt path reuses `supabase.functions.invoke('generate-prompts', …)` already imported in `Index.tsx`; on failure we fall back to the existing `BUSINESS_TYPE_PROMPTS.Other` template so the scan never blocks on prompt generation.  
-Add an optional Competitor field beside Domain in the primary scan flow.  
-  
-One Additional Section I'd Add
-  Between Hero and Scan:
-  ```
-  How AI Chooses Brands
-  ```
-  Visual:
-  ```
-  AI Question
-  ↓
-  Competitor Appears
-  ↓
-  We Show Why
-  ↓
-  You Fix It
-  ↓
-  AI Mentions You More
-  ```
-    
+Optional A/B test:  
+"Why ChatGPT, Gemini & Perplexity Recommend Your Competitors — Not You"
 
-
-&nbsp;
+Everything else is approved for implementation.

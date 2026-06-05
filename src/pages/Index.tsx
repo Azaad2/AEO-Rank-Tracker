@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight, ChevronDown, Target, MessageSquare, Swords, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
@@ -22,6 +22,10 @@ import { Header } from "@/components/Header";
 import { ScanResultsModal } from "@/components/ScanResultsModal";
 import { OptimizationHub } from "@/components/OptimizationHub";
 import { ScanProgressBar } from "@/components/ScanProgressBar";
+import { IndustryBenchmarkStrip } from "@/components/IndustryBenchmarkStrip";
+import { WhyCompetitorsWinPreview } from "@/components/WhyCompetitorsWinPreview";
+import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 import logo from "@/assets/logo-light.png";
 
@@ -82,6 +86,7 @@ const BUSINESS_TYPE_PROMPTS: Record<string, string[]> = {
 
 const Index = () => {
   const [domain, setDomain] = useState("");
+  const [competitor, setCompetitor] = useState("");
   const [promptsText, setPromptsText] = useState("");
   const [selectedBusinessType, setSelectedBusinessType] = useState<string | null>(null);
   const [customDescription, setCustomDescription] = useState('');
@@ -96,6 +101,8 @@ const Index = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
   
@@ -106,9 +113,9 @@ const Index = () => {
   const { variant: headlineVariant, trackConversion: trackHeadlineConversion } = useABTest('headline');
   const { variant: ctaVariant, trackConversion: trackCtaConversion } = useABTest('cta');
   
-  // Default values while loading
-  const headline = headlineVariant?.value || 'AI Search Visibility Checker';
-  const ctaText = ctaVariant?.value || 'Check My AI Visibility — Free';
+  // Default values while loading - repositioned around Recommendation Intelligence
+  const headline = headlineVariant?.value || 'See Exactly Why AI Recommends Competitors Instead of You';
+  const ctaText = ctaVariant?.value || 'Find My Opportunities — Free';
 
   // Track page view on mount
   useEffect(() => {

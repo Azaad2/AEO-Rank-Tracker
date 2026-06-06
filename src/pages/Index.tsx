@@ -1193,30 +1193,6 @@ const Index = () => {
           );
         })()}
 
-        {/* Post-Optimization Plan CTA — peak intent for non-logged-in users */}
-        {scanData && !user && (
-          <div className="mt-8 rounded-2xl border-2 border-yellow-400 bg-black p-6 md:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-              <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2">
-                  Save your action plan and watch competitors lose ground
-                </h3>
-                <p className="text-sm md:text-base text-gray-300">
-                  Weekly Recommendation Intelligence, competitor-move alerts, and asset-gap tracking — week over week.
-                </p>
-              </div>
-              <Link to="/auth" className="shrink-0">
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto bg-yellow-400 text-black hover:bg-yellow-300 font-bold"
-                >
-                  Create Free Account →
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
-
         {/* Scan Results Modal */}
         <ScanResultsModal
           open={showResultsModal}

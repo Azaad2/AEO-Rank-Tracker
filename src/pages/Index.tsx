@@ -916,238 +916,282 @@ const Index = () => {
         )}
 
 
-        {/* Results — opportunity-first layout */}
+        {/* Results — public preview (20-30%) + signup gate */}
         {scanData && (() => {
-          // Derive opportunity metrics from scanData
           const totalPrompts = scanData.results.length;
           const promptsMissingIn = scanData.results.filter(
             (r) => !r.mentioned && !r.geminiMentioned && !r.perplexityMentioned
           ).length;
-          const competitorSet = new Set<string>();
+
+          // Top competitor across all prompts
+          const compCounts = new Map<string, number>();
           for (const r of scanData.results) {
-            [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
-              .map((c) => c.trim().toLowerCase())
-              .filter(Boolean)
-              .forEach((c) => competitorSet.add(c));
+            const unique = new Set(
+              [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
+                .map((c) => c.trim().toLowerCase())
+                .filter(Boolean)
+            );
+            for (const c of unique) compCounts.set(c, (compCounts.get(c) || 0) + 1);
           }
-          const competitorsFound = competitorSet.size;
-          const opportunities = promptsMissingIn + Math.min(competitorsFound, 5);
+          const topComp = Array.from(compCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+          const competitorsFound = compCounts.size;
+
+          // Top opportunity — first prompt where domain is missing but a competitor is named
+          const topOppResult = scanData.results.find(
+            (r) =>
+              !r.mentioned &&
+              !r.geminiMentioned &&
+              !r.perplexityMentioned &&
+              ((r.geminiCompetitors?.length || 0) + (r.perplexityCompetitors?.length || 0)) > 0
+          ) || scanData.results.find((r) => !r.mentioned && !r.geminiMentioned && !r.perplexityMentioned);
+
+          const scoreColor =
+            scanData.score >= 70 ? "text-green-400" : scanData.score >= 40 ? "text-yellow-400" : "text-red-400";
+
+          const signupHref = `/auth?redirect=/dashboard`;
+          const beatLabel = topComp
+            ? `Let's beat ${topComp[0]}`
+            : `Let's rank ${scanData.project} inside AI answers`;
 
           return (
             <div className="space-y-5">
-              {/* Opportunity headline strip */}
-              <Card className="bg-gradient-to-r from-yellow-400/15 to-transparent border-yellow-400/50">
+              {/* PUBLIC: Score */}
+              <Card className="bg-gradient-to-r from-yellow-400/10 to-transparent border-yellow-400/40">
                 <CardContent className="p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex-1 min-w-[240px]">
                     <div className="text-xs uppercase tracking-wider text-yellow-400 font-semibold mb-1">
-                      Opportunities found
+                      AI Visibility Score
                     </div>
-                    <div className="text-2xl md:text-3xl font-bold text-white">
-                      You're missing {opportunities} high-impact opportunit{opportunities === 1 ? 'y' : 'ies'}
-                      <span className="text-gray-400 text-base font-normal"> competitors are already using.</span>
+                    <div className="flex items-baseline gap-3">
+                      <span className={`text-5xl font-bold ${scoreColor}`}>{scanData.score}</span>
+                      <span className="text-gray-400 text-sm">/ 100</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1">
                       {scanData.project} • {totalPrompts} prompts analyzed
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {isUnlocked ? (
-                      <>
-                        <Button onClick={downloadCSV} variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                          <Download className="mr-2 h-4 w-4" /> CSV
-                        </Button>
-                        <Button onClick={downloadPDF} variant="outline" size="sm" disabled={isDownloadingPDF} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                          {isDownloadingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                          Report
-                        </Button>
-                        <Button onClick={sendReportEmail} variant="outline" size="sm" disabled={isSendingEmail} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                          {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                          Email
-                        </Button>
-                      </>
-                    ) : (
-                      <Button onClick={openEmailModal} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
-                        <Lock className="mr-2 h-4 w-4" />
-                        Unlock all opportunities
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    onClick={() => trackEvent('signup_cta_click', { source: 'score_card', score: scanData.score })}
+                    asChild
+                    className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold"
+                  >
+                    <Link to={signupHref}>
+                      Unlock full intelligence — Free <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
 
-              {/* Industry Benchmark strip — score reduced to small chip */}
-              <IndustryBenchmarkStrip
-                score={scanData.score}
-                competitorsFound={competitorsFound}
-                promptsMissingIn={promptsMissingIn}
-                totalPrompts={totalPrompts}
-              />
+              {/* PUBLIC: One competitor insight + One top opportunity */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-gray-900 border-red-500/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-base flex items-center gap-2">
+                      <Swords className="h-4 w-4 text-red-400" />
+                      Top competitor insight
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topComp ? (
+                      <div className="space-y-2">
+                        <div className="text-2xl font-bold text-white capitalize">{topComp[0]}</div>
+                        <p className="text-sm text-gray-400">
+                          AI named them in <span className="text-yellow-400 font-semibold">{topComp[1]}</span> of your {totalPrompts} prompts.
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {competitorsFound - 1 > 0
+                            ? `+ ${competitorsFound - 1} more competitors named — unlock to see them all.`
+                            : `Unlock to see the full breakdown of why they win.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">No direct competitors detected in this scan.</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-              {/* Why Competitors Win preview */}
-              <WhyCompetitorsWinPreview
-                results={scanData.results}
-                onTrack={() => trackEvent('competitor_preview_click', { domain: scanData.project })}
-              />
+                <Card className="bg-gray-900 border-yellow-400/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-base flex items-center gap-2">
+                      <Target className="h-4 w-4 text-yellow-400" />
+                      Top opportunity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topOppResult ? (
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-300 italic">"{topOppResult.prompt}"</div>
+                        <p className="text-sm text-gray-400">
+                          You're missing from this prompt — {promptsMissingIn} total gap{promptsMissingIn === 1 ? '' : 's'} found.
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Unlock the full action plan to fix this.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Great — you appear in every analyzed prompt.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
-              {/* Per-prompt diagnostics moved into collapsible */}
-              <Card className="bg-gray-900 border-gray-800">
-                <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-800/40 transition"
+              {/* GATED: signed-in users see full intelligence; everyone else sees signup wall */}
+              {user ? (
+                <>
+                  <IndustryBenchmarkStrip
+                    score={scanData.score}
+                    competitorsFound={competitorsFound}
+                    promptsMissingIn={promptsMissingIn}
+                    totalPrompts={totalPrompts}
+                  />
+
+                  <WhyCompetitorsWinPreview
+                    results={scanData.results}
+                    onTrack={() => trackEvent('competitor_preview_click', { domain: scanData.project })}
+                  />
+
+                  <ImprovementRoadmap
+                    results={scanData.results}
+                    domain={scanData.project}
+                    currentScore={scanData.score}
+                  />
+
+                  <OptimizationHub
+                    scanData={{
+                      project: scanData.project,
+                      score: scanData.score,
+                      results: scanData.results,
+                    }}
+                    isUnlocked={true}
+                  />
+
+                  {/* Per-prompt diagnostics (signed-in only) */}
+                  <Card className="bg-gray-900 border-gray-800">
+                    <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-800/40 transition"
+                        >
+                          <div className="flex items-center gap-2 text-white">
+                            <ChevronDown className={`h-4 w-4 transition-transform ${showDiagnostics ? 'rotate-180' : ''}`} />
+                            <span className="font-medium">Per-prompt diagnostics & citation sources</span>
+                            <span className="text-xs text-gray-500">({totalPrompts} prompts)</span>
+                          </div>
+                          <span className="text-xs text-gray-500">{showDiagnostics ? 'Hide' : 'Show'}</span>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          <div className="space-y-3">
+                            {scanData.results.map((result, idx) => {
+                              const signals = [result.mentioned, result.cited, result.geminiMentioned, result.geminiCited];
+                              const hits = signals.filter(Boolean).length;
+                              const pct = Math.round((hits / signals.length) * 100);
+                              const barColor = pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-500";
+                              return (
+                                <div key={idx} className="p-4 border border-gray-800 rounded-lg bg-black/30">
+                                  <div className="flex items-start justify-between gap-4 mb-2">
+                                    <p className="font-medium text-sm flex-1 text-white">{idx + 1}. {result.prompt}</p>
+                                    <span className={`text-sm font-bold whitespace-nowrap ${pct >= 70 ? "text-green-400" : pct >= 40 ? "text-yellow-400" : "text-red-400"}`}>
+                                      {pct}% visible
+                                    </span>
+                                  </div>
+                                  <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                                    <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  {result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
+                                    <p className="text-xs text-gray-400 mt-2">
+                                      <span className="font-medium text-gray-200">Competitors here:</span>{" "}
+                                      {result.geminiCompetitors.slice(0, 3).join(", ")}
+                                    </p>
+                                  )}
+                                  {result.topCitedDomains && result.topCitedDomains.length > 0 && (
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                      <span className="font-medium text-gray-300">Citation sources:</span>{" "}
+                                      {result.topCitedDomains.slice(0, 3).join(", ")}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+
+                  {/* Export tools for signed-in users */}
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button onClick={downloadCSV} variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                      <Download className="mr-2 h-4 w-4" /> CSV
+                    </Button>
+                    <Button onClick={downloadPDF} variant="outline" size="sm" disabled={isDownloadingPDF} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                      {isDownloadingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                      Report
+                    </Button>
+                    <Button onClick={sendReportEmail} variant="outline" size="sm" disabled={isSendingEmail} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+                      {isSendingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                      Email
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setScanData(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      size="sm"
                     >
-                      <div className="flex items-center gap-2 text-white">
-                        <ChevronDown className={`h-4 w-4 transition-transform ${showDiagnostics ? 'rotate-180' : ''}`} />
-                        <span className="font-medium">Per-prompt diagnostics</span>
-                        <span className="text-xs text-gray-500">({totalPrompts} prompts)</span>
-                      </div>
-                      <span className="text-xs text-gray-500">{showDiagnostics ? 'Hide' : 'Show'}</span>
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {scanData.results.map((result, idx) => {
-                          const isLocked = !isUnlocked && idx >= FREE_PREVIEW_COUNT;
-                          const signals = [result.mentioned, result.cited, result.geminiMentioned, result.geminiCited];
-                          const hits = signals.filter(Boolean).length;
-                          const pct = Math.round((hits / signals.length) * 100);
-                          const barColor = pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-500";
+                      Scan another →
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                /* Signup wall — gated value */
+                <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-400/10 to-black">
+                  <CardContent className="p-6 md:p-8 space-y-5">
+                    <div className="text-center space-y-2">
+                      <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
+                      <h3 className="text-xl md:text-2xl font-bold text-white">
+                        You've seen 25% of your intelligence
+                      </h3>
+                      <p className="text-sm text-gray-300 max-w-xl mx-auto">
+                        Create a free account to unlock the rest — no card, no email verification, instant access.
+                      </p>
+                    </div>
 
-                          return (
-                            <div key={idx} className={`p-4 border border-gray-800 rounded-lg bg-black/30 ${isLocked ? "relative" : ""}`}>
-                              <div className="flex items-start justify-between gap-4 mb-2">
-                                <p className={`font-medium text-sm flex-1 text-white ${isLocked ? "blur-sm select-none" : ""}`}>
-                                  {idx + 1}. {isLocked ? "Locked prompt — unlock to view" : result.prompt}
-                                </p>
-                                <span className={`text-sm font-bold whitespace-nowrap ${isLocked ? "blur-sm select-none" : ""} ${pct >= 70 ? "text-green-400" : pct >= 40 ? "text-yellow-400" : "text-red-400"}`}>
-                                  {pct}% visible
-                                </span>
-                              </div>
-                              <div className={`h-2 w-full bg-gray-800 rounded-full overflow-hidden ${isLocked ? "blur-sm" : ""}`}>
-                                <div className={`h-full ${barColor} transition-all`} style={{ width: `${isLocked ? 30 : pct}%` }} />
-                              </div>
-                              {!isLocked && result.geminiCompetitors && result.geminiCompetitors.length > 0 && (
-                                <p className="text-xs text-gray-400 mt-2">
-                                  <span className="font-medium text-gray-200">Competitors here:</span>{" "}
-                                  {result.geminiCompetitors.slice(0, 3).join(", ")}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {!isUnlocked && scanData.results.length > FREE_PREVIEW_COUNT && (
-                        <div className="mt-4 p-4 border border-gray-800 rounded-lg bg-black/30 text-center">
-                          <p className="text-sm text-gray-400 mb-3">
-                            <Lock className="inline-block h-4 w-4 mr-1" />
-                            {scanData.results.length - FREE_PREVIEW_COUNT} more results are locked
-                          </p>
-                          <Button onClick={openEmailModal} size="sm" className="bg-yellow-400 text-black hover:bg-yellow-500">
-                            Unlock All Results
-                          </Button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                      {[
+                        { icon: Swords, label: "Why Competitors Win — full breakdown" },
+                        { icon: Sparkles, label: "Full Recommendation Intelligence" },
+                        { icon: TrendingUp, label: "Industry Benchmark vs your score" },
+                        { icon: FileText, label: "Citation sources for every prompt" },
+                      ].map(({ icon: Icon, label }) => (
+                        <div key={label} className="flex items-center gap-2 text-sm text-gray-200 bg-black/40 border border-gray-800 rounded-lg p-3">
+                          <Icon className="h-4 w-4 text-yellow-400 shrink-0" />
+                          <span>{label}</span>
                         </div>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-center pt-2">
+                      <Link
+                        to={signupHref}
+                        onClick={() => trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score })}
+                      >
+                        <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold">
+                          {beatLabel} — Sign up free
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+                    <p className="text-center text-xs text-gray-500">
+                      Free forever plan. Upgrade only when you want weekly tracking.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           );
         })()}
-
-
-        {scanData && isUnlocked && (
-          <div className="text-center mt-6">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setScanData(null);
-                setIsUnlocked(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              Scan another domain →
-            </Button>
-          </div>
-        )}
-
-        {/* Improvement Roadmap - locked behind email gate */}
-        {scanData && (
-          <div className="relative">
-            {!isUnlocked && <LockedOverlay onUnlock={openEmailModal} message="Enter your email to see your personalized improvement roadmap" />}
-            <div className={!isUnlocked ? "blur-sm pointer-events-none" : ""}>
-              <ImprovementRoadmap 
-                results={scanData.results}
-                domain={scanData.project}
-                currentScore={scanData.score}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Upgrade CTA — high-intent moment after email unlock */}
-        {scanData && isUnlocked && !user && (
-          <div className="rounded-lg border-2 border-yellow-400 bg-yellow-400/10 p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-black shrink-0">
-                <TrendingUp className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-yellow-400 text-base md:text-lg font-bold">
-                  Track your gaps weekly
-                </h3>
-                <p className="text-gray-300 text-sm mt-1">
-                  Get new competitor moves the moment they appear — plus an evidence-bound action plan, <span className="text-white font-semibold">starting at $19/mo</span>.
-                </p>
-              </div>
-            </div>
-            <Link to="/pricing" onClick={() => trackEvent('upgrade_cta_click', { source: 'post_unlock_banner', score: scanData.score })}>
-              <Button size="lg" className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold whitespace-nowrap">
-                Upgrade to Pro
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        )}
-
-        {/* Optimization Hub - AI-powered improvement recommendations */}
-        {scanData && (
-          <OptimizationHub 
-            scanData={{
-              project: scanData.project,
-              score: scanData.score,
-              results: scanData.results,
-            }}
-            isUnlocked={isUnlocked}
-          />
-        )}
-
-        {/* Post-Optimization Plan CTA — peak intent for non-logged-in users */}
-        {scanData && !user && (
-          <div className="mt-8 rounded-2xl border-2 border-yellow-400 bg-black p-6 md:p-8 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-              <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-2">
-                  Save your action plan and watch competitors lose ground
-                </h3>
-                <p className="text-sm md:text-base text-gray-300">
-                  Weekly Recommendation Intelligence, competitor-move alerts, and asset-gap tracking — week over week.
-                </p>
-              </div>
-              <Link to="/auth" className="shrink-0">
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto bg-yellow-400 text-black hover:bg-yellow-300 font-bold"
-                >
-                  Create Free Account →
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Scan Results Modal */}
         <ScanResultsModal

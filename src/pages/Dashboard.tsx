@@ -9,11 +9,14 @@ import { QuickScan } from '@/components/dashboard/QuickScan';
 import { RecommendationIntelligence } from '@/components/dashboard/RecommendationIntelligence';
 import { WhyCompetitorsWin } from '@/components/dashboard/WhyCompetitorsWin';
 import { MetricsExplain } from '@/components/dashboard/MetricsExplain';
+import { IndustryBenchmarkTab } from '@/components/dashboard/IndustryBenchmarkTab';
+import { CitationIntelligenceTab } from '@/components/dashboard/CitationIntelligenceTab';
+import { PromptDiagnosticsTab } from '@/components/dashboard/PromptDiagnosticsTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Globe, Sparkles, Bot, Wrench, Copy, Swords, BarChart3, Radar } from 'lucide-react';
+import { Loader2, Globe, Sparkles, Bot, Wrench, Copy, Swords, BarChart3, Radar, TrendingUp, FileText, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AIAssistant } from '@/components/dashboard/AIAssistant';
@@ -189,9 +192,13 @@ function DashboardTabs({
   plan: PlanData | null;
   onChanged: () => void;
 }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  // Legacy redirects
+  const scanIdParam = searchParams.get('scanId');
+
+  // Legacy redirects to new tab structure
   const initial = (() => {
     switch (tabParam) {
       case 'action-plan':
@@ -200,19 +207,48 @@ function DashboardTabs({
         return 'recommendations';
       case 'competitors':
         return 'why-win';
-      case 'domains':
-        return 'domains';
-      case 'ai-assistant':
-        return 'ai-assistant';
-      case 'scans':
-        return 'scans';
+      case 'benchmark':
+        return 'benchmark';
+      case 'citations':
+        return 'citations';
+      case 'diagnostics':
+        return 'diagnostics';
       case 'metrics':
         return 'metrics';
+      case 'domains':
+        return 'domains';
+      case 'scans':
+        return 'scans';
+      case 'ai-assistant':
+        return 'ai-assistant';
       default:
         return 'recommendations';
     }
   })();
   const [tab, setTab] = useState(initial);
+
+  // Claim a guest scan post-signup
+  useEffect(() => {
+    const claim = async () => {
+      const pending = scanIdParam || (typeof window !== 'undefined' ? localStorage.getItem('pendingScanId') : null);
+      if (!pending || !user) return;
+      try {
+        const { data: existing } = await supabase
+          .from('scans')
+          .select('id, user_id')
+          .eq('id', pending)
+          .maybeSingle();
+        if (existing && !existing.user_id) {
+          await supabase.from('scans').update({ user_id: user.id }).eq('id', pending);
+        }
+      } catch (e) {
+        console.warn('claim scan failed', e);
+      } finally {
+        try { localStorage.removeItem('pendingScanId'); } catch {}
+      }
+    };
+    claim();
+  }, [user, scanIdParam]);
 
   const handleTabChange = (v: string) => {
     setTab(v);
@@ -230,19 +266,31 @@ function DashboardTabs({
           <Swords className="h-3.5 w-3.5" />
           Why Competitors Win
         </TabsTrigger>
+        <TabsTrigger value="benchmark" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <TrendingUp className="h-3.5 w-3.5" />
+          Industry Benchmark
+        </TabsTrigger>
+        <TabsTrigger value="citations" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <FileText className="h-3.5 w-3.5" />
+          Citation Intelligence
+        </TabsTrigger>
+        <TabsTrigger value="diagnostics" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+          <MessageSquare className="h-3.5 w-3.5" />
+          Prompt Diagnostics
+        </TabsTrigger>
         <TabsTrigger value="metrics" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
           <BarChart3 className="h-3.5 w-3.5" />
           Metrics
         </TabsTrigger>
-        <TabsTrigger value="domains" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+        <TabsTrigger value="domains" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm opacity-80">
           <Globe className="h-3.5 w-3.5" />
-          My Domains
+          Domains
         </TabsTrigger>
-        <TabsTrigger value="scans" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+        <TabsTrigger value="scans" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm opacity-80">
           <Radar className="h-3.5 w-3.5" />
           Scans
         </TabsTrigger>
-        <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm">
+        <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black text-gray-300 flex items-center gap-1.5 text-xs sm:text-sm opacity-80">
           <Bot className="h-3.5 w-3.5" />
           AI Assistant
         </TabsTrigger>
@@ -254,6 +302,18 @@ function DashboardTabs({
 
       <TabsContent value="why-win" className="mt-6">
         <WhyCompetitorsWin />
+      </TabsContent>
+
+      <TabsContent value="benchmark" className="mt-6">
+        <IndustryBenchmarkTab />
+      </TabsContent>
+
+      <TabsContent value="citations" className="mt-6">
+        <CitationIntelligenceTab />
+      </TabsContent>
+
+      <TabsContent value="diagnostics" className="mt-6">
+        <PromptDiagnosticsTab />
       </TabsContent>
 
       <TabsContent value="metrics" className="mt-6">

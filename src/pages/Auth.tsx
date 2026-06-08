@@ -11,7 +11,12 @@ import logo from '@/assets/logo-light.png';
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  // Honor a pending guest scan so users land in their fresh report after signup
+  const pendingScanId = typeof window !== 'undefined' ? localStorage.getItem('pendingScanId') : null;
+  const baseRedirect = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = pendingScanId
+    ? `/dashboard?tab=recommendations&scanId=${encodeURIComponent(pendingScanId)}`
+    : baseRedirect;
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { user, isLoading, signIn, signUp, signInWithGoogle } = useAuth();

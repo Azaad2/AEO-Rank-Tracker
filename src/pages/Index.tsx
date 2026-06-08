@@ -19,7 +19,7 @@ import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { LockedOverlay } from "@/components/LockedOverlay";
 import { GuestLimitModal } from "@/components/GuestLimitModal";
 import { Header } from "@/components/Header";
-import { ScanResultsModal } from "@/components/ScanResultsModal";
+// ScanResultsModal removed — results render inline as unified Recommendation Intelligence preview
 import { OptimizationHub } from "@/components/OptimizationHub";
 import { ScanProgressBar } from "@/components/ScanProgressBar";
 import { IndustryBenchmarkStrip } from "@/components/IndustryBenchmarkStrip";

@@ -298,9 +298,15 @@ const Index = () => {
       setScanData(data);
       if (data.scanId) {
         setScanId(data.scanId);
+        // Persist for post-signup claim
+        if (!user) {
+          try { localStorage.setItem('pendingScanId', data.scanId); } catch {}
+        }
       }
-      // Auto-open results modal
-      setShowResultsModal(true);
+      // Scroll to results
+      setTimeout(() => {
+        document.getElementById('scan-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
       
       // Track successful scan completion
       trackEvent('scan_completed', {

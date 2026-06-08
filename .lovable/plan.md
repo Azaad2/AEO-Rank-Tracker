@@ -1,97 +1,82 @@
-# Landing page polish — pre-publish
+# Unified Post-Scan Experience
 
-Frontend-only refinements in `src/pages/Index.tsx` plus one CTA fix in `src/pages/About.tsx`. No edge function, schema, or backend work.
+Goal: one scan → one coherent Recommendation Intelligence report. Public visitors see a preview + signup gate; signed-up users land directly in the Recommendations dashboard with their scan already attached.
 
-## 1. Shorter hero headline
+---
 
-`src/pages/Index.tsx` (~L519–528):
+## 1. Public scan flow (`src/pages/Index.tsx`)
 
-- Replace two-line headline with a tighter one:
-  - **H1:** "Why AI Recommends Your Competitors — Not You."
-  - Yellow accent on "Not You."
-- Drop font sizes one step (`text-3xl sm:text-4xl md:text-5xl lg:text-6xl`) so the line fits on one row on desktop and two on mobile.
-- Trim subhead to one sentence: "Recommendation Intelligence reveals the asset gaps and citation patterns winning your industry across ChatGPT, Gemini, and Perplexity — in under 60 seconds."
+**Remove the legacy modal entirely.**
 
-## 2. Replace "500+ brands" social proof with AI-engine trust row
+- Delete the `ScanResultsModal` import, `<ScanResultsModal />` render, and `showResultsModal` / `setShowResultsModal` state.
+- Remove `setShowResultsModal(true)` after scan completion (line ~303). Results render inline only.
+- Remove the now-unused `EmailCaptureModal` flow for unlocking (modal-based unlock paths). Keep the component file untouched; just stop opening it.
 
-`src/pages/Index.tsx` (~L544–565). The brand count isn't verified, so swap the avatar cluster + "500+ brands" line for an engine-coverage trust indicator:
+**Rebuild the public results block (the `{scanData && (() => { ... })()}` section, lines ~919-1194) as a single unified preview, in this order:**
 
-```
-Analyzing recommendations from
-[ChatGPT]  [Gemini]  [Perplexity]  [Claude]
-Updated continuously · Citation-grade evidence
-```
+1. **Opportunity Summary hero** (new — primary moment):
+  - Headline: `You appeared in {mentionedCount}/{total} prompts`
+  - Sub: `{topComp.name} appeared in {topComp.count}/{total} prompts` (only if a top competitor exists)
+  - Two chips: `Top Gap: {derived gap label}` and `Top Opportunity: {derived recommendation label}` (derive from existing `compCounts` + `topOppResult` logic already in the file).
+2. **Why Competitors Win — one insight** (preview): one sentence naming the top competitor and the asset class they win on (comparison pages / reviews / citations), derived from `topCitedDomains`.
+3. **Top 3 Opportunities** (preview): first three gap prompts as compact cards with a one-line action each (reuse the missing-prompt + competitor data already computed).
+4. **Small Visibility Score chip** (secondary): inline `Score: {score}/100` pill, not a hero card.
+5. **Locked premium sections** (visual blur using existing `LockedOverlay`): stacked teasers for
+  - Full Why Competitors Win
+  - Full Recommendation Intelligence
+  - Industry Benchmark
+  - Citation Sources
+  - Competitor Asset Breakdown
+  - Full Action Plan
+6. **Single CTA card**: `Create Free Account to Unlock Full Report` → `/auth?redirect=/dashboard?tab=recommendations&scanId={scanId}`. Keep the dynamic `Let's beat {topComp}` sub-label.
 
-- Render as 4 pill chips (text labels, no logos to avoid trademark issues) with a small check or sparkle icon.
-- Keep yellow accent on the engine names.
-- Remove the colored letter avatars and "500+ brands" string entirely.
+For signed-in users on `/` (rare path), skip the gate and link them straight to `/dashboard?tab=recommendations&scanId={scanId}` instead of re-rendering `IndustryBenchmarkStrip` / `WhyCompetitorsWinPreview` / `ImprovementRoadmap` / `OptimizationHub` inline (those now live in the dashboard).
 
-## 3. Concrete examples inside "How AI Chooses Brands"
+**Persist scanId across signup**: when a guest scan completes, write `localStorage.setItem('pendingScanId', scanId)` so the dashboard can claim/open it after auth.
 
-`src/pages/Index.tsx` (~L569–599). Keep the 5-step flow; add a one-line concrete example under each step so the abstraction lands:
+## 2. Signup handoff
 
+- `src/pages/Auth.tsx` (or the existing post-auth redirect logic): if `pendingScanId` exists in localStorage after successful signup/login, redirect to `/dashboard?tab=recommendations&scanId={id}` (instead of the default `/dashboard`).
+- `src/pages/Dashboard.tsx`: on mount, if `?scanId=` is present and the scan in `scans` table has `user_id IS NULL`, call a small `update` to set `user_id = auth.uid()` (claim it). Then clear `localStorage.pendingScanId`. Default the tab to `recommendations` (already the default — just make sure `?tab=recommendations` is honored, which it is).
 
-| Step               | Current desc                            | Add example                                                      |
-| ------------------ | --------------------------------------- | ---------------------------------------------------------------- |
-| AI Question        | Buyers ask ChatGPT, Gemini, Perplexity. | e.g. "best CRM for small agencies"                               |
-| Competitor Appears | Someone else gets named — not you.      | Cited via a G2 comparison page                                   |
-| We Show Why        | Asset gaps + citation patterns.         | You're missing comparison pages, Reddit threads, review profiles |
-| You Fix It         | Evidence-bound action plan.             | Ship a "/vs/competitor" page + claim G2 profile                  |
-| AI Names You       | Visibility compounds week over week.    | Mentions appear in Perplexity in ~2 weeks                        |
+## 3. Dashboard navigation (`src/pages/Dashboard.tsx`)
 
+Reorder the primary tabs to match the new positioning:
 
-Render the example as a smaller line below `desc` in a muted yellow (`text-yellow-400/70 text-[10px]`).
-
-## 4. Real competitor intelligence example below the hero
-
-New section inserted between the hero (~L567) and "How AI Chooses Brands" (L569). Static, hard-coded illustrative data so visitors instantly understand the output without scanning.
-
-Layout: a single Card titled **"What you get back — example: project-management.com"** with three stacked rows:
-
-```
-Prompt: "best project management software for remote teams"
-─────────────────────────────────────────────────────────
-Cited:    Asana · Monday · ClickUp        (3 competitors)
-You:      Not mentioned
-Why they win:
-  • Asana  — strong on /alternatives pages + Reddit r/productivity
-  • Monday — owns 4 listicles ("Top 10 PM tools 2026")
-  • ClickUp — claimed G2/Capterra profiles, active changelog
-Your move: Publish "/alternatives/asana" + claim G2 profile  →  +18% projected visibility
+```text
+Recommendations | Why Competitors Win | Industry Benchmark | Citation Intelligence | AI Recommendation Breakdown | Metrics
 ```
 
-- Implement inline in `Index.tsx` (no new component file — keep scope tight).
-- Use existing `Card`, `Badge`, and yellow accents from the design system.
-- Small "Example output" badge in the corner so it's not mistaken for live data.
-- CTA at the bottom: "Run this on your domain →" that scrolls to `#scan`.
+- **Recommendations** → existing `<RecommendationIntelligence />` (unchanged).
+- **Why Competitors Win** → existing `<WhyCompetitorsWin />` (unchanged).
+- **Industry Benchmark** (new tab): render `<IndustryBenchmarkStrip />` plus a list of how the user's latest scan compares (reuse latest `scans` row).
+- **Citation Intelligence** (new tab): pull from `citation_sources` / `citations` tables for the user's scans — grouped by source domain with counts. Simple table, no new edge functions.
+- **AI Recommendation Breakdown** (new tab): the per-prompt collapsible block currently inline in `Index.tsx` (lines ~1069-1122), moved to a small component that loads from `scan_results` for the latest scan.
+- **Metrics** → existing `<MetricsExplain />` (unchanged).
 
-## 5. Replace remaining "Check My AI Visibility" CTAs
+**Move to a "Legacy" secondary area** (a `<Collapsible>` below the tabs, or a single overflow tab `More ▾`):
 
-- `src/pages/About.tsx:85` → "Find My Opportunities — Free"
-- Audit `src/pages/Index.tsx` for any lingering "Check My AI Visibility" strings; current copy already uses `ctaText` ("Find My Opportunities — Free") so this should just be the About page fix. Verify with a final grep before finishing.
-- Leave the blog FAQ string in `AIVisibilityCheckerGuide.tsx` alone — it's an editorial question, not a CTA.
+- Issues Detected
+- Visibility Improvement Roadmap (`ImprovementRoadmap`)
+- Optimization Plan (`OptimizationHub`)
+- My Domains, Scans, AI Assistant stay where they are (in the overflow `More ▾`).
+
+Update the legacy `tabParam` redirect map so old links (`?tab=auto-fix`, etc.) still resolve.
+
+## 4. Cleanup
+
+- Remove unused imports in `Index.tsx` once the modal and inline gated blocks are gone: `ScanResultsModal`, `IndustryBenchmarkStrip`, `WhyCompetitorsWinPreview`, `ImprovementRoadmap`, `OptimizationHub`, `LockedOverlay` stays (used in blurred teasers), `EmailCaptureModal` stays only if used elsewhere — drop if not.
+- Leave `ScanResultsModal.tsx` and `EmailCaptureModal.tsx` files in place (not deleted) to avoid breaking unrelated routes; just stop importing them in `Index.tsx`.
+
+## Technical notes
+
+- All changes are frontend except a one-line `update` on `scans` to claim the guest scan post-signup (uses existing RLS — the user can update their own scan once `user_id` is null and they're authenticated; verify the RLS policy allows `user_id IS NULL → set user_id = auth.uid()`. If not, add a small `claim-scan` edge function or migration to allow it).
+- No changes to the `scan` edge function, scoring, or recommendation generation.
+- No new dependencies.
 
 ## Out of scope
 
-- A/B test variant catalog (defaults already updated; old variants remain valid).
-- `LandingBenchmarkTeaser.tsx`, `WhyCompetitorsWinPreview.tsx`, scan flow, dashboard, edge functions.
-- Logo usage for AI engines (text-only chips to avoid trademark risk).
-
-## Files touched
-
-```
-src/pages/Index.tsx   (hero copy, trust row, How-AI-Chooses examples, new example card)
-src/pages/About.tsx   (one CTA string)
-```
-
-Approved.
-
-Two final adjustments before publish:
-
-1. Remove "+18% projected visibility" from the example card and replace it with a non-numeric outcome label such as "Expected Impact: High" or "Top Recommendation".
-2. Make the example output card visually dominant and closely resemble an actual report users receive after a scan.
-
-Optional A/B test:  
-"Why ChatGPT, Gemini & Perplexity Recommend Your Competitors — Not You"
-
-Everything else is approved for implementation.
+- Redesigning `RecommendationIntelligence` cards.
+- Changing scoring weights or recommendation logic.
+- Email/PDF export flows (kept as-is inside the dashboard).
+- Landing page hero, How AI Chooses Brands, benchmark teaser (already shipped).

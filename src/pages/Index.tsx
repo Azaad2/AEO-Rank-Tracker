@@ -53,6 +53,15 @@ interface ScanResponse {
   promptsCount: number;
   score: number;
   results: ScanResult[];
+  classification?: {
+    industry_id: string | null;
+    industry_slug: string | null;
+    topic_cluster_id: string | null;
+    topic_cluster_slug: string | null;
+    confidence: number;
+    reasoning: string;
+    method: 'llm' | 'heuristic' | 'none';
+  };
   meta?: {
     llmAnalysisUsed: number;
     geminiAnalysisUsed: number;
@@ -1025,6 +1034,44 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* SCAN CONTEXT — classification metadata */}
+              {scanData.classification && scanData.classification.method !== 'none' && (
+                <Card className="bg-gray-900/60 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 uppercase tracking-wider">Industry</span>{' '}
+                        <span className="text-white font-medium capitalize">
+                          {scanData.classification.industry_slug?.replace(/-/g, ' ') ?? '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 uppercase tracking-wider">Topic Cluster</span>{' '}
+                        <span className="text-white font-medium capitalize">
+                          {scanData.classification.topic_cluster_slug?.replace(/-/g, ' ') ?? 'General'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 uppercase tracking-wider">Confidence</span>{' '}
+                        <span className="text-yellow-400 font-semibold">
+                          {Math.round(scanData.classification.confidence * 100)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 uppercase tracking-wider">Method</span>{' '}
+                        <span className="text-gray-300 font-mono">{scanData.classification.method}</span>
+                      </div>
+                    </div>
+                    {scanData.classification.reasoning && (
+                      <p className="mt-2 text-xs text-gray-400 italic">
+                        “{scanData.classification.reasoning}”
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
 
               {/* WHY COMPETITORS WIN — one insight */}
               {topComp && (

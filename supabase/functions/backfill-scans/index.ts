@@ -4,6 +4,7 @@
 // re-extraction to avoid re-spending LLM tokens on historical data.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { classifyIndustry } from '../_shared/classify-industry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -112,6 +113,9 @@ serve(async (req) => {
 });
 
 async function processScan(sb: any, scanId: string): Promise<number> {
+  // Stage 0: classify industry/topic-cluster if missing
+  await classifyScanIfNeeded(sb, scanId);
+
   // Stage 1: compute-metrics (idempotent — upserts on scan_id)
   await invokeFn('compute-metrics', { scanId });
   await sb.from('backfill_jobs').update({ status: 'metrics_done' }).eq('scan_id', scanId);
@@ -127,6 +131,34 @@ async function processScan(sb: any, scanId: string): Promise<number> {
 
   return (rollup?.grains ?? 0) + (rollup?.contributions ?? 0);
 }
+
+async function classifyScanIfNeeded(sb: any, scanId: string): Promise<void> {
+  const { data: scan } = await sb
+    .from('scans')
+    .select('id, project_domain, prompts, industry_id, classification_method')
+    .eq('id', scanId)
+    .single();
+  if (!scan) return;
+  if (scan.industry_id && scan.classification_method && scan.classification_method !== 'none') return;
+
+  const [{ data: industries }, { data: clusters }] = await Promise.all([
+    sb.from('industries').select('id, slug, name'),
+    sb.from('topic_clusters').select('id, industry_id, slug, name'),
+  ]);
+  const cls = await classifyIndustry({
+    domain: scan.project_domain,
+    prompts: scan.prompts ?? [],
+    industries: industries ?? [],
+    clusters: clusters ?? [],
+    lovableApiKey: Deno.env.get('LOVABLE_API_KEY') ?? undefined,
+  });
+  await sb.from('scans').update({
+    industry_id: cls.industry_id,
+    topic_cluster_id: cls.topic_cluster_id,
+    classification_confidence: cls.confidence,
+    classification_reasoning: cls.reasoning,
+    classification_method: cls.method,
+  }).eq('id', scanId);
 
 async function invokeFn(name: string, body: unknown): Promise<any> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {

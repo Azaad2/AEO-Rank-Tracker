@@ -7,6 +7,7 @@ import {
   type ClassifiedCitation,
   type Engine,
 } from "../_shared/citations.ts";
+import { classifyIndustry } from "../_shared/classify-industry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -855,11 +856,43 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // --- Industry / Topic-Cluster classification (best-effort) ---
+    let classification = {
+      industry_id: null as string | null,
+      industry_slug: null as string | null,
+      topic_cluster_id: null as string | null,
+      topic_cluster_slug: null as string | null,
+      confidence: 0,
+      reasoning: '',
+      method: 'none' as 'llm' | 'heuristic' | 'none',
+    };
+    try {
+      const [{ data: industries }, { data: clusters }] = await Promise.all([
+        supabase.from('industries').select('id, slug, name'),
+        supabase.from('topic_clusters').select('id, industry_id, slug, name'),
+      ]);
+      classification = await classifyIndustry({
+        domain: targetDomain,
+        prompts,
+        industries: industries ?? [],
+        clusters: clusters ?? [],
+        lovableApiKey: Deno.env.get('LOVABLE_API_KEY') ?? undefined,
+      });
+      console.log(`🏷️ Classified scan: ${classification.industry_slug ?? 'none'} / ${classification.topic_cluster_slug ?? 'none'} (${classification.method}, ${classification.confidence})`);
+    } catch (clsErr) {
+      console.warn('Classification failed (non-fatal):', clsErr);
+    }
+
     const scanInsert: any = {
       project_domain: targetDomain,
       prompts,
       market,
       score,
+      industry_id: classification.industry_id,
+      topic_cluster_id: classification.topic_cluster_id,
+      classification_confidence: classification.confidence,
+      classification_reasoning: classification.reasoning,
+      classification_method: classification.method,
     };
     if (userId) {
       scanInsert.user_id = userId;
@@ -1153,6 +1186,15 @@ serve(async (req) => {
         promptsCount: prompts.length,
         score,
         results: rows,
+        classification: {
+          industry_id: classification.industry_id,
+          industry_slug: classification.industry_slug,
+          topic_cluster_id: classification.topic_cluster_id,
+          topic_cluster_slug: classification.topic_cluster_slug,
+          confidence: classification.confidence,
+          reasoning: classification.reasoning,
+          method: classification.method,
+        },
         meta: {
           llmAnalysisUsed: llmUsedCount,
           geminiAnalysisUsed: geminiUsedCount,

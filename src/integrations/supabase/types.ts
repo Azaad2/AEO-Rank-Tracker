@@ -1134,7 +1134,7 @@ export type Database = {
           time_estimate_minutes: number | null
           title: string
           tool_link: string | null
-          user_id: string
+          user_id: string | null
           why_this_matters: string | null
         }
         Insert: {
@@ -1168,7 +1168,7 @@ export type Database = {
           time_estimate_minutes?: number | null
           title: string
           tool_link?: string | null
-          user_id: string
+          user_id?: string | null
           why_this_matters?: string | null
         }
         Update: {
@@ -1202,7 +1202,7 @@ export type Database = {
           time_estimate_minutes?: number | null
           title?: string
           tool_link?: string | null
-          user_id?: string
+          user_id?: string | null
           why_this_matters?: string | null
         }
         Relationships: [

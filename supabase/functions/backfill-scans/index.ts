@@ -159,6 +159,7 @@ async function classifyScanIfNeeded(sb: any, scanId: string): Promise<void> {
     classification_reasoning: cls.reasoning,
     classification_method: cls.method,
   }).eq('id', scanId);
+}
 
 async function invokeFn(name: string, body: unknown): Promise<any> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {

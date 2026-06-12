@@ -113,6 +113,9 @@ serve(async (req) => {
 });
 
 async function processScan(sb: any, scanId: string): Promise<number> {
+  // Stage 0: classify industry/topic-cluster if missing
+  await classifyScanIfNeeded(sb, scanId);
+
   // Stage 1: compute-metrics (idempotent — upserts on scan_id)
   await invokeFn('compute-metrics', { scanId });
   await sb.from('backfill_jobs').update({ status: 'metrics_done' }).eq('scan_id', scanId);

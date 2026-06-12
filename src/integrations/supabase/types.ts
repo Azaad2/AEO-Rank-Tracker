@@ -1333,6 +1333,9 @@ export type Database = {
       }
       scans: {
         Row: {
+          classification_confidence: number | null
+          classification_method: string | null
+          classification_reasoning: string | null
           created_at: string
           id: string
           industry_id: string | null
@@ -1347,6 +1350,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          classification_confidence?: number | null
+          classification_method?: string | null
+          classification_reasoning?: string | null
           created_at?: string
           id?: string
           industry_id?: string | null
@@ -1361,6 +1367,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          classification_confidence?: number | null
+          classification_method?: string | null
+          classification_reasoning?: string | null
           created_at?: string
           id?: string
           industry_id?: string | null
@@ -1671,6 +1680,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_recommendation_outcome: {
+        Args: { _recommendation_id: string; _success: boolean }
+        Returns: string
       }
     }
     Enums: {

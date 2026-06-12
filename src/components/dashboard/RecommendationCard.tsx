@@ -87,6 +87,16 @@ export function RecommendationCard({ rec, onChanged }: Props) {
       toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
       return;
     }
+    // Log outcome (fire-and-forget) for completed/dismissed transitions so we can
+    // measure recommendation impact over time.
+    if (status === 'completed' || status === 'dismissed') {
+      supabase.rpc('record_recommendation_outcome', {
+        _recommendation_id: rec.id,
+        _success: status === 'completed',
+      }).then(({ error: outErr }) => {
+        if (outErr) console.warn('record_recommendation_outcome failed:', outErr.message);
+      });
+    }
     toast({ title: status === 'completed' ? 'Marked done' : 'Updated' });
     onChanged?.();
   }

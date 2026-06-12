@@ -856,11 +856,43 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // --- Industry / Topic-Cluster classification (best-effort) ---
+    let classification = {
+      industry_id: null as string | null,
+      industry_slug: null as string | null,
+      topic_cluster_id: null as string | null,
+      topic_cluster_slug: null as string | null,
+      confidence: 0,
+      reasoning: '',
+      method: 'none' as 'llm' | 'heuristic' | 'none',
+    };
+    try {
+      const [{ data: industries }, { data: clusters }] = await Promise.all([
+        supabase.from('industries').select('id, slug, name'),
+        supabase.from('topic_clusters').select('id, industry_id, slug, name'),
+      ]);
+      classification = await classifyIndustry({
+        domain: targetDomain,
+        prompts,
+        industries: industries ?? [],
+        clusters: clusters ?? [],
+        lovableApiKey: Deno.env.get('LOVABLE_API_KEY') ?? undefined,
+      });
+      console.log(`🏷️ Classified scan: ${classification.industry_slug ?? 'none'} / ${classification.topic_cluster_slug ?? 'none'} (${classification.method}, ${classification.confidence})`);
+    } catch (clsErr) {
+      console.warn('Classification failed (non-fatal):', clsErr);
+    }
+
     const scanInsert: any = {
       project_domain: targetDomain,
       prompts,
       market,
       score,
+      industry_id: classification.industry_id,
+      topic_cluster_id: classification.topic_cluster_id,
+      classification_confidence: classification.confidence,
+      classification_reasoning: classification.reasoning,
+      classification_method: classification.method,
     };
     if (userId) {
       scanInsert.user_id = userId;

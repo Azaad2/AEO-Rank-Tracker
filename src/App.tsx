@@ -46,6 +46,7 @@ import DomainDetail from "./pages/DomainDetail";
 import Integrations from "./pages/Integrations";
 import BulkScan from "./pages/admin/BulkScan";
 import Backfill from "./pages/admin/Backfill";
+import AdminRecommendations from "./pages/admin/Recommendations";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";

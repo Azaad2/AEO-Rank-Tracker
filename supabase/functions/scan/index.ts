@@ -1186,6 +1186,15 @@ serve(async (req) => {
         promptsCount: prompts.length,
         score,
         results: rows,
+        classification: {
+          industry_id: classification.industry_id,
+          industry_slug: classification.industry_slug,
+          topic_cluster_id: classification.topic_cluster_id,
+          topic_cluster_slug: classification.topic_cluster_slug,
+          confidence: classification.confidence,
+          reasoning: classification.reasoning,
+          method: classification.method,
+        },
         meta: {
           llmAnalysisUsed: llmUsedCount,
           geminiAnalysisUsed: geminiUsedCount,

@@ -53,6 +53,15 @@ interface ScanResponse {
   promptsCount: number;
   score: number;
   results: ScanResult[];
+  classification?: {
+    industry_id: string | null;
+    industry_slug: string | null;
+    topic_cluster_id: string | null;
+    topic_cluster_slug: string | null;
+    confidence: number;
+    reasoning: string;
+    method: 'llm' | 'heuristic' | 'none';
+  };
   meta?: {
     llmAnalysisUsed: number;
     geminiAnalysisUsed: number;

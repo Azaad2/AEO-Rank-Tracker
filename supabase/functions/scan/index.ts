@@ -7,6 +7,7 @@ import {
   type ClassifiedCitation,
   type Engine,
 } from "../_shared/citations.ts";
+import { classifyIndustry } from "../_shared/classify-industry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

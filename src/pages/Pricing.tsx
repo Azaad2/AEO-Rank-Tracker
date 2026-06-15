@@ -5,7 +5,20 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Zap, Users, Building2, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Check,
+  Zap,
+  Users,
+  Building2,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  Search,
+  Link2,
+  Target,
+  LineChart,
+  X,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { toast } from "sonner";
@@ -16,19 +29,15 @@ const plans = [
     name: "Free",
     price: 0,
     period: "forever",
-    description: "Perfect for trying out AI visibility tracking",
-    scans: "1/day",
-    prompts: 5,
-    features: [
+    description: "See if AI assistants recommend your brand today.",
+    benefits: [
+      "AI Visibility Score",
+      "Competitor comparison",
       "1 scan per day",
-      "5 prompts per scan",
-      "Basic AI visibility score",
-      "10 AI Assistant messages/month",
-      "No AI prompt suggestions",
-      "1 prompt result visible",
-      "Email-gated full results",
-      "No auto-monitoring",
+      "Sample recommendations",
+      "Limited report access",
     ],
+    limits: "1 scan/day · 5 prompts/scan · 10 AI Assistant messages/mo",
     cta: "Get Started Free",
     popular: false,
     icon: Zap,
@@ -36,96 +45,130 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    price: 19,
+    price: 29,
     period: "/month",
-    description: "For marketers who need regular AI visibility insights",
-    scans: "10/month",
-    prompts: 50,
-    features: [
-      "10 scans per month",
-      "50 prompts per month",
-      "5 AI prompt suggestions per scan",
-      "100 AI Assistant messages/month",
-      "Full AI visibility results",
-      "1 domain monitored daily",
-      "CSV export",
-      "Slack alerts",
-      "API access",
-      "Priority email support",
+    description: "For brands actively trying to increase AI recommendations.",
+    benefits: [
+      "Discover why competitors are recommended",
+      "Track visibility across ChatGPT, Gemini, Claude & Perplexity",
+      "See citation sources AI trusts",
+      "Weekly recommendation intelligence",
+      "Prioritized action plans",
+      "Progress tracking over time",
     ],
+    limits: "10 scans/mo · 50 prompts/mo · 1 domain monitored daily",
     cta: "Upgrade to Pro",
     popular: true,
     icon: Zap,
+    tagline: "Starts at less than $1/day",
   },
   {
     id: "team",
-    name: "Team",
-    price: 49,
+    name: "Growth",
+    price: 79,
     period: "/month",
-    description: "For teams tracking multiple brands",
-    scans: "30/month",
-    prompts: 150,
-    features: [
-      "30 scans per month",
-      "150 prompts per month",
-      "10 AI prompt suggestions per scan",
-      "500 AI Assistant messages/month",
+    description: "For growing brands managing multiple products, websites, or business units.",
+    benefits: [
       "Everything in Pro",
-      "3 domains monitored daily",
-      "White-label PDF reports",
-      "Team collaboration",
-      "Priority support",
+      "Multiple domains monitored",
+      "Shared team access",
+      "Collaborative reporting",
+      "Expanded tracking capacity",
     ],
-    cta: "Start Team Plan",
+    limits: "30 scans/mo · 150 prompts/mo · 3 domains monitored daily",
+    cta: "Start Growth Plan",
     popular: false,
     icon: Users,
   },
   {
     id: "agency",
     name: "Agency",
-    price: 149,
+    price: 199,
     period: "/month",
-    description: "For agencies managing client AI visibility",
-    scans: "Unlimited",
-    prompts: 500,
-    features: [
-      "Unlimited scans",
-      "500 prompts per month",
-      "20 AI prompt suggestions per scan",
-      "Unlimited AI Assistant messages",
-      "Everything in Team",
-      "Unlimited domains monitored daily",
-      "Multi-domain dashboard",
-      "Custom branding",
-      "Dedicated account manager",
-      "API priority access",
+    description: "For agencies helping clients improve AI visibility.",
+    benefits: [
+      "Unlimited client scans",
+      "Multi-client dashboard",
+      "White-label reporting",
+      "Priority processing",
+      "Client management tools",
     ],
+    limits: "Unlimited scans · 500 prompts/mo · Unlimited domains",
     cta: "Contact Sales",
     popular: false,
     icon: Building2,
   },
+  {
+    id: "advisory",
+    name: "AI Visibility Advisory",
+    price: null as number | null,
+    period: "",
+    description: "Hands-on help implementing the recommendations.",
+    benefits: [
+      "Monthly strategy calls",
+      "AI visibility audits",
+      "Competitor analysis",
+      "Citation opportunity review",
+      "Content roadmap",
+      "Team training",
+      "Implementation guidance",
+    ],
+    limits: "",
+    cta: "Book Consultation",
+    popular: false,
+    icon: Sparkles,
+    advisory: true,
+  },
 ];
 
-const comparisonData = [
-  { feature: "Starting Price", us: "$19/mo", otterly: "$49/mo", profound: "$99/mo" },
-  { feature: "Prompts at Entry Tier", us: "50", otterly: "30", profound: "100" },
-  { feature: "AI Platforms Tracked", us: "3", otterly: "4", profound: "3" },
-  { feature: "Free Tier", us: "✓", otterly: "✗", profound: "✗" },
-  { feature: "Slack Alerts", us: "Pro+", otterly: "Business", profound: "Enterprise" },
-  { feature: "API Access", us: "Pro+", otterly: "Enterprise", profound: "Enterprise" },
-  { feature: "White-label Reports", us: "Team+", otterly: "Enterprise", profound: "✗" },
+const trustCards = [
+  {
+    icon: Target,
+    title: "Recommendation Intelligence",
+    body: "Understand why competitors are being recommended instead of your brand.",
+  },
+  {
+    icon: Link2,
+    title: "Citation Intelligence",
+    body: "See which websites and sources AI assistants trust.",
+  },
+  {
+    icon: Search,
+    title: "Opportunity Discovery",
+    body: "Find the highest-impact actions to improve visibility.",
+  },
+  {
+    icon: LineChart,
+    title: "Continuous Monitoring",
+    body: "Track AI recommendation trends over time.",
+  },
+];
+
+const beforeItems = [
+  "AI recommends competitors",
+  "No visibility into citation sources",
+  "No understanding of why competitors win",
+  "No AI recommendation strategy",
+];
+
+const afterItems = [
+  "See who AI recommends instead of you",
+  "Discover citation sources AI trusts",
+  "Identify missing authority signals",
+  "Get a prioritized action plan",
+  "Track visibility improvements over time",
 ];
 
 export default function Pricing() {
   useEffect(() => {
     document.title = "AI Visibility Pricing — Plans & Costs";
     const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "Choose your AI visibility plan. Monitor how ChatGPT, Perplexity, Gemini and Claude mention your brand. Plans from free to agency. 10x cheaper than competitors.");
+    if (desc) desc.setAttribute("content", "Find out why AI recommends your competitors — then fix it. Track AI recommendations across ChatGPT, Gemini, Claude and Perplexity. Plans from free to agency.");
     let can = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
     can.href = "https://aimentionyou.com/pricing";
     const ogT = document.querySelector('meta[property="og:title"]');
-    if (ogT) ogT.setAttribute("content", "AI Visibility Pricing — Free, Pro, Team & Agency | AIMentionYou");
+    if (ogT) ogT.setAttribute("content", "AI Visibility Pricing — Free, Pro, Growth, Agency & Advisory | AIMentionYou");
     const id = "pricing-schema";
     document.getElementById(id)?.remove();
     const s = document.createElement("script"); s.id = id; s.type = "application/ld+json";
@@ -133,47 +176,33 @@ export default function Pricing() {
       { "@context": "https://schema.org", "@type": "WebPage", name: "AI Visibility Pricing", url: "https://aimentionyou.com/pricing" },
       { "@context": "https://schema.org", "@type": "ItemList", name: "AIMentionYou Pricing Plans", itemListElement: [
         { "@type": "ListItem", position: 1, name: "Free — $0/month" },
-        { "@type": "ListItem", position: 2, name: "Pro — $19/month" },
-        { "@type": "ListItem", position: 3, name: "Team — $49/month" },
-        { "@type": "ListItem", position: 4, name: "Agency — $149/month" },
+        { "@type": "ListItem", position: 2, name: "Pro — $29/month" },
+        { "@type": "ListItem", position: 3, name: "Growth — $79/month" },
+        { "@type": "ListItem", position: 4, name: "Agency — $199/month" },
+        { "@type": "ListItem", position: 5, name: "AI Visibility Advisory — Custom" },
       ]},
     ]);
     document.head.appendChild(s);
     return () => { document.getElementById(id)?.remove(); can?.remove(); document.title = "AI Visibility Checker"; };
   }, []);
-  const [billingPeriod] = useState<"monthly" | "yearly">("monthly");
+
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const navigate = useNavigate();
-  
   const { user } = useAuth();
-  
+
   const { initiateCheckout, isLoading } = useRazorpay({
-    onSuccess: () => {
-      setLoadingPlan(null);
-      navigate('/dashboard');
-    },
-    onError: () => {
-      setLoadingPlan(null);
-    },
+    onSuccess: () => { setLoadingPlan(null); navigate('/dashboard'); },
+    onError: () => { setLoadingPlan(null); },
   });
 
   const handlePlanSelect = async (planId: string) => {
-    if (planId === 'free') {
-      navigate('/#scan');
-      return;
-    }
-
-    if (planId === 'agency') {
-      navigate('/contact');
-      return;
-    }
-
+    if (planId === 'free') { navigate('/#scan'); return; }
+    if (planId === 'agency' || planId === 'advisory') { navigate('/contact'); return; }
     if (!user) {
       toast.info('Please sign in to upgrade your plan');
       navigate('/auth?redirect=/pricing');
       return;
     }
-
     setLoadingPlan(planId);
     await initiateCheckout(planId, user.email || '', user.id);
   };
@@ -181,95 +210,124 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Header />
-      
+
       <main className="flex-1 pt-28">
-        {/* Hero Section */}
+        {/* Hero */}
         <section className="py-16 px-4">
           <div className="container mx-auto text-center max-w-4xl">
             <Badge className="mb-4 bg-yellow-400/20 text-yellow-400 border-yellow-400/30">
-              10x Cheaper Than Competitors
+              Recommendation Intelligence
             </Badge>
-            <h1 
-              className="text-3xl md:text-4xl font-bold mb-4 text-white"
-            >
-              Choose Your AI Visibility Plan
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white">
+              Find Out Why AI Recommends Your Competitors — Then Fix It
             </h1>
-            <p className="text-xl text-gray-400 mb-8">
-              Track how AI assistants mention your brand. Simple pricing, powerful insights.
+            <p className="text-lg md:text-xl text-gray-400">
+              Track AI recommendations, discover citation sources, uncover competitor advantages, and get action plans to improve visibility across ChatGPT, Gemini, Claude, and Perplexity.
             </p>
           </div>
         </section>
 
+        {/* Trust Banner */}
+        <section className="py-10 px-4">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-8">
+              Why Brands Use AIMentionYou
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {trustCards.map((c) => (
+                <Card key={c.title} className="bg-gray-900 border-gray-700">
+                  <CardContent className="pt-6">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-400/20 flex items-center justify-center mb-3">
+                      <c.icon className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <h3 className="text-white font-semibold mb-2">{c.title}</h3>
+                    <p className="text-gray-400 text-sm">{c.body}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Pricing Cards */}
-        <section className="py-8 px-4">
+        <section className="py-10 px-4">
           <div className="container mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
               {plans.map((plan) => {
                 const isPlanLoading = loadingPlan === plan.id || (isLoading && loadingPlan === plan.id);
-                
+                const isAdvisory = (plan as any).advisory;
+
                 return (
-                  <Card 
+                  <Card
                     key={plan.id}
-                    className={`relative bg-gray-900 border-gray-700 hover:border-yellow-400/50 transition-all duration-300 ${
+                    className={`relative bg-gray-900 border-gray-700 hover:border-yellow-400/50 transition-all duration-300 flex flex-col ${
                       plan.popular ? "ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/20" : ""
-                    }`}
+                    } ${isAdvisory ? "border-yellow-400/70 ring-1 ring-yellow-400/40" : ""}`}
                   >
                     {plan.popular && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <Badge className="bg-yellow-400 text-black font-semibold">
-                          Most Popular
-                        </Badge>
+                        <Badge className="bg-yellow-400 text-black font-semibold">Most Popular</Badge>
                       </div>
                     )}
-                    
+
                     <CardHeader className="text-center pb-4">
                       <div className="mx-auto w-12 h-12 rounded-full bg-yellow-400/20 flex items-center justify-center mb-3">
                         <plan.icon className="w-6 h-6 text-yellow-400" />
                       </div>
                       <CardTitle className="text-xl text-white">{plan.name}</CardTitle>
-                      <CardDescription className="text-gray-400">
+                      <CardDescription className="text-gray-400 min-h-[48px]">
                         {plan.description}
                       </CardDescription>
                     </CardHeader>
-                    
-                    <CardContent className="text-center">
-                      <div className="mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          ${plan.price}
-                        </span>
-                        <span className="text-gray-400">{plan.period}</span>
+
+                    <CardContent className="text-center flex-1">
+                      <div className="mb-2">
+                        {plan.price === null ? (
+                          <span className="text-3xl font-bold text-white">Custom</span>
+                        ) : (
+                          <>
+                            <span className="text-4xl font-bold text-white">${plan.price}</span>
+                            <span className="text-gray-400">{plan.period}</span>
+                          </>
+                        )}
                       </div>
-                      
+                      {(plan as any).tagline && (
+                        <p className="text-xs text-yellow-400 mb-4">{(plan as any).tagline}</p>
+                      )}
+                      {!(plan as any).tagline && <div className="mb-4" />}
+
                       <div className="space-y-3 text-left">
-                        {plan.features.map((feature, index) => (
-                          <div key={index} className="flex items-start gap-2">
+                        {plan.benefits.map((b, i) => (
+                          <div key={i} className="flex items-start gap-2">
                             <Check className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                            <span className="text-sm text-gray-400">{feature}</span>
+                            <span className="text-sm text-gray-300">{b}</span>
                           </div>
                         ))}
                       </div>
+
+                      {plan.limits && (
+                        <p className="mt-5 text-[11px] text-gray-500 leading-relaxed text-left">
+                          {plan.limits}
+                        </p>
+                      )}
                     </CardContent>
-                    
+
                     <CardFooter>
-                      <Button 
+                      <Button
                         className={`w-full ${
-                          plan.popular 
-                            ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold" 
-                            : "bg-gray-800 hover:bg-gray-700 text-white"
+                          plan.popular
+                            ? "bg-yellow-400 hover:bg-yellow-500 text-black font-semibold"
+                            : isAdvisory
+                              ? "bg-yellow-400/10 border border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black"
+                              : "bg-gray-800 hover:bg-gray-700 text-white"
                         }`}
                         onClick={() => handlePlanSelect(plan.id)}
                         disabled={isPlanLoading}
                       >
                         {isPlanLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
                         ) : (
-                          <>
-                            {plan.cta}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
+                          <>{plan.cta}<ArrowRight className="w-4 h-4 ml-2" /></>
                         )}
                       </Button>
                     </CardFooter>
@@ -277,124 +335,95 @@ export default function Pricing() {
                 );
               })}
             </div>
+            <p className="text-center text-gray-500 text-sm mt-6">
+              No contracts. Cancel anytime.
+            </p>
           </div>
         </section>
 
-        {/* Comparison Table */}
+        {/* Outcome Comparison */}
         <section className="py-16 px-4 bg-gray-900">
-          <div className="container mx-auto max-w-4xl">
-            <div className="text-center mb-12">
-              <h2 
-                className="text-2xl md:text-3xl font-bold mb-4 text-white"
-              >
-                Why We're 10x Cheaper
-              </h2>
-              <p className="text-gray-400">
-                Compare our pricing with enterprise tools like Otterly.ai and Profound
-              </p>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-4 px-4 font-semibold text-white">Feature</th>
-                    <th className="text-center py-4 px-4 font-semibold text-yellow-400">
-                      <div className="flex flex-col items-center">
-                        <span className="text-lg">AImentionyou</span>
-                        <Badge className="mt-1 bg-yellow-400/20 text-yellow-400 border-yellow-400/30">You're here</Badge>
-                      </div>
-                    </th>
-                    <th className="text-center py-4 px-4 font-semibold text-gray-500">Otterly.ai</th>
-                    <th className="text-center py-4 px-4 font-semibold text-gray-500">Profound</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonData.map((row, index) => (
-                    <tr key={index} className="border-b border-gray-700/50">
-                      <td className="py-4 px-4 text-gray-400">{row.feature}</td>
-                      <td className="py-4 px-4 text-center">
-                        <span className={`font-semibold ${
-                          row.us.includes("$") ? "text-yellow-400 text-lg" : "text-white"
-                        }`}>
-                          {row.us}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center text-gray-500">{row.otterly}</td>
-                      <td className="py-4 px-4 text-center text-gray-500">{row.profound}</td>
-                    </tr>
+          <div className="container mx-auto max-w-5xl">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 text-white">
+              What Success Looks Like
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="bg-black border-red-900/40">
+                <CardHeader>
+                  <CardTitle className="text-red-400 text-lg">Before AIMentionYou</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {beforeItems.map((item) => (
+                    <div key={item} className="flex items-start gap-2">
+                      <X className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                      <span className="text-gray-400 text-sm">{item}</span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </CardContent>
+              </Card>
+              <Card className="bg-black border-yellow-400/40">
+                <CardHeader>
+                  <CardTitle className="text-yellow-400 text-lg">After AIMentionYou</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {afterItems.map((item) => (
+                    <div key={item} className="flex items-start gap-2">
+                      <Check className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                      <span className="text-gray-300 text-sm">{item}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
 
-        {/* FAQ Section */}
+        {/* FAQ */}
         <section className="py-16 px-4">
           <div className="container mx-auto max-w-3xl">
-            <h2 
-              className="text-2xl md:text-3xl font-bold text-center mb-12 text-white"
-            >
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 text-white">
               Frequently Asked Questions
             </h2>
-            
             <div className="space-y-6">
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                <h3 className="font-semibold text-white mb-2">What counts as a "scan"?</h3>
+                <h3 className="font-semibold text-white mb-2">What does a scan actually tell me?</h3>
                 <p className="text-gray-400">
-                  A scan is when you analyze a domain across AI platforms (ChatGPT, Gemini, Perplexity). 
-                  Each scan can include up to your plan's prompt limit.
+                  Each scan reveals whether AI assistants recommend your brand for key prompts, who they recommend instead, and which sources they cite — so you know exactly where to improve.
                 </p>
               </div>
-              
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                 <h3 className="font-semibold text-white mb-2">Can I upgrade or downgrade anytime?</h3>
                 <p className="text-gray-400">
-                  Yes! You can change your plan at any time. Upgrades take effect immediately, 
-                  and downgrades apply at the end of your billing period.
+                  Yes. Upgrades take effect immediately, downgrades apply at the end of your billing period. No contracts.
                 </p>
               </div>
-              
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                <h3 className="font-semibold text-white mb-2">What happens if I exceed my prompt limit?</h3>
+                <h3 className="font-semibold text-white mb-2">Which AI assistants do you track?</h3>
                 <p className="text-gray-400">
-                  You can purchase additional prompts at $0.15 each, or upgrade to a higher plan 
-                  for more monthly prompts.
+                  ChatGPT, Gemini, Claude, and Perplexity — the assistants users actually rely on to discover brands and products.
                 </p>
               </div>
-              
               <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                 <h3 className="font-semibold text-white mb-2">Do you offer refunds?</h3>
                 <p className="text-gray-400">
-                  Yes, we offer a 14-day money-back guarantee on all paid plans. 
-                  If you're not satisfied, contact us for a full refund.
+                  Yes — a 14-day money-back guarantee on all paid plans.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
+        {/* CTA */}
         <section className="py-16 px-4 bg-gray-900">
           <div className="container mx-auto text-center max-w-2xl">
-            <h2 
-              className="text-2xl md:text-3xl font-bold mb-4 text-white"
-            >
-              Ready to Track Your AI Visibility?
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">
+              Ready to See Who AI Recommends Instead of You?
             </h2>
             <p className="text-gray-400 mb-8">
-              Start with a free scan and see how AI assistants perceive your brand.
+              Start with a free scan and uncover your AI visibility gap.
             </p>
-            <Button 
-              size="lg" 
-              className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold" 
-              asChild
-            >
-              <Link to="/#scan">
-                Run Free Scan Now
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
+            <Button size="lg" className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold" asChild>
+              <Link to="/#scan">Run Free Scan Now<ArrowRight className="w-5 h-5 ml-2" /></Link>
             </Button>
           </div>
         </section>

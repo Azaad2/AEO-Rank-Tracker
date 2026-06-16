@@ -1,82 +1,57 @@
-# Unified Post-Scan Experience
+## Goal
+Use Resend's dashboard (Broadcasts) to send marketing emails from `aimentionyou.com`. Lovable's role is to keep a Resend Audience in sync with your `profiles` table and host a branded unsubscribe page so you stay CAN-SPAM / GDPR compliant.
 
-Goal: one scan → one coherent Recommendation Intelligence report. Public visitors see a preview + signup gate; signed-up users land directly in the Recommendations dashboard with their scan already attached.
+## What you'll do in Resend (one-time, manual)
+1. Verify the sending domain `aimentionyou.com` in Resend → Domains (add the SPF, DKIM, MX records Resend shows you at your DNS provider).
+   - Safe to coexist with the existing Lovable `notify.aimentionyou.com` subdomain — different zone, no conflict.
+2. In Resend → Audiences, create an audience named **"AI Mention You – All Users"**. Copy its Audience ID.
+3. In Resend → API Keys, create a key with **Full access** (needed for contacts + broadcasts). Copy it.
 
----
+## What I'll build
 
-## 1. Public scan flow (`src/pages/Index.tsx`)
+### 1. Secrets
+- `RESEND_API_KEY` (your key)
+- `RESEND_AUDIENCE_ID` (the audience UUID)
 
-**Remove the legacy modal entirely.**
+### 2. Schema (migration)
+Add to `profiles`:
+- `marketing_unsubscribed_at timestamptz` (nullable)
+- `resend_contact_id text` (nullable, stores Resend's contact id so we can update/delete instead of recreate)
 
-- Delete the `ScanResultsModal` import, `<ScanResultsModal />` render, and `showResultsModal` / `setShowResultsModal` state.
-- Remove `setShowResultsModal(true)` after scan completion (line ~303). Results render inline only.
-- Remove the now-unused `EmailCaptureModal` flow for unlocking (modal-based unlock paths). Keep the component file untouched; just stop opening it.
+### 3. Edge function: `sync-resend-audience`
+- Reads every `profiles` row where `email is not null`.
+- For rows without `resend_contact_id` → `POST /audiences/{id}/contacts` (with `unsubscribed: marketing_unsubscribed_at is not null`), stores returned id.
+- For rows where `marketing_unsubscribed_at` changed since last sync → `PATCH` the contact's `unsubscribed` flag.
+- Idempotent, safe to re-run. Returns `{ added, updated, skipped }`.
+- Runs nightly via pg_cron (02:30 UTC) and exposes a manual trigger from an admin button.
 
-**Rebuild the public results block (the `{scanData && (() => { ... })()}` section, lines ~919-1194) as a single unified preview, in this order:**
+### 4. Edge function: `resend-unsubscribe`
+- Public (no JWT). Accepts `?email=...&token=...`.
+- Token = HMAC-SHA256 of email using `RESEND_API_KEY` (stateless, no extra table).
+- On valid token: sets `marketing_unsubscribed_at = now()` on the profile and `PATCH`es the Resend contact to `unsubscribed: true`.
+- Returns a small branded HTML confirmation page.
 
-1. **Opportunity Summary hero** (new — primary moment):
-  - Headline: `You appeared in {mentionedCount}/{total} prompts`
-  - Sub: `{topComp.name} appeared in {topComp.count}/{total} prompts` (only if a top competitor exists)
-  - Two chips: `Top Gap: {derived gap label}` and `Top Opportunity: {derived recommendation label}` (derive from existing `compCounts` + `topOppResult` logic already in the file).
-2. **Why Competitors Win — one insight** (preview): one sentence naming the top competitor and the asset class they win on (comparison pages / reviews / citations), derived from `topCitedDomains`.
-3. **Top 3 Opportunities** (preview): first three gap prompts as compact cards with a one-line action each (reuse the missing-prompt + competitor data already computed).
-4. **Small Visibility Score chip** (secondary): inline `Score: {score}/100` pill, not a hero card.
-5. **Locked premium sections** (visual blur using existing `LockedOverlay`): stacked teasers for
-  - Full Why Competitors Win
-  - Full Recommendation Intelligence
-  - Industry Benchmark
-  - Citation Sources
-  - Competitor Asset Breakdown
-  - Full Action Plan
-6. **Single CTA card**: `Create Free Account to Unlock Full Report` → `/auth?redirect=/dashboard?tab=recommendations&scanId={scanId}`. Keep the dynamic `Let's beat {topComp}` sub-label.
-
-For signed-in users on `/` (rare path), skip the gate and link them straight to `/dashboard?tab=recommendations&scanId={scanId}` instead of re-rendering `IndustryBenchmarkStrip` / `WhyCompetitorsWinPreview` / `ImprovementRoadmap` / `OptimizationHub` inline (those now live in the dashboard).
-
-**Persist scanId across signup**: when a guest scan completes, write `localStorage.setItem('pendingScanId', scanId)` so the dashboard can claim/open it after auth.
-
-## 2. Signup handoff
-
-- `src/pages/Auth.tsx` (or the existing post-auth redirect logic): if `pendingScanId` exists in localStorage after successful signup/login, redirect to `/dashboard?tab=recommendations&scanId={id}` (instead of the default `/dashboard`).
-- `src/pages/Dashboard.tsx`: on mount, if `?scanId=` is present and the scan in `scans` table has `user_id IS NULL`, call a small `update` to set `user_id = auth.uid()` (claim it). Then clear `localStorage.pendingScanId`. Default the tab to `recommendations` (already the default — just make sure `?tab=recommendations` is honored, which it is).
-
-## 3. Dashboard navigation (`src/pages/Dashboard.tsx`)
-
-Reorder the primary tabs to match the new positioning:
-
-```text
-Recommendations | Why Competitors Win | Industry Benchmark | Citation Intelligence | AI Recommendation Breakdown | Metrics
+### 5. Resend broadcast footer
+When you compose a Broadcast in Resend, paste this once into the template footer (Resend supports merge tags):
 ```
+You're receiving this because you signed up at aimentionyou.com.
+Unsubscribe: https://aimentionyou.com/functions/v1/resend-unsubscribe?email={{{RESEND_CONTACT_EMAIL}}}&token={{{RESEND_CONTACT_UNSUBSCRIBE_TOKEN_PLACEHOLDER}}}
+```
+(I'll generate the per-recipient token at sync time and store it in Resend's contact metadata so the merge tag resolves — included in step 3.)
 
-- **Recommendations** → existing `<RecommendationIntelligence />` (unchanged).
-- **Why Competitors Win** → existing `<WhyCompetitorsWin />` (unchanged).
-- **Industry Benchmark** (new tab): render `<IndustryBenchmarkStrip />` plus a list of how the user's latest scan compares (reuse latest `scans` row).
-- **Citation Intelligence** (new tab): pull from `citation_sources` / `citations` tables for the user's scans — grouped by source domain with counts. Simple table, no new edge functions.
-- **AI Recommendation Breakdown** (new tab): the per-prompt collapsible block currently inline in `Index.tsx` (lines ~1069-1122), moved to a small component that loads from `scan_results` for the latest scan.
-- **Metrics** → existing `<MetricsExplain />` (unchanged).
+### 6. Admin trigger
+Add a single "Sync contacts to Resend" button on `/admin/recommendations` (or a new tiny `/admin/email` page if you prefer) that invokes `sync-resend-audience` and shows the result counts. No composer, no segments — composing happens in Resend.
 
-**Move to a "Legacy" secondary area** (a `<Collapsible>` below the tabs, or a single overflow tab `More ▾`):
+## Out of scope (per your choices)
+- No in-app composer / broadcasts table.
+- No segmentation logic (everyone in `profiles` goes to the one audience; you can segment inside Resend).
+- No transactional email changes — existing Lovable Emails subdomain stays untouched.
 
-- Issues Detected
-- Visibility Improvement Roadmap (`ImprovementRoadmap`)
-- Optimization Plan (`OptimizationHub`)
-- My Domains, Scans, AI Assistant stay where they are (in the overflow `More ▾`).
+## Compliance notes
+- One-click unsubscribe link in every broadcast → satisfies CAN-SPAM and RFC 8058 list-unsubscribe expectations (Resend also adds List-Unsubscribe headers automatically when a contact is in an Audience).
+- Unsubscribes write to both your DB and Resend, so they survive future re-syncs.
 
-Update the legacy `tabParam` redirect map so old links (`?tab=auto-fix`, etc.) still resolve.
-
-## 4. Cleanup
-
-- Remove unused imports in `Index.tsx` once the modal and inline gated blocks are gone: `ScanResultsModal`, `IndustryBenchmarkStrip`, `WhyCompetitorsWinPreview`, `ImprovementRoadmap`, `OptimizationHub`, `LockedOverlay` stays (used in blurred teasers), `EmailCaptureModal` stays only if used elsewhere — drop if not.
-- Leave `ScanResultsModal.tsx` and `EmailCaptureModal.tsx` files in place (not deleted) to avoid breaking unrelated routes; just stop importing them in `Index.tsx`.
-
-## Technical notes
-
-- All changes are frontend except a one-line `update` on `scans` to claim the guest scan post-signup (uses existing RLS — the user can update their own scan once `user_id` is null and they're authenticated; verify the RLS policy allows `user_id IS NULL → set user_id = auth.uid()`. If not, add a small `claim-scan` edge function or migration to allow it).
-- No changes to the `scan` edge function, scoring, or recommendation generation.
-- No new dependencies.
-
-## Out of scope
-
-- Redesigning `RecommendationIntelligence` cards.
-- Changing scoring weights or recommendation logic.
-- Email/PDF export flows (kept as-is inside the dashboard).
-- Landing page hero, How AI Chooses Brands, benchmark teaser (already shipped).
+## After approval
+1. I'll ask you to add `RESEND_API_KEY` and `RESEND_AUDIENCE_ID` via the secrets prompt.
+2. Apply migration → write both edge functions → add admin button → schedule cron.
+3. You verify domain in Resend, run the sync once, then send your first Broadcast from Resend's dashboard.

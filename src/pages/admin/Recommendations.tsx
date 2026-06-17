@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 interface Row {
   id: string;
@@ -134,13 +136,16 @@ function Inner() {
     <div className="min-h-screen bg-black text-white">
       <Header />
       <main className="pt-32 px-6 max-w-7xl mx-auto pb-20 space-y-6">
-        <div>
-          <h1 className="text-2xl text-yellow-400" style={{ fontFamily: "'Press Start 2P', cursive" }}>
-            Recommendation Audit
-          </h1>
-          <p className="text-gray-400 mt-2 text-sm">
-            QA every recommendation across every scan: evidence, competitor reference, and confidence.
-          </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl text-yellow-400" style={{ fontFamily: "'Press Start 2P', cursive" }}>
+              Recommendation Audit
+            </h1>
+            <p className="text-gray-400 mt-2 text-sm">
+              QA every recommendation across every scan: evidence, competitor reference, and confidence.
+            </p>
+          </div>
+          <SyncResendButton />
         </div>
 
         {/* Analytics strip */}
@@ -314,6 +319,31 @@ function StatCard({ label, value, accent }: { label: string; value: string | num
         <div className={`text-3xl font-bold mt-1 ${accent ?? 'text-white'}`}>{value}</div>
       </CardContent>
     </Card>
+  );
+}
+
+function SyncResendButton() {
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-resend-audience');
+      if (error) throw error;
+      toast({
+        title: 'Resend audience synced',
+        description: `Added ${data.added} · Updated ${data.updated} · Skipped ${data.skipped}${data.errors?.length ? ` · ${data.errors.length} errors` : ''}`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Sync failed', description: e.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button onClick={run} disabled={busy} className="bg-yellow-400 hover:bg-yellow-500 text-black">
+      {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+      Sync contacts to Resend
+    </Button>
   );
 }
 

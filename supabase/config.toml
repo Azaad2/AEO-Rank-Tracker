@@ -83,3 +83,9 @@ verify_jwt = true
 
 [functions.backfill-scans]
 verify_jwt = false
+
+[functions.sync-resend-audience]
+verify_jwt = false
+
+[functions.resend-unsubscribe]
+verify_jwt = false

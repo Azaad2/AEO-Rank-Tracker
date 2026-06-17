@@ -36,13 +36,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Auth: allow either a logged-in admin OR the service-role key (cron).
+  // Auth: allow service-role key (cron/admin trigger), or a logged-in admin user.
+  // Anyone else gets 401. The anon key alone is not sufficient.
   const authHeader = req.headers.get('Authorization') ?? '';
-  const isServiceCall = authHeader === `Bearer ${SERVICE_KEY}`;
+  const bearer = authHeader.replace('Bearer ', '');
+  const cronSecret = req.headers.get('x-cron-secret') ?? '';
+  const isServiceCall = bearer === SERVICE_KEY || cronSecret === SERVICE_KEY;
 
   if (!isServiceCall) {
-    const token = authHeader.replace('Bearer ', '');
-    if (!token) {
+    if (!bearer) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -50,14 +52,14 @@ Deno.serve(async (req) => {
     const userClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(bearer);
     if (claimsErr || !claims?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: isAdmin } = await admin.rpc('has_role', {
+    const adminCheck = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: isAdmin } = await adminCheck.rpc('has_role', {
       _user_id: claims.claims.sub, _role: 'admin',
     });
     if (!isAdmin) {

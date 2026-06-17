@@ -1,57 +1,46 @@
 ## Goal
-Use Resend's dashboard (Broadcasts) to send marketing emails from `aimentionyou.com`. Lovable's role is to keep a Resend Audience in sync with your `profiles` table and host a branded unsubscribe page so you stay CAN-SPAM / GDPR compliant.
+Keep your Resend audience "AI Mention You" (`2b5163a6-...`) in sync with the `profiles` table so you can compose Broadcasts in Resend's dashboard, and host a branded one-click unsubscribe page for CAN-SPAM/GDPR compliance.
 
-## What you'll do in Resend (one-time, manual)
-1. Verify the sending domain `aimentionyou.com` in Resend → Domains (add the SPF, DKIM, MX records Resend shows you at your DNS provider).
-   - Safe to coexist with the existing Lovable `notify.aimentionyou.com` subdomain — different zone, no conflict.
-2. In Resend → Audiences, create an audience named **"AI Mention You – All Users"**. Copy its Audience ID.
-3. In Resend → API Keys, create a key with **Full access** (needed for contacts + broadcasts). Copy it.
+## Secrets (done)
+- `RESEND_API_KEY` ✅
+- `RESEND_AUDIENCE_ID` ✅
 
-## What I'll build
-
-### 1. Secrets
-- `RESEND_API_KEY` (your key)
-- `RESEND_AUDIENCE_ID` (the audience UUID)
-
-### 2. Schema (migration)
-Add to `profiles`:
+## 1. Schema migration
+Add to `public.profiles`:
 - `marketing_unsubscribed_at timestamptz` (nullable)
-- `resend_contact_id text` (nullable, stores Resend's contact id so we can update/delete instead of recreate)
+- `resend_contact_id text` (nullable)
 
-### 3. Edge function: `sync-resend-audience`
-- Reads every `profiles` row where `email is not null`.
-- For rows without `resend_contact_id` → `POST /audiences/{id}/contacts` (with `unsubscribed: marketing_unsubscribed_at is not null`), stores returned id.
-- For rows where `marketing_unsubscribed_at` changed since last sync → `PATCH` the contact's `unsubscribed` flag.
-- Idempotent, safe to re-run. Returns `{ added, updated, skipped }`.
-- Runs nightly via pg_cron (02:30 UTC) and exposes a manual trigger from an admin button.
+## 2. Edge function: `sync-resend-audience` (admin-only)
+- Reads all `profiles` rows with non-null email.
+- New rows → `POST /audiences/{id}/contacts`, stores returned contact id.
+- Changed unsubscribe state → `PATCH` the Resend contact's `unsubscribed` flag.
+- Idempotent. Returns `{ added, updated, skipped, errors }`.
+- Protected by `has_role(auth.uid(), 'admin')` check.
 
-### 4. Edge function: `resend-unsubscribe`
-- Public (no JWT). Accepts `?email=...&token=...`.
-- Token = HMAC-SHA256 of email using `RESEND_API_KEY` (stateless, no extra table).
-- On valid token: sets `marketing_unsubscribed_at = now()` on the profile and `PATCH`es the Resend contact to `unsubscribed: true`.
-- Returns a small branded HTML confirmation page.
+## 3. Edge function: `resend-unsubscribe` (public)
+- `GET ?email=...&token=...`, `verify_jwt = false`.
+- Token = HMAC-SHA256(email, RESEND_API_KEY) — stateless.
+- On valid token: sets `marketing_unsubscribed_at = now()` on profile + PATCH Resend contact `unsubscribed: true`.
+- Returns branded arcade-themed HTML confirmation (bg-black, yellow-400).
 
-### 5. Resend broadcast footer
-When you compose a Broadcast in Resend, paste this once into the template footer (Resend supports merge tags):
+## 4. Admin UI
+Add a "Sync contacts to Resend" button on `/admin/recommendations` that invokes `sync-resend-audience` and shows result counts via toast.
+
+## 5. Nightly cron
+Schedule `sync-resend-audience` to run daily at 02:30 UTC via pg_cron + pg_net.
+
+## 6. Broadcast footer (you paste once in Resend)
+When composing a Broadcast in Resend's dashboard, paste this in the footer:
 ```
 You're receiving this because you signed up at aimentionyou.com.
-Unsubscribe: https://aimentionyou.com/functions/v1/resend-unsubscribe?email={{{RESEND_CONTACT_EMAIL}}}&token={{{RESEND_CONTACT_UNSUBSCRIBE_TOKEN_PLACEHOLDER}}}
+Unsubscribe: https://aimentionyou.com/functions/v1/resend-unsubscribe?email={{{RESEND_CONTACT_EMAIL}}}&token={{{UNSUBSCRIBE_TOKEN}}}
 ```
-(I'll generate the per-recipient token at sync time and store it in Resend's contact metadata so the merge tag resolves — included in step 3.)
+The sync function stores the per-recipient HMAC token in Resend's contact metadata so the merge tag resolves.
 
-### 6. Admin trigger
-Add a single "Sync contacts to Resend" button on `/admin/recommendations` (or a new tiny `/admin/email` page if you prefer) that invokes `sync-resend-audience` and shows the result counts. No composer, no segments — composing happens in Resend.
-
-## Out of scope (per your choices)
-- No in-app composer / broadcasts table.
-- No segmentation logic (everyone in `profiles` goes to the one audience; you can segment inside Resend).
-- No transactional email changes — existing Lovable Emails subdomain stays untouched.
-
-## Compliance notes
-- One-click unsubscribe link in every broadcast → satisfies CAN-SPAM and RFC 8058 list-unsubscribe expectations (Resend also adds List-Unsubscribe headers automatically when a contact is in an Audience).
-- Unsubscribes write to both your DB and Resend, so they survive future re-syncs.
+## Out of scope
+- No in-app composer (you compose in Resend dashboard).
+- No segmentation logic (segment inside Resend).
+- Transactional emails (existing Lovable Emails) untouched.
 
 ## After approval
-1. I'll ask you to add `RESEND_API_KEY` and `RESEND_AUDIENCE_ID` via the secrets prompt.
-2. Apply migration → write both edge functions → add admin button → schedule cron.
-3. You verify domain in Resend, run the sync once, then send your first Broadcast from Resend's dashboard.
+Apply migration → write both edge functions → add admin button → schedule cron → you verify `aimentionyou.com` sending domain in Resend → click sync once → send first Broadcast from Resend.

@@ -145,8 +145,13 @@ function Inner() {
               QA every recommendation across every scan: evidence, competitor reference, and confidence.
             </p>
           </div>
-          <SyncResendButton />
+          <div className="flex flex-col gap-2 items-end">
+            <SyncResendButton />
+            <SendNewsletterButton />
+          </div>
         </div>
+
+        <NewsletterLogPanel />
 
         {/* Analytics strip */}
         <div className="grid md:grid-cols-4 gap-4">

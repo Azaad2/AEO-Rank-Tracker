@@ -861,6 +861,39 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_log: {
+        Row: {
+          body_snippet: string | null
+          broadcast_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          send_date: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          body_snippet?: string | null
+          broadcast_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          send_date: string
+          status?: string
+          subject: string
+        }
+        Update: {
+          body_snippet?: string | null
+          broadcast_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          send_date?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       optimization_tasks: {
         Row: {
           completed_at: string | null

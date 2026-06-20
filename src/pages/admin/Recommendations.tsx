@@ -352,6 +352,79 @@ function SyncResendButton() {
   );
 }
 
+function SendNewsletterButton() {
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-daily-newsletter');
+      if (error) throw error;
+      if (data?.skipped) {
+        toast({ title: 'Already sent today', description: `Broadcast ${data.broadcast_id}` });
+      } else if (data?.sent) {
+        toast({ title: 'Newsletter sent', description: data.subject });
+      } else {
+        toast({ title: 'Done', description: JSON.stringify(data).slice(0, 160) });
+      }
+    } catch (e: any) {
+      toast({ title: 'Newsletter failed', description: e.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button onClick={run} disabled={busy} variant="outline" className="border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10">
+      {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+      Send today's newsletter
+    </Button>
+  );
+}
+
+function NewsletterLogPanel() {
+  const [rows, setRows] = useState<any[]>([]);
+  useEffect(() => {
+    supabase
+      .from('newsletter_log')
+      .select('send_date, subject, status, broadcast_id, error, created_at')
+      .order('created_at', { ascending: false })
+      .limit(14)
+      .then(({ data }) => setRows(data ?? []));
+  }, []);
+  if (!rows.length) return null;
+  return (
+    <Card className="bg-gray-900 border-gray-800">
+      <CardHeader>
+        <CardTitle className="text-white text-base">Recent newsletters</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow className="border-gray-800">
+              <TableHead className="text-gray-400">Date</TableHead>
+              <TableHead className="text-gray-400">Subject</TableHead>
+              <TableHead className="text-gray-400">Status</TableHead>
+              <TableHead className="text-gray-400">Error</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((r, i) => (
+              <TableRow key={i} className="border-gray-800">
+                <TableCell className="text-gray-300 text-sm">{r.send_date}</TableCell>
+                <TableCell className="text-white text-sm">{r.subject}</TableCell>
+                <TableCell className={
+                  r.status === 'sent' ? 'text-green-400 text-sm' :
+                  r.status === 'failed' ? 'text-red-400 text-sm' : 'text-yellow-400 text-sm'
+                }>{r.status}</TableCell>
+                <TableCell className="text-red-400 text-xs max-w-xs truncate">{r.error ?? ''}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminRecommendations() {
   return (
     <AdminGuard>

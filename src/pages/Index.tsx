@@ -26,6 +26,7 @@ import { IndustryBenchmarkStrip } from "@/components/IndustryBenchmarkStrip";
 import { WhyCompetitorsWinPreview } from "@/components/WhyCompetitorsWinPreview";
 import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import logo from "@/assets/logo-light.png";
 
@@ -1397,14 +1398,17 @@ const Index = () => {
 
 
         {/* Email Capture Modal */}
-        <EmailCaptureModal
-          open={showEmailModal}
-          onOpenChange={setShowEmailModal}
-          onSuccess={handleEmailSuccess}
-          scanId={scanId || undefined}
-          domain={scanData?.project || domain}
-          score={scanData?.score || 0}
-        />
+        <ErrorBoundary component="EmailCaptureModal" fallback={null}>
+          <EmailCaptureModal
+            open={showEmailModal}
+            onOpenChange={setShowEmailModal}
+            onSuccess={handleEmailSuccess}
+            scanId={scanId || undefined}
+            domain={scanData?.project || domain}
+            score={scanData?.score || 0}
+          />
+        </ErrorBoundary>
+
 
         {/* SEO Content Sections */}
         <div className="space-y-12 pt-8">
@@ -1798,13 +1802,16 @@ const Index = () => {
       </footer>
       
       {/* Guest Limit Modal */}
-      <GuestLimitModal 
-        open={showGuestLimitModal} 
-        onOpenChange={setShowGuestLimitModal} 
-      />
+      <ErrorBoundary component="GuestLimitModal" fallback={null}>
+        <GuestLimitModal
+          open={showGuestLimitModal}
+          onOpenChange={setShowGuestLimitModal}
+        />
+      </ErrorBoundary>
       </div>
     </div>
   );
 };
+
 
 export default Index;

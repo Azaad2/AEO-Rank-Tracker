@@ -26,6 +26,7 @@ import { IndustryBenchmarkStrip } from "@/components/IndustryBenchmarkStrip";
 import { WhyCompetitorsWinPreview } from "@/components/WhyCompetitorsWinPreview";
 import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import logo from "@/assets/logo-light.png";
 
@@ -364,16 +365,35 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Scan error:', error);
-      
+
       // Track scan failure
       trackEvent('scan_failed', {
         domain: domain.trim(),
         error_message: error instanceof Error ? error.message : "Unknown error",
       });
-      
+
+      // Persist failure to scan_errors for admin dashboard
+      try {
+        const { logScanError } = await import('@/lib/errorLogger');
+        await logScanError({
+          error,
+          component: 'Index.handleScan',
+          errorType: 'ScanSubmissionError',
+          domain: domain.trim(),
+          userId: user?.id ?? null,
+          metadata: {
+            competitor: competitor.trim() || null,
+            prompt_count: promptsText.trim().split(/[\n,]/).filter(Boolean).length,
+            is_authenticated: !!user,
+          },
+        });
+      } catch {}
+
       toast({
         title: "Scan failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error
+          ? error.message
+          : "Something went wrong on our end. We've logged it — please try again.",
         variant: "destructive",
       });
     } finally {
@@ -1378,14 +1398,17 @@ const Index = () => {
 
 
         {/* Email Capture Modal */}
-        <EmailCaptureModal
-          open={showEmailModal}
-          onOpenChange={setShowEmailModal}
-          onSuccess={handleEmailSuccess}
-          scanId={scanId || undefined}
-          domain={scanData?.project || domain}
-          score={scanData?.score || 0}
-        />
+        <ErrorBoundary component="EmailCaptureModal" fallback={null}>
+          <EmailCaptureModal
+            open={showEmailModal}
+            onOpenChange={setShowEmailModal}
+            onSuccess={handleEmailSuccess}
+            scanId={scanId || undefined}
+            domain={scanData?.project || domain}
+            score={scanData?.score || 0}
+          />
+        </ErrorBoundary>
+
 
         {/* SEO Content Sections */}
         <div className="space-y-12 pt-8">
@@ -1779,13 +1802,16 @@ const Index = () => {
       </footer>
       
       {/* Guest Limit Modal */}
-      <GuestLimitModal 
-        open={showGuestLimitModal} 
-        onOpenChange={setShowGuestLimitModal} 
-      />
+      <ErrorBoundary component="GuestLimitModal" fallback={null}>
+        <GuestLimitModal
+          open={showGuestLimitModal}
+          onOpenChange={setShowGuestLimitModal}
+        />
+      </ErrorBoundary>
       </div>
     </div>
   );
 };
+
 
 export default Index;

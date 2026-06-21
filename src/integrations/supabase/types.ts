@@ -1275,6 +1275,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_errors: {
+        Row: {
+          browser: string | null
+          component: string | null
+          created_at: string
+          domain: string | null
+          error_message: string
+          error_type: string | null
+          id: string
+          metadata: Json
+          stack_trace: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          component?: string | null
+          created_at?: string
+          domain?: string | null
+          error_message: string
+          error_type?: string | null
+          id?: string
+          metadata?: Json
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          component?: string | null
+          created_at?: string
+          domain?: string | null
+          error_message?: string
+          error_type?: string | null
+          id?: string
+          metadata?: Json
+          stack_trace?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scan_results: {
         Row: {
           chatgpt_cited: boolean | null

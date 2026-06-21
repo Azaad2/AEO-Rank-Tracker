@@ -6,6 +6,7 @@ import { AuthForm } from '@/components/auth/AuthForm';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { useToast } from '@/hooks/use-toast';
+import { saveSignupIntent } from '@/lib/attribution';
 import logo from '@/assets/logo-light.png';
 
 export default function Auth() {

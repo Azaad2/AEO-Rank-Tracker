@@ -1012,41 +1012,81 @@ const Index = () => {
 
           return (
             <div id="scan-results" className="space-y-5 scroll-mt-24">
-              {/* HERO — Opportunity Summary */}
-              <Card className="bg-gradient-to-br from-yellow-400/10 via-black to-black border-yellow-400/40">
-                <CardContent className="p-5 md:p-7 space-y-4">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="space-y-1">
-                      <div className="text-xs uppercase tracking-wider text-yellow-400 font-semibold">
-                        Recommendation Intelligence • {scanData.project}
-                      </div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
-                        You appeared in <span className="text-yellow-400">{mentionedCount}/{totalPrompts}</span> prompts
-                      </h2>
-                      {topComp && (
-                        <p className="text-sm md:text-base text-gray-300">
-                          <span className="capitalize font-semibold text-white">{topComp[0]}</span> appeared in <span className="text-red-400 font-semibold">{topComp[1]}/{totalPrompts}</span> prompts.
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-gray-500">Visibility score</div>
-                      <div className={`text-2xl font-bold ${scoreColor}`}>{scanData.score}<span className="text-sm text-gray-500">/100</span></div>
-                    </div>
-                  </div>
+              {/* HERO — Urgency-led warning */}
+              {(() => {
+                const competitorRecommendedCount = scanData.results.filter(
+                  (r) => (r.geminiCompetitors?.length || 0) + (r.perplexityCompetitors?.length || 0) > 0
+                ).length;
+                const missingPct = totalPrompts > 0 ? Math.round((promptsMissingIn / totalPrompts) * 100) : 0;
+                const gap = topComp ? Math.max(0, topComp[1] - mentionedCount) : 0;
+                const topCompName = topComp?.[0] || 'competitors';
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-medium">
-                      <Target className="h-3 w-3" />
-                      Top Gap: {topGapLabel}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs font-medium">
-                      <Sparkles className="h-3 w-3" />
-                      Top Opportunity: {topOppLabel}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                return (
+                  <>
+                    <Card className="bg-gradient-to-br from-red-500/15 via-black to-black border-red-500/50 ring-1 ring-red-500/20">
+                      <CardContent className="p-5 md:p-7 space-y-4">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="space-y-2 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-red-300 font-semibold bg-red-500/10 border border-red-500/30 rounded-full px-3 py-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              AI Visibility Warning • {scanData.project}
+                            </div>
+                            <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                              AI recommended competitors in{' '}
+                              <span className="text-red-400">{competitorRecommendedCount} out of {totalPrompts}</span>{' '}
+                              prompts.
+                            </h2>
+                            <p className="text-base md:text-lg text-gray-300">
+                              Your brand is missing from{' '}
+                              <span className="text-red-400 font-bold">{missingPct}%</span> of AI recommendation opportunities.
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wider text-gray-500">Visibility score</div>
+                            <div className={`text-2xl font-bold ${scoreColor}`}>{scanData.score}<span className="text-sm text-gray-500">/100</span></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* COMPETITOR ADVANTAGE */}
+                    {topComp && (
+                      <Card className="bg-gradient-to-br from-yellow-400/10 to-black border-yellow-400/40">
+                        <CardContent className="p-5 md:p-6 space-y-4">
+                          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-yellow-400 font-bold">
+                            <Trophy className="h-4 w-4" />
+                            Competitor Advantage Found
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="p-4 rounded-lg bg-black/40 border border-gray-800">
+                              <div className="text-[10px] uppercase tracking-wider text-gray-500">Your Brand</div>
+                              <div className="text-2xl font-bold text-white mt-1">{mentionedCount}<span className="text-sm text-gray-500">/{totalPrompts}</span></div>
+                              <div className="text-xs text-gray-400 mt-1">prompts</div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-black/40 border border-gray-800">
+                              <div className="text-[10px] uppercase tracking-wider text-gray-500">Top Competitor</div>
+                              <div className="text-2xl font-bold text-white mt-1 capitalize truncate">{topCompName}</div>
+                              <div className="text-xs text-red-300 mt-1">{topComp[1]}/{totalPrompts} prompts</div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                              <div className="text-[10px] uppercase tracking-wider text-red-300">Visibility Gap</div>
+                              <div className="text-2xl font-bold text-red-400 mt-1 flex items-center gap-1">
+                                <TrendingDown className="h-5 w-5" />
+                                +{gap}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">prompts behind</div>
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-yellow-400/5 border border-yellow-400/20 text-sm text-gray-200">
+                            <span className="text-yellow-400 font-semibold">Potential Opportunity:</span>{' '}
+                            Appear in <span className="font-bold text-white">{gap || promptsMissingIn}</span> additional AI recommendation journeys.
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* SCAN CONTEXT — classification metadata */}
               {scanData.classification && scanData.classification.method !== 'none' && (

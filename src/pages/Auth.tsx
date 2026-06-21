@@ -6,6 +6,7 @@ import { AuthForm } from '@/components/auth/AuthForm';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { useToast } from '@/hooks/use-toast';
+import { saveSignupIntent } from '@/lib/attribution';
 import logo from '@/assets/logo-light.png';
 
 export default function Auth() {
@@ -23,8 +24,15 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Persist signup intent (source_page, scan_id, acquisition source)
+  // so account_created can be attributed even after OAuth redirect.
+  useEffect(() => {
+    if (mode === 'signup') saveSignupIntent();
+  }, [mode]);
+
   const handleGoogle = async () => {
     setGoogleLoading(true);
+    saveSignupIntent({ source_page: 'auth_google' });
     const { error } = await signInWithGoogle();
     if (error) {
       toast({
@@ -55,6 +63,7 @@ export default function Auth() {
       }
       return result;
     } else {
+      saveSignupIntent({ source_page: 'auth_email' });
       const result = await signUp(email, password);
       if (!result.error) {
         toast({

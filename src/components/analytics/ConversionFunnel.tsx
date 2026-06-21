@@ -22,7 +22,7 @@ export const ConversionFunnel = ({ timeRange }: ConversionFunnelProps) => {
       
       const { data, error } = await supabase
         .from("user_activity")
-        .select("event_type, session_id, user_id")
+        .select("event_type, session_id")
         .gte("created_at", cutoff);
 
       if (error) throw error;

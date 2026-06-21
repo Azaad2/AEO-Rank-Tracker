@@ -319,9 +319,15 @@ const Index = () => {
           try { localStorage.setItem('pendingScanId', data.scanId); } catch {}
         }
       }
-      // Scroll to results
+      // Scroll to results + track results_viewed
       setTimeout(() => {
         document.getElementById('scan-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        trackEvent('results_viewed', {
+          domain: domain.trim(),
+          score: data.score,
+          prompts_count: data.promptsCount,
+          is_authenticated: !!user,
+        });
       }, 100);
       
       // Track successful scan completion

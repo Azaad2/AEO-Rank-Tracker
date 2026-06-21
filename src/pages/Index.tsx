@@ -364,16 +364,35 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Scan error:', error);
-      
+
       // Track scan failure
       trackEvent('scan_failed', {
         domain: domain.trim(),
         error_message: error instanceof Error ? error.message : "Unknown error",
       });
-      
+
+      // Persist failure to scan_errors for admin dashboard
+      try {
+        const { logScanError } = await import('@/lib/errorLogger');
+        await logScanError({
+          error,
+          component: 'Index.handleScan',
+          errorType: 'ScanSubmissionError',
+          domain: domain.trim(),
+          userId: user?.id ?? null,
+          metadata: {
+            competitor: competitor.trim() || null,
+            prompt_count: promptsText.trim().split(/[\n,]/).filter(Boolean).length,
+            is_authenticated: !!user,
+          },
+        });
+      } catch {}
+
       toast({
         title: "Scan failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error
+          ? error.message
+          : "Something went wrong on our end. We've logged it — please try again.",
         variant: "destructive",
       });
     } finally {

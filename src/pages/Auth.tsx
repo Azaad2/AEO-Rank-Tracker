@@ -24,8 +24,15 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Persist signup intent (source_page, scan_id, acquisition source)
+  // so account_created can be attributed even after OAuth redirect.
+  useEffect(() => {
+    if (mode === 'signup') saveSignupIntent();
+  }, [mode]);
+
   const handleGoogle = async () => {
     setGoogleLoading(true);
+    saveSignupIntent({ source_page: 'auth_google' });
     const { error } = await signInWithGoogle();
     if (error) {
       toast({

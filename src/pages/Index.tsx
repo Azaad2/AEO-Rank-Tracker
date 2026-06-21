@@ -1146,17 +1146,17 @@ const Index = () => {
                 </Card>
               )}
 
-              {/* TOP 3 OPPORTUNITIES (preview) */}
+              {/* TOP OPPORTUNITIES — only 1 visible for guests, rest locked */}
               {oppRanked.length > 0 && (
                 <Card className="bg-gray-900 border-gray-800">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-base flex items-center gap-2">
                       <Target className="h-4 w-4 text-yellow-400" />
-                      Top 3 opportunities
+                      {user ? 'Top 3 opportunities' : 'Sample missed opportunity'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {oppRanked.map((r, i) => {
+                    {(user ? oppRanked : oppRanked.slice(0, 1)).map((r, i) => {
                       const comps = [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
                         .filter(Boolean).slice(0, 2);
                       return (
@@ -1174,7 +1174,15 @@ const Index = () => {
                         </div>
                       );
                     })}
-                    {promptsMissingIn > 3 && (
+                    {!user && oppRanked.length > 1 && (
+                      <div className="p-3 border border-dashed border-yellow-400/30 rounded-lg bg-black/40 flex items-center gap-2 text-xs text-gray-400">
+                        <Lock className="h-3.5 w-3.5 text-yellow-400" />
+                        <span>
+                          +{Math.max(0, promptsMissingIn - 1)} more missed prompts &amp; the exact reason competitors won each — locked.
+                        </span>
+                      </div>
+                    )}
+                    {user && promptsMissingIn > 3 && (
                       <p className="text-xs text-gray-500 pt-1">
                         +{promptsMissingIn - 3} more opportunities in the full report.
                       </p>
@@ -1183,32 +1191,117 @@ const Index = () => {
                 </Card>
               )}
 
-              {/* LOCKED PREMIUM SECTIONS — blurred teaser */}
-              <Card className="bg-gray-900 border-gray-800 relative overflow-hidden">
-                <CardContent className="p-5 space-y-3 select-none pointer-events-none [filter:blur(4px)]">
-                  <div className="text-sm font-semibold text-white">Full Recommendation Intelligence</div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      'Full Why Competitors Win breakdown',
-                      'Full Recommendation Intelligence (50+ actions)',
-                      'Industry Benchmark vs your score',
-                      'Citation Sources for every prompt',
-                      'Competitor Asset Breakdown',
-                      'Full Action Plan (prioritized)',
-                    ].map((s) => (
-                      <div key={s} className="p-3 rounded-lg bg-black/40 border border-gray-800 text-xs text-gray-300 h-16">
-                        {s}
-                      </div>
-                    ))}
+              {/* EMOTIONAL HOOK — only for guests */}
+              {!user && (
+                <Card className="bg-gradient-to-br from-yellow-400/10 to-black border-yellow-400/40">
+                  <CardContent className="p-5 md:p-6 space-y-4">
+                    <h3 className="text-lg md:text-xl font-bold text-white leading-snug">
+                      We found exactly why competitors are being recommended instead of you.
+                    </h3>
+                    <p className="text-sm text-gray-300">Unlock the full report to see:</p>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-200">
+                      {[
+                        'Websites AI trusts',
+                        'Citation sources competitors own',
+                        'Missing authority signals',
+                        'Content gaps',
+                        'Industry benchmark',
+                        'Step-by-step action plan',
+                      ].map((s) => (
+                        <li key={s} className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-yellow-400 mt-0.5 shrink-0" />
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* LOCKED PREMIUM SECTIONS — blurred teaser (guests only) */}
+              {!user && (
+                <Card className="bg-gray-900 border-gray-800 relative overflow-hidden">
+                  <CardContent className="p-5 space-y-3 select-none pointer-events-none [filter:blur(6px)]">
+                    <div className="text-sm font-semibold text-white">Full Recommendation Intelligence</div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        'Full citation intelligence',
+                        'Full action plan',
+                        'Full recommendation intelligence',
+                        'Competitor asset breakdown',
+                        'Prompt-by-prompt analysis',
+                        'Full industry benchmark',
+                      ].map((s) => (
+                        <div key={s} className="p-3 rounded-lg bg-black/40 border border-gray-800 text-xs text-gray-300 h-16">
+                          {s}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-transparent flex items-end justify-center p-6">
+                    <div className="text-center space-y-2">
+                      <Lock className="h-6 w-6 text-yellow-400 mx-auto" />
+                      <p className="text-sm text-gray-300">6 premium sections unlocked with a free account</p>
+                    </div>
                   </div>
-                </CardContent>
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent flex items-end justify-center p-6">
-                  <div className="text-center space-y-2">
-                    <Lock className="h-6 w-6 text-yellow-400 mx-auto" />
-                    <p className="text-sm text-gray-300">6 premium sections unlocked with a free account</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              )}
+
+              {/* FOMO — guests only */}
+              {!user && (
+                <Card className="bg-red-500/5 border-red-500/30">
+                  <CardContent className="p-5 space-y-2">
+                    <div className="flex items-center gap-2 text-red-300 text-xs uppercase tracking-wider font-bold">
+                      <Clock className="h-4 w-4" />
+                      Every day you wait, the gap widens
+                    </div>
+                    <ul className="space-y-1.5 text-sm text-gray-200 pt-1">
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                        Your competitors are currently appearing in AI recommendations.
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                        Your visibility gap will not close on its own.
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 text-yellow-400 mt-0.5 shrink-0" />
+                        See exactly what AI trusts and what your brand is missing.
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SOCIAL PROOF — guests only, sits above CTA */}
+              {!user && (
+                <Card className="bg-gray-900/60 border-gray-800">
+                  <CardContent className="p-5 space-y-3 text-center">
+                    <p className="text-sm text-gray-300">
+                      Trusted by marketers, founders, and agencies.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2 text-xs">
+                      {['ChatGPT', 'Gemini', 'Claude', 'Perplexity'].map((p) => (
+                        <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/50 border border-gray-700 text-gray-200">
+                          <Bot className="h-3 w-3 text-yellow-400" />
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Thousands of AI recommendations analyzed.
+                    </p>
+                    <a
+                      href="https://peerpush.net"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300"
+                    >
+                      🏆 Trending on PeerPush
+                    </a>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* CTA — single, primary */}
               {user ? (
@@ -1217,7 +1310,7 @@ const Index = () => {
                     <p className="text-white">Your scan is saved. Continue in your dashboard for the full report.</p>
                     <Link
                       to={dashboardHref}
-                      onClick={() => trackEvent('signup_cta_click', { source: 'results_signed_in', score: scanData.score })}
+                      onClick={() => trackEvent('signup_cta_clicked', { source: 'results_signed_in', score: scanData.score })}
                     >
                       <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold">
                         Open Full Recommendation Intelligence
@@ -1226,36 +1319,44 @@ const Index = () => {
                     </Link>
                   </CardContent>
                 </Card>
-              ) : (
-                <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-400/10 to-black">
-                  <CardContent className="p-6 md:p-8 space-y-5">
-                    <div className="text-center space-y-2">
-                      <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
-                      <h3 className="text-xl md:text-2xl font-bold text-white">
-                        Create Free Account to Unlock Full Report
-                      </h3>
-                      <p className="text-sm text-gray-300 max-w-xl mx-auto">
-                        We'll save this scan and drop you straight into the Recommendation Intelligence dashboard. No card, no email verification.
-                      </p>
-                    </div>
+              ) : (() => {
+                const competitorName = topComp?.[0]
+                  ? topComp[0].charAt(0).toUpperCase() + topComp[0].slice(1)
+                  : 'Competitors';
+                return (
+                  <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-400/15 to-black">
+                    <CardContent className="p-6 md:p-8 space-y-5">
+                      <div className="text-center space-y-2">
+                        <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
+                        <h3 className="text-xl md:text-2xl font-bold text-white leading-snug">
+                          See Why AI Chooses {competitorName} Instead Of You
+                        </h3>
+                        <p className="text-sm md:text-base text-gray-300 max-w-xl mx-auto">
+                          We found <span className="font-bold text-yellow-400">{promptsMissingIn}</span> missed recommendation opportunities. Create a free account to see how to capture them.
+                        </p>
+                      </div>
 
-                    <div className="flex justify-center pt-1">
-                      <Link
-                        to={signupHref}
-                        onClick={() => trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score })}
-                      >
-                        <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold">
-                          {beatLabel} — Sign up free
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                    <p className="text-center text-xs text-gray-500">
-                      Free forever plan. Upgrade only when you want weekly tracking.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                      <div className="flex justify-center pt-1">
+                        <Link
+                          to={signupHref}
+                          onClick={() => {
+                            trackEvent('signup_cta_clicked', { source: 'results_wall', score: scanData.score, competitor: topComp?.[0] || null, missed: promptsMissingIn });
+                            trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score });
+                          }}
+                        >
+                          <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold text-base md:text-lg">
+                            See Why AI Chooses {competitorName} Instead Of You
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                      <p className="text-center text-xs text-gray-500">
+                        Free forever plan. No card, no email verification.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               <div className="flex justify-end">
                 <Button

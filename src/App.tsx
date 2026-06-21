@@ -47,6 +47,8 @@ import Integrations from "./pages/Integrations";
 import BulkScan from "./pages/admin/BulkScan";
 import Backfill from "./pages/admin/Backfill";
 import AdminRecommendations from "./pages/admin/Recommendations";
+import AdminScanErrors from "./pages/admin/ScanErrors";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";
@@ -89,6 +91,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <main>
+          <ErrorBoundary component="AppRoutes">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/analytics" element={<Analytics />} />
@@ -110,6 +113,7 @@ const App = () => (
             <Route path="/admin/bulk-scan" element={<BulkScan />} />
             <Route path="/admin/backfill" element={<Backfill />} />
             <Route path="/admin/recommendations" element={<AdminRecommendations />} />
+            <Route path="/admin/scan-errors" element={<AdminScanErrors />} />
             {/* Blog posts */}
             <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
             <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />
@@ -171,6 +175,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </main>
       </BrowserRouter>
     </TooltipProvider>

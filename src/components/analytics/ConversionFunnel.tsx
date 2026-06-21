@@ -22,36 +22,28 @@ export const ConversionFunnel = ({ timeRange }: ConversionFunnelProps) => {
       
       const { data, error } = await supabase
         .from("user_activity")
-        .select("event_type, session_id")
+        .select("event_type, session_id, user_id")
         .gte("created_at", cutoff);
 
       if (error) throw error;
 
       const pageViews = data?.filter(d => d.event_type === "page_view").length || 0;
-      const formInteractions = new Set(
-        data?.filter(d => d.event_type === "form_interaction").map(d => d.session_id)
-      ).size;
-      const scansInitiated = data?.filter(d => d.event_type === "scan_initiated").length || 0;
+      const scansStarted = data?.filter(d => d.event_type === "scan_started" || d.event_type === "scan_initiated").length || 0;
       const scansCompleted = data?.filter(d => d.event_type === "scan_completed").length || 0;
+      const resultsViewed = data?.filter(d => d.event_type === "results_viewed").length || 0;
+      const signupClicks = data?.filter(d => d.event_type === "signup_cta_clicked" || d.event_type === "signup_cta_click").length || 0;
+      const accountsCreated = data?.filter(d => d.event_type === "sign_up" || d.event_type === "account_created" || d.event_type === "signup_success").length || 0;
+
+      const pct = (n: number) => (pageViews > 0 ? Math.round((n / pageViews) * 100) : 0);
 
       return {
         steps: [
-          { label: "Page Views", value: pageViews, percentage: 100 },
-          { 
-            label: "Form Interactions", 
-            value: formInteractions, 
-            percentage: pageViews > 0 ? Math.round((formInteractions / pageViews) * 100) : 0 
-          },
-          { 
-            label: "Scans Initiated", 
-            value: scansInitiated, 
-            percentage: pageViews > 0 ? Math.round((scansInitiated / pageViews) * 100) : 0 
-          },
-          { 
-            label: "Scans Completed", 
-            value: scansCompleted, 
-            percentage: pageViews > 0 ? Math.round((scansCompleted / pageViews) * 100) : 0 
-          },
+          { label: "Homepage Visitor", value: pageViews, percentage: 100 },
+          { label: "Scan Started", value: scansStarted, percentage: pct(scansStarted) },
+          { label: "Scan Completed", value: scansCompleted, percentage: pct(scansCompleted) },
+          { label: "Results Viewed", value: resultsViewed, percentage: pct(resultsViewed) },
+          { label: "Signup CTA Clicked", value: signupClicks, percentage: pct(signupClicks) },
+          { label: "Account Created", value: accountsCreated, percentage: pct(accountsCreated) },
         ],
       };
     },

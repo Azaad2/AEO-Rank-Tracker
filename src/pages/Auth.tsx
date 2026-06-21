@@ -63,6 +63,7 @@ export default function Auth() {
       }
       return result;
     } else {
+      saveSignupIntent({ source_page: 'auth_email' });
       const result = await signUp(email, password);
       if (!result.error) {
         toast({

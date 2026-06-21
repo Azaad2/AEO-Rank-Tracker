@@ -1342,6 +1342,9 @@ const Index = () => {
                           onClick={() => {
                             trackEvent('signup_cta_clicked', { source: 'results_wall', score: scanData.score, competitor: topComp?.[0] || null, missed: promptsMissingIn });
                             trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score });
+                            import('@/lib/attribution').then(({ saveSignupIntent }) =>
+                              saveSignupIntent({ source_page: 'results_wall' })
+                            );
                           }}
                         >
                           <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold text-base md:text-lg">

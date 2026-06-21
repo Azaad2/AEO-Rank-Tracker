@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { posthog } from '@/lib/posthog';
+import { readSignupIntent, clearSignupIntent, markAccountCreatedFired, getAcquisitionSource } from '@/lib/attribution';
 
 interface AuthState {
   user: User | null;

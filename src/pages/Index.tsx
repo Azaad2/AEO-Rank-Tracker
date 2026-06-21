@@ -284,6 +284,13 @@ const Index = () => {
         }
       }
 
+      trackEvent('scan_started', {
+        domain: domain.trim(),
+        competitor: competitor.trim() || null,
+        prompt_count: promptCount,
+        auto_generated_prompts: !promptsText.trim(),
+        is_authenticated: !!user,
+      });
       trackEvent('scan_initiated', {
         domain: domain.trim(),
         competitor: competitor.trim() || null,

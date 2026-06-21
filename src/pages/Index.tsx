@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight, ChevronDown, Target, MessageSquare, Swords, Wrench } from "lucide-react";
+import { Loader2, Download, TrendingUp, CheckCircle2, Users, Lock, FileText, Mail, Sparkles, ArrowRight, ChevronDown, Target, MessageSquare, Swords, Wrench, AlertTriangle, TrendingDown, Zap, Trophy, Bot, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useABTest } from "@/hooks/useABTest";
@@ -284,6 +284,13 @@ const Index = () => {
         }
       }
 
+      trackEvent('scan_started', {
+        domain: domain.trim(),
+        competitor: competitor.trim() || null,
+        prompt_count: promptCount,
+        auto_generated_prompts: !promptsText.trim(),
+        is_authenticated: !!user,
+      });
       trackEvent('scan_initiated', {
         domain: domain.trim(),
         competitor: competitor.trim() || null,
@@ -312,9 +319,15 @@ const Index = () => {
           try { localStorage.setItem('pendingScanId', data.scanId); } catch {}
         }
       }
-      // Scroll to results
+      // Scroll to results + track results_viewed
       setTimeout(() => {
         document.getElementById('scan-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        trackEvent('results_viewed', {
+          domain: domain.trim(),
+          score: data.score,
+          prompts_count: data.promptsCount,
+          is_authenticated: !!user,
+        });
       }, 100);
       
       // Track successful scan completion
@@ -999,41 +1012,81 @@ const Index = () => {
 
           return (
             <div id="scan-results" className="space-y-5 scroll-mt-24">
-              {/* HERO — Opportunity Summary */}
-              <Card className="bg-gradient-to-br from-yellow-400/10 via-black to-black border-yellow-400/40">
-                <CardContent className="p-5 md:p-7 space-y-4">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="space-y-1">
-                      <div className="text-xs uppercase tracking-wider text-yellow-400 font-semibold">
-                        Recommendation Intelligence • {scanData.project}
-                      </div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
-                        You appeared in <span className="text-yellow-400">{mentionedCount}/{totalPrompts}</span> prompts
-                      </h2>
-                      {topComp && (
-                        <p className="text-sm md:text-base text-gray-300">
-                          <span className="capitalize font-semibold text-white">{topComp[0]}</span> appeared in <span className="text-red-400 font-semibold">{topComp[1]}/{totalPrompts}</span> prompts.
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-gray-500">Visibility score</div>
-                      <div className={`text-2xl font-bold ${scoreColor}`}>{scanData.score}<span className="text-sm text-gray-500">/100</span></div>
-                    </div>
-                  </div>
+              {/* HERO — Urgency-led warning */}
+              {(() => {
+                const competitorRecommendedCount = scanData.results.filter(
+                  (r) => (r.geminiCompetitors?.length || 0) + (r.perplexityCompetitors?.length || 0) > 0
+                ).length;
+                const missingPct = totalPrompts > 0 ? Math.round((promptsMissingIn / totalPrompts) * 100) : 0;
+                const gap = topComp ? Math.max(0, topComp[1] - mentionedCount) : 0;
+                const topCompName = topComp?.[0] || 'competitors';
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-medium">
-                      <Target className="h-3 w-3" />
-                      Top Gap: {topGapLabel}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 text-xs font-medium">
-                      <Sparkles className="h-3 w-3" />
-                      Top Opportunity: {topOppLabel}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                return (
+                  <>
+                    <Card className="bg-gradient-to-br from-red-500/15 via-black to-black border-red-500/50 ring-1 ring-red-500/20">
+                      <CardContent className="p-5 md:p-7 space-y-4">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div className="space-y-2 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-wider text-red-300 font-semibold bg-red-500/10 border border-red-500/30 rounded-full px-3 py-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              AI Visibility Warning • {scanData.project}
+                            </div>
+                            <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                              AI recommended competitors in{' '}
+                              <span className="text-red-400">{competitorRecommendedCount} out of {totalPrompts}</span>{' '}
+                              prompts.
+                            </h2>
+                            <p className="text-base md:text-lg text-gray-300">
+                              Your brand is missing from{' '}
+                              <span className="text-red-400 font-bold">{missingPct}%</span> of AI recommendation opportunities.
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-wider text-gray-500">Visibility score</div>
+                            <div className={`text-2xl font-bold ${scoreColor}`}>{scanData.score}<span className="text-sm text-gray-500">/100</span></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* COMPETITOR ADVANTAGE */}
+                    {topComp && (
+                      <Card className="bg-gradient-to-br from-yellow-400/10 to-black border-yellow-400/40">
+                        <CardContent className="p-5 md:p-6 space-y-4">
+                          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-yellow-400 font-bold">
+                            <Trophy className="h-4 w-4" />
+                            Competitor Advantage Found
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="p-4 rounded-lg bg-black/40 border border-gray-800">
+                              <div className="text-[10px] uppercase tracking-wider text-gray-500">Your Brand</div>
+                              <div className="text-2xl font-bold text-white mt-1">{mentionedCount}<span className="text-sm text-gray-500">/{totalPrompts}</span></div>
+                              <div className="text-xs text-gray-400 mt-1">prompts</div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-black/40 border border-gray-800">
+                              <div className="text-[10px] uppercase tracking-wider text-gray-500">Top Competitor</div>
+                              <div className="text-2xl font-bold text-white mt-1 capitalize truncate">{topCompName}</div>
+                              <div className="text-xs text-red-300 mt-1">{topComp[1]}/{totalPrompts} prompts</div>
+                            </div>
+                            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                              <div className="text-[10px] uppercase tracking-wider text-red-300">Visibility Gap</div>
+                              <div className="text-2xl font-bold text-red-400 mt-1 flex items-center gap-1">
+                                <TrendingDown className="h-5 w-5" />
+                                +{gap}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">prompts behind</div>
+                            </div>
+                          </div>
+                          <div className="p-3 rounded-lg bg-yellow-400/5 border border-yellow-400/20 text-sm text-gray-200">
+                            <span className="text-yellow-400 font-semibold">Potential Opportunity:</span>{' '}
+                            Appear in <span className="font-bold text-white">{gap || promptsMissingIn}</span> additional AI recommendation journeys.
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* SCAN CONTEXT — classification metadata */}
               {scanData.classification && scanData.classification.method !== 'none' && (
@@ -1093,17 +1146,17 @@ const Index = () => {
                 </Card>
               )}
 
-              {/* TOP 3 OPPORTUNITIES (preview) */}
+              {/* TOP OPPORTUNITIES — only 1 visible for guests, rest locked */}
               {oppRanked.length > 0 && (
                 <Card className="bg-gray-900 border-gray-800">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-base flex items-center gap-2">
                       <Target className="h-4 w-4 text-yellow-400" />
-                      Top 3 opportunities
+                      {user ? 'Top 3 opportunities' : 'Sample missed opportunity'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {oppRanked.map((r, i) => {
+                    {(user ? oppRanked : oppRanked.slice(0, 1)).map((r, i) => {
                       const comps = [...(r.geminiCompetitors || []), ...(r.perplexityCompetitors || [])]
                         .filter(Boolean).slice(0, 2);
                       return (
@@ -1121,7 +1174,15 @@ const Index = () => {
                         </div>
                       );
                     })}
-                    {promptsMissingIn > 3 && (
+                    {!user && oppRanked.length > 1 && (
+                      <div className="p-3 border border-dashed border-yellow-400/30 rounded-lg bg-black/40 flex items-center gap-2 text-xs text-gray-400">
+                        <Lock className="h-3.5 w-3.5 text-yellow-400" />
+                        <span>
+                          +{Math.max(0, promptsMissingIn - 1)} more missed prompts &amp; the exact reason competitors won each — locked.
+                        </span>
+                      </div>
+                    )}
+                    {user && promptsMissingIn > 3 && (
                       <p className="text-xs text-gray-500 pt-1">
                         +{promptsMissingIn - 3} more opportunities in the full report.
                       </p>
@@ -1130,32 +1191,117 @@ const Index = () => {
                 </Card>
               )}
 
-              {/* LOCKED PREMIUM SECTIONS — blurred teaser */}
-              <Card className="bg-gray-900 border-gray-800 relative overflow-hidden">
-                <CardContent className="p-5 space-y-3 select-none pointer-events-none [filter:blur(4px)]">
-                  <div className="text-sm font-semibold text-white">Full Recommendation Intelligence</div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      'Full Why Competitors Win breakdown',
-                      'Full Recommendation Intelligence (50+ actions)',
-                      'Industry Benchmark vs your score',
-                      'Citation Sources for every prompt',
-                      'Competitor Asset Breakdown',
-                      'Full Action Plan (prioritized)',
-                    ].map((s) => (
-                      <div key={s} className="p-3 rounded-lg bg-black/40 border border-gray-800 text-xs text-gray-300 h-16">
-                        {s}
-                      </div>
-                    ))}
+              {/* EMOTIONAL HOOK — only for guests */}
+              {!user && (
+                <Card className="bg-gradient-to-br from-yellow-400/10 to-black border-yellow-400/40">
+                  <CardContent className="p-5 md:p-6 space-y-4">
+                    <h3 className="text-lg md:text-xl font-bold text-white leading-snug">
+                      We found exactly why competitors are being recommended instead of you.
+                    </h3>
+                    <p className="text-sm text-gray-300">Unlock the full report to see:</p>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-200">
+                      {[
+                        'Websites AI trusts',
+                        'Citation sources competitors own',
+                        'Missing authority signals',
+                        'Content gaps',
+                        'Industry benchmark',
+                        'Step-by-step action plan',
+                      ].map((s) => (
+                        <li key={s} className="flex items-start gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-yellow-400 mt-0.5 shrink-0" />
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* LOCKED PREMIUM SECTIONS — blurred teaser (guests only) */}
+              {!user && (
+                <Card className="bg-gray-900 border-gray-800 relative overflow-hidden">
+                  <CardContent className="p-5 space-y-3 select-none pointer-events-none [filter:blur(6px)]">
+                    <div className="text-sm font-semibold text-white">Full Recommendation Intelligence</div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        'Full citation intelligence',
+                        'Full action plan',
+                        'Full recommendation intelligence',
+                        'Competitor asset breakdown',
+                        'Prompt-by-prompt analysis',
+                        'Full industry benchmark',
+                      ].map((s) => (
+                        <div key={s} className="p-3 rounded-lg bg-black/40 border border-gray-800 text-xs text-gray-300 h-16">
+                          {s}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-transparent flex items-end justify-center p-6">
+                    <div className="text-center space-y-2">
+                      <Lock className="h-6 w-6 text-yellow-400 mx-auto" />
+                      <p className="text-sm text-gray-300">6 premium sections unlocked with a free account</p>
+                    </div>
                   </div>
-                </CardContent>
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent flex items-end justify-center p-6">
-                  <div className="text-center space-y-2">
-                    <Lock className="h-6 w-6 text-yellow-400 mx-auto" />
-                    <p className="text-sm text-gray-300">6 premium sections unlocked with a free account</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              )}
+
+              {/* FOMO — guests only */}
+              {!user && (
+                <Card className="bg-red-500/5 border-red-500/30">
+                  <CardContent className="p-5 space-y-2">
+                    <div className="flex items-center gap-2 text-red-300 text-xs uppercase tracking-wider font-bold">
+                      <Clock className="h-4 w-4" />
+                      Every day you wait, the gap widens
+                    </div>
+                    <ul className="space-y-1.5 text-sm text-gray-200 pt-1">
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                        Your competitors are currently appearing in AI recommendations.
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                        Your visibility gap will not close on its own.
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 text-yellow-400 mt-0.5 shrink-0" />
+                        See exactly what AI trusts and what your brand is missing.
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SOCIAL PROOF — guests only, sits above CTA */}
+              {!user && (
+                <Card className="bg-gray-900/60 border-gray-800">
+                  <CardContent className="p-5 space-y-3 text-center">
+                    <p className="text-sm text-gray-300">
+                      Trusted by marketers, founders, and agencies.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2 text-xs">
+                      {['ChatGPT', 'Gemini', 'Claude', 'Perplexity'].map((p) => (
+                        <span key={p} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/50 border border-gray-700 text-gray-200">
+                          <Bot className="h-3 w-3 text-yellow-400" />
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Thousands of AI recommendations analyzed.
+                    </p>
+                    <a
+                      href="https://peerpush.net"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-yellow-400 hover:text-yellow-300"
+                    >
+                      🏆 Trending on PeerPush
+                    </a>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* CTA — single, primary */}
               {user ? (
@@ -1164,7 +1310,7 @@ const Index = () => {
                     <p className="text-white">Your scan is saved. Continue in your dashboard for the full report.</p>
                     <Link
                       to={dashboardHref}
-                      onClick={() => trackEvent('signup_cta_click', { source: 'results_signed_in', score: scanData.score })}
+                      onClick={() => trackEvent('signup_cta_clicked', { source: 'results_signed_in', score: scanData.score })}
                     >
                       <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold">
                         Open Full Recommendation Intelligence
@@ -1173,36 +1319,44 @@ const Index = () => {
                     </Link>
                   </CardContent>
                 </Card>
-              ) : (
-                <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-400/10 to-black">
-                  <CardContent className="p-6 md:p-8 space-y-5">
-                    <div className="text-center space-y-2">
-                      <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
-                      <h3 className="text-xl md:text-2xl font-bold text-white">
-                        Create Free Account to Unlock Full Report
-                      </h3>
-                      <p className="text-sm text-gray-300 max-w-xl mx-auto">
-                        We'll save this scan and drop you straight into the Recommendation Intelligence dashboard. No card, no email verification.
-                      </p>
-                    </div>
+              ) : (() => {
+                const competitorName = topComp?.[0]
+                  ? topComp[0].charAt(0).toUpperCase() + topComp[0].slice(1)
+                  : 'Competitors';
+                return (
+                  <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-400/15 to-black">
+                    <CardContent className="p-6 md:p-8 space-y-5">
+                      <div className="text-center space-y-2">
+                        <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
+                        <h3 className="text-xl md:text-2xl font-bold text-white leading-snug">
+                          See Why AI Chooses {competitorName} Instead Of You
+                        </h3>
+                        <p className="text-sm md:text-base text-gray-300 max-w-xl mx-auto">
+                          We found <span className="font-bold text-yellow-400">{promptsMissingIn}</span> missed recommendation opportunities. Create a free account to see how to capture them.
+                        </p>
+                      </div>
 
-                    <div className="flex justify-center pt-1">
-                      <Link
-                        to={signupHref}
-                        onClick={() => trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score })}
-                      >
-                        <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold">
-                          {beatLabel} — Sign up free
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                    <p className="text-center text-xs text-gray-500">
-                      Free forever plan. Upgrade only when you want weekly tracking.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                      <div className="flex justify-center pt-1">
+                        <Link
+                          to={signupHref}
+                          onClick={() => {
+                            trackEvent('signup_cta_clicked', { source: 'results_wall', score: scanData.score, competitor: topComp?.[0] || null, missed: promptsMissingIn });
+                            trackEvent('signup_cta_click', { source: 'results_wall', score: scanData.score });
+                          }}
+                        >
+                          <Button size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold text-base md:text-lg">
+                            See Why AI Chooses {competitorName} Instead Of You
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                      <p className="text-center text-xs text-gray-500">
+                        Free forever plan. No card, no email verification.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               <div className="flex justify-end">
                 <Button

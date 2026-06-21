@@ -7,11 +7,11 @@ interface ScanProgressBarProps {
 }
 
 const STEPS = [
-  { label: "Checking ChatGPT...", duration: 12000 },
-  { label: "Checking Perplexity...", duration: 14000 },
-  { label: "Checking Gemini...", duration: 16000 },
-  { label: "Analyzing competitors...", duration: 10000 },
-  { label: "Calculating visibility score...", duration: 8000 },
+  { label: "Identifying competitors...", duration: 12000 },
+  { label: "Analyzing citation sources...", duration: 12000 },
+  { label: "Finding authority gaps...", duration: 12000 },
+  { label: "Generating action plan...", duration: 12000 },
+  { label: "Building recommendation intelligence report...", duration: 12000 },
 ];
 
 const TOTAL_DURATION = STEPS.reduce((sum, s) => sum + s.duration, 0);

@@ -50,6 +50,7 @@ import AdminRecommendations from "./pages/admin/Recommendations";
 import AdminScanErrors from "./pages/admin/ScanErrors";
 import Affiliates from "./pages/Affiliates";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ReferralCapture } from "./components/ReferralCapture";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
 import CompetitorAIAnalysis from "./pages/blog/CompetitorAIAnalysis";
@@ -91,6 +92,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ReferralCapture />
         <main>
           <ErrorBoundary component="AppRoutes">
           <Routes>

@@ -994,6 +994,9 @@ export type Database = {
           full_name: string | null
           id: string
           marketing_unsubscribed_at: string | null
+          referral_code: string | null
+          referral_source_page: string | null
+          referred_at: string | null
           resend_contact_id: string | null
           updated_at: string
         }
@@ -1004,6 +1007,9 @@ export type Database = {
           full_name?: string | null
           id: string
           marketing_unsubscribed_at?: string | null
+          referral_code?: string | null
+          referral_source_page?: string | null
+          referred_at?: string | null
           resend_contact_id?: string | null
           updated_at?: string
         }
@@ -1014,6 +1020,9 @@ export type Database = {
           full_name?: string | null
           id?: string
           marketing_unsubscribed_at?: string | null
+          referral_code?: string | null
+          referral_source_page?: string | null
+          referred_at?: string | null
           resend_contact_id?: string | null
           updated_at?: string
         }

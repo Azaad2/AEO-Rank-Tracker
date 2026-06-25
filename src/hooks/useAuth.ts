@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { posthog } from '@/lib/posthog';
 import { readSignupIntent, clearSignupIntent, markAccountCreatedFired, getAcquisitionSource } from '@/lib/attribution';
+import { getReferralCode, getReferralCapturedAt } from '@/lib/referral';
 
 interface AuthState {
   user: User | null;
@@ -50,6 +51,8 @@ export function useAuth(): AuthState & AuthActions {
           const isFresh = createdAt > 0 && Date.now() - createdAt < 5 * 60 * 1000;
           if (isFresh && markAccountCreatedFired(u.id)) {
             const intent = readSignupIntent();
+            const referralCode = getReferralCode();
+            const referralAt = getReferralCapturedAt();
             const sessionId = (() => {
               try { return sessionStorage.getItem('tracking_session_id'); } catch { return null; }
             })();
@@ -62,6 +65,7 @@ export function useAuth(): AuthState & AuthActions {
                 plan: 'free',
                 signup_method: u.app_metadata?.provider || 'email',
                 acquisition_source: intent?.acquisition_source ?? getAcquisitionSource(),
+                referral_code: referralCode,
                 timestamp: new Date().toISOString(),
                 user_id: u.id,
               },
@@ -71,6 +75,20 @@ export function useAuth(): AuthState & AuthActions {
             supabase.from('user_activity').insert(payload).then(({ error }) => {
               if (error) console.debug('account_created insert failed:', error);
             });
+            // Persist referral attribution onto the profile for payout reconciliation.
+            if (referralCode) {
+              supabase
+                .from('profiles')
+                .update({
+                  referral_code: referralCode,
+                  referred_at: referralAt ?? new Date().toISOString(),
+                  referral_source_page: intent?.source_page ?? null,
+                })
+                .eq('id', u.id)
+                .then(({ error }) => {
+                  if (error) console.debug('referral profile update failed:', error);
+                });
+            }
             try {
               if (typeof window !== 'undefined' && (window as any).gtag) {
                 (window as any).gtag('event', 'account_created', payload.event_metadata);

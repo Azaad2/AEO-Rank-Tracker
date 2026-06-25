@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface ToolLayoutProps {
   title: string;
@@ -124,7 +125,9 @@ const ToolLayout = ({
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 md:py-12">
-        {children}
+        <ErrorBoundary component={`ToolLayout:${title}`}>
+          {children}
+        </ErrorBoundary>
       </main>
 
       {/* Related Tools */}

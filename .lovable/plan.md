@@ -1,42 +1,74 @@
-## Daily AI Newsletter via Resend
+# QA Audit Plan — 7 AI Tools
 
-Auto-generate and broadcast a short daily AI-visibility tip to your Resend audience ("AI Mention You", all subscribed contacts) every day at **02:30 UTC**.
+Goal: audit reliability, correctness, performance, and conversion readiness across the AI tool surface. No new features — only fixes, instrumentation gaps, and polish.
 
-### How it works
+## Scope (tools)
+
+1. AI Visibility Checker (`src/pages/Index.tsx` + `scan` edge fn)
+2. LLM Rank Tracker (`src/pages/tools/LLMRankTracker.tsx`)
+3. AI Keyword Analyzer (`src/pages/tools/KeywordAnalyzer.tsx` + `analyze-keywords`)
+4. AI Overview Tracker (`src/pages/tools/AIOverviewsTracker.tsx`)
+5. Competitor Analyzer (`src/pages/tools/CompetitorAnalyzer.tsx` + `analyze-competitors`)
+6. Citation Intelligence (`src/components/dashboard/CitationIntelligenceTab.tsx`)
+7. Recommendation Intelligence (`src/components/dashboard/RecommendationIntelligence.tsx`)
+
+## Phase 1 — Investigation (read-only)
+
+For each tool, gather:
+
+- Page component + any child components it depends on
+- Edge function it invokes (input validation, error returns, CORS)
+- Loading / error / empty state branches
+- Where (if anywhere) `logScanError`, `trackEvent`, and `account_created`-style analytics fire
+- Console/network behavior via Playwright walkthrough on localhost (valid input, empty input, invalid domain, forced API failure)
+- Mobile viewport screenshot (375px) for layout/responsiveness
+
+Cross-cutting checks:
+
+- `ErrorBoundary` coverage around each tool's main render tree
+- `scan_errors` insert path on failure (currently only wired in `Index.tsx` handleScan)
+- Analytics event names actually emitted vs the funnel the dashboard expects (`scan_started`, `scan_completed`, `scan_failed`, `results_viewed`, `signup_cta_clicked`, `account_created`, `upgrade_cta_clicked`)
+- React warnings: keys, controlled/uncontrolled inputs, `useEffect` deps, unmount race conditions on async `setState`
+- Duplicate logic candidates: per-tool ad-hoc fetch wrappers vs a shared invoker; repeated limit checks (see `QuickScan` pattern)
+
+## Phase 2 — QA Report (deliverable)
+
+Markdown report per tool with:
 
 ```text
-pg_cron (02:30 UTC daily)
-   └─ POST /functions/v1/send-daily-newsletter  (with cron secret)
-        ├─ 1. Generate today's tip via Lovable AI (Gemini 3 Flash)
-        │     → subject line + 150–250 word HTML body + CTA
-        ├─ 2. POST https://api.resend.com/broadcasts
-        │     audience_id = RESEND_AUDIENCE_ID
-        │     from = "AI Mention You <hello@aimentionyou.com>"
-        │     html includes unsubscribe footer + branded arcade styling
-        ├─ 3. POST /broadcasts/{id}/send  (immediate send)
-        └─ 4. Log row to newsletter_log table
+Tool: <name>
+Readiness: <0–100>%
+Critical / Medium / Low issues
+Perf notes
+UX notes
+Required fixes (file:line)
 ```
 
-Resend handles per-recipient delivery, suppression, and unsubscribe state (already synced via your existing `sync-resend-audience` function). We do not loop per-contact — one Broadcast goes to the whole audience.
+Plus a cross-cutting section (shared infra gaps: error logging, analytics, ErrorBoundary, retry UX).
 
-### Deliverables
+## Phase 3 — Fixes (only after report)
 
-1. **New table** `public.newsletter_log` — date, subject, broadcast_id, status, error, ai-generated body snippet. Admin-only RLS.
-2. **New edge function** `send-daily-newsletter` (`verify_jwt = false`, cron-secret protected):
-   - Calls Lovable AI with a system prompt focused on AI search visibility / GEO tips for SaaS founders & agencies (your audience).
-   - Wraps the body in your arcade-themed HTML template (bg-black, yellow-400, Press Start 2P heading) with unsubscribe link using the existing `resend-unsubscribe` endpoint and Resend merge tags.
-   - Creates + sends a Resend Broadcast in one call.
-   - Idempotent: skips if a `sent` row already exists for today's date.
-3. **pg_cron job** `send-daily-newsletter-daily` at `30 2 * * *` UTC, using the existing Vault cron secret pattern.
-4. **Admin UI** on `/admin/recommendations`: a "Send today's newsletter now" button (manual trigger / preview), plus a small table of the last 14 days from `newsletter_log` (date, subject, status).
+Apply, in priority order, only what the report flags. Typical expected edits:
 
-### Technical notes
+1. Wrap each tool page in `<ErrorBoundary component="<ToolName>">`.
+2. Add `try/catch` → `logScanError({ component, domain })` to each tool's submit handler that currently only `toast`s.
+3. Add Retry button to error states that currently dead-end (e.g. `AIAnswerGenerator` only toasts).
+4. Standardize analytics: emit `tool_scan_started` / `tool_scan_completed` / `tool_scan_failed` with `{ tool, input_hash }` via `useActivityTracking`.
+5. Replace generic `Loader2` blocks with `Skeleton` result placeholders where a result card layout is known.
+6. Cancel-on-unmount guard (`AbortController` / mounted ref) on long `supabase.functions.invoke` calls to silence "setState on unmounted" warnings.
+7. Remove dead code surfaced during review (unused imports, unreachable branches, duplicate limit-check logic).
 
-- Sender domain: `aimentionyou.com` must be verified in Resend → Domains before the first send works. The function will still create the Broadcast but send will fail until verification.
-- Tip topics rotate via a seeded prompt (day-of-year mod a topic list of ~30 themes: schema, FAQs, citation prompts, competitor monitoring, GEO basics, etc.) so daily tips stay varied without manual curation.
-- No new secrets needed — reuses `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `LOVABLE_API_KEY`.
-- Out of scope: per-user personalization, A/B subject lines, open/click analytics dashboard (Resend dashboard already shows these).
+No new features, no schema changes, no copy rewrites beyond error/retry microcopy.
 
-### After approval
+## Validation
 
-Migration → edge function → cron schedule → admin button. You verify `aimentionyou.com` sending domain in Resend (if not already), then daily sends start the next 02:30 UTC.
+- `tsgo` typecheck after each batch
+- Playwright re-run of the same valid/invalid/empty/forced-failure matrix per tool, capture screenshots
+- Verify a row lands in `scan_errors` for each forced failure
+- Verify funnel events appear in `user_activity` for a happy-path run
+
+## Out of scope
+
+- New tools, redesigns, copy overhauls
+- Backend schema changes
+- Pricing / gating logic changes

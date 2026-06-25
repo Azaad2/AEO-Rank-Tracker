@@ -292,13 +292,6 @@ const Index = () => {
         auto_generated_prompts: !promptsText.trim(),
         is_authenticated: !!user,
       });
-      trackEvent('scan_initiated', {
-        domain: domain.trim(),
-        competitor: competitor.trim() || null,
-        prompt_count: promptCount,
-        auto_generated_prompts: !promptsText.trim(),
-        is_authenticated: !!user,
-      });
 
       const { data, error } = await supabase.functions.invoke('scan', {
         body: {
@@ -369,6 +362,7 @@ const Index = () => {
       // Track scan failure
       trackEvent('scan_failed', {
         domain: domain.trim(),
+        prompt_count: promptsText.trim().split(/[\n,]/).filter(Boolean).length,
         error_message: error instanceof Error ? error.message : "Unknown error",
       });
 

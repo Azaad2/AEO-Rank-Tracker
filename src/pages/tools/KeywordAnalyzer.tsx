@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Download, Loader2, Search, TrendingUp, Target } from "lucide-react";
+import { Copy, Download, Loader2, Search, TrendingUp, Target, RefreshCw, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { logToolError, trackToolEvent } from "@/lib/toolTelemetry";
 
 interface Keyword {
   keyword: string;
@@ -41,6 +42,7 @@ const KeywordAnalyzer = () => {
   const [intent, setIntent] = useState("All");
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<KeywordResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!seedKeyword.trim()) {
@@ -49,6 +51,8 @@ const KeywordAnalyzer = () => {
     }
 
     setIsGenerating(true);
+    setErrorMessage(null);
+    trackToolEvent("tool_scan_started", { tool: "KeywordAnalyzer", seed: seedKeyword });
     try {
       const { data, error } = await supabase.functions.invoke("analyze-keywords", {
         body: { seedKeyword, industry, intent: intent === "All" ? undefined : intent },
@@ -56,10 +60,17 @@ const KeywordAnalyzer = () => {
 
       if (error) throw error;
       setResult(data);
+      trackToolEvent("tool_scan_completed", {
+        tool: "KeywordAnalyzer",
+        seed: seedKeyword,
+        keyword_count: data?.keywords?.length ?? 0,
+      });
       toast.success("Keywords analyzed!");
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to analyze keywords. Please try again.");
+      const msg = error instanceof Error ? error.message : "Failed to analyze keywords. Please try again.";
+      setErrorMessage(msg);
+      await logToolError(error, { tool: "KeywordAnalyzer", input: { seedKeyword, industry, intent } });
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -67,7 +78,7 @@ const KeywordAnalyzer = () => {
 
   const copyKeywords = async () => {
     if (!result?.keywords) return;
-    const text = result.keywords.map(k => k.keyword).join('\n');
+    const text = result.keywords.map((k) => k.keyword).join("\n");
     await navigator.clipboard.writeText(text);
     toast.success("Keywords copied!");
   };
@@ -75,17 +86,20 @@ const KeywordAnalyzer = () => {
   const downloadCSV = () => {
     if (!result?.keywords) return;
     const headers = "Keyword,Type,Intent,Difficulty,AI Potential,Suggested Content";
-    const rows = result.keywords.map(k => 
-      `"${k.keyword}","${k.type}","${k.intent}","${k.difficulty}","${k.aiPotential}","${k.suggestedContent}"`
+    const rows = result.keywords.map((k) =>
+      `"${k.keyword}","${k.type}","${k.intent}","${k.difficulty}","${k.aiPotential}","${k.suggestedContent}"`,
     );
-    const csv = [headers, ...rows].join('\n');
+    const csv = [headers, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "keyword-analysis.csv";
     a.click();
+    // Free the blob URL on the next tick (after the browser starts the download)
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
+
 
   const getDifficultyColor = (difficulty: string) => {
     if (difficulty === "low") return "bg-green-100 text-green-800";
@@ -163,6 +177,19 @@ const KeywordAnalyzer = () => {
                 "Analyze Keywords"
               )}
             </Button>
+
+            {errorMessage && !isGenerating && (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-red-500/40 bg-red-950/30 text-sm text-red-200">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-300/80 mt-1">We logged this. Try again — your input is preserved.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleGenerate} className="shrink-0">
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

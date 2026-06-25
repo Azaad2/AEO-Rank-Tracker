@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, ListChecks } from 'lucide-react';
+import { Loader2, Sparkles, ListChecks, AlertTriangle, RefreshCw } from 'lucide-react';
 import { RecommendationCard, type RecommendationRow } from './RecommendationCard';
 import { ActionPlan } from './ActionPlan';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { logScanError } from '@/lib/errorLogger';
 
 type Filter = 'all' | 'quick' | 'high' | 'rss' | 'cag' | 'tsd';
 
@@ -14,12 +15,14 @@ export function RecommendationIntelligence() {
   const { user } = useAuth();
   const [recs, setRecs] = useState<RecommendationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [legacyOpen, setLegacyOpen] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setLoadError(null);
     const { data, error } = await supabase
       .from('recommendations')
       .select('*')
@@ -30,16 +33,25 @@ export function RecommendationIntelligence() {
       .limit(50);
     if (error) {
       console.error('rec load error', error);
+      setLoadError(error.message || 'Failed to load recommendations.');
       setRecs([]);
+      logScanError({ error, component: 'RecommendationIntelligence', errorType: 'RecommendationLoadError' });
     } else {
       setRecs((data || []) as any);
     }
     setLoading(false);
-  }
+  }, [user]);
 
   useEffect(() => {
-    load();
-  }, [user]);
+    let cancelled = false;
+    (async () => {
+      await load();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
 
   // Evidence-first: filter out cards without evidence as a safety net
   const evidenceBound = useMemo(
@@ -52,6 +64,17 @@ export function RecommendationIntelligence() {
       }),
     [recs],
   );
+
+  const metricCounts = useMemo(() => {
+    const counts = { rss: 0, cag: 0, tsd: 0 };
+    for (const r of evidenceBound) {
+      const m = r.target_metric?.toLowerCase();
+      if (m === 'rss') counts.rss++;
+      else if (m === 'cag') counts.cag++;
+      else if (m === 'tsd') counts.tsd++;
+    }
+    return counts;
+  }, [evidenceBound]);
 
   const filtered = useMemo(() => {
     switch (filter) {
@@ -81,6 +104,23 @@ export function RecommendationIntelligence() {
     );
   }
 
+  if (loadError) {
+    return (
+      <Card className="bg-red-950/30 border-red-500/40">
+        <CardContent className="p-6 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-300 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-100 font-medium">Couldn't load recommendations</p>
+            <p className="text-xs text-red-200/80 mt-1">{loadError}</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={load}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (evidenceBound.length === 0) {
     return (
       <Card className="bg-gray-900 border-gray-800">
@@ -100,9 +140,9 @@ export function RecommendationIntelligence() {
       { key: 'all', label: 'All', count: evidenceBound.length },
       { key: 'quick', label: 'Quick Wins', count: evidenceBound.filter((r) => r.difficulty === 'easy').length },
       { key: 'high', label: 'High Impact', count: evidenceBound.filter((r) => (r.priority_score ?? 0) >= 100).length },
-      { key: 'rss', label: 'RSS', count: evidenceBound.filter((r) => r.target_metric === 'RSS').length },
-      { key: 'cag', label: 'CAG', count: evidenceBound.filter((r) => r.target_metric === 'CAG').length },
-      { key: 'tsd', label: 'TSD', count: evidenceBound.filter((r) => r.target_metric === 'TSD').length },
+      { key: 'rss', label: 'RSS', count: metricCounts.rss },
+      { key: 'cag', label: 'CAG', count: metricCounts.cag },
+      { key: 'tsd', label: 'TSD', count: metricCounts.tsd },
     ] as { key: Filter; label: string; count: number }[]
   ).filter((f) => f.count > 0 || f.key === 'all');
 

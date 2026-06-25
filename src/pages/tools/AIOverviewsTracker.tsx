@@ -7,15 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Globe, TrendingUp, Sparkles, BarChart } from "lucide-react";
+import { Loader2, Globe, TrendingUp, Sparkles, BarChart, RefreshCw, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { logToolError, trackToolEvent } from "@/lib/toolTelemetry";
 
 const AIOverviewsTracker = () => {
   const [domain, setDomain] = useState("");
   const [keywords, setKeywords] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!domain.trim()) {
@@ -24,25 +26,31 @@ const AIOverviewsTracker = () => {
     }
 
     setIsAnalyzing(true);
+    setErrorMessage(null);
+    trackToolEvent("tool_scan_started", { tool: "AIOverviewsTracker", domain });
     try {
       const { data, error } = await supabase.functions.invoke("monitor-brand", {
-        body: { 
-          brandName: domain, 
-          industry: "Google AI Overviews & AI Mode", 
-          products: keywords || "AI Overviews visibility tracking" 
+        body: {
+          brandName: domain,
+          industry: "Google AI Overviews & AI Mode",
+          products: keywords || "AI Overviews visibility tracking",
         },
       });
 
       if (error) throw error;
       setResults(data);
+      trackToolEvent("tool_scan_completed", { tool: "AIOverviewsTracker", domain });
       toast.success("AI Overviews analysis complete!");
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to analyze. Please try again.");
+      const msg = error instanceof Error ? error.message : "Failed to analyze. Please try again.";
+      setErrorMessage(msg);
+      await logToolError(error, { tool: "AIOverviewsTracker", domain, input: { keywords } });
+      toast.error(msg);
     } finally {
       setIsAnalyzing(false);
     }
   };
+
 
   const relatedTools = [
     { title: "Perplexity Rank Tracker", href: "/tools/perplexity-rank-tracker", description: "Track Perplexity rankings" },
@@ -110,8 +118,22 @@ const AIOverviewsTracker = () => {
                 "Track AI Overviews"
               )}
             </Button>
+
+            {errorMessage && !isAnalyzing && (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-red-500/40 bg-red-950/30 text-sm text-red-200">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-300/80 mt-1">We logged this. Try again — your input is preserved.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleAnalyze} className="shrink-0">
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
+
 
         {/* Results */}
         {results && (

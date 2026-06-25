@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Users, TrendingUp, AlertTriangle, CheckCircle, Target } from "lucide-react";
+import { Loader2, Users, TrendingUp, AlertTriangle, CheckCircle, Target, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { logToolError, trackToolEvent } from "@/lib/toolTelemetry";
 
 interface Competitor {
   domain: string;
@@ -46,6 +47,7 @@ const CompetitorAnalyzer = () => {
   const [industry, setIndustry] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<CompetitorResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!yourDomain.trim()) {
@@ -53,9 +55,22 @@ const CompetitorAnalyzer = () => {
       return;
     }
 
-    const competitors = [competitor1, competitor2, competitor3].filter(c => c.trim());
+    const competitors = [competitor1, competitor2, competitor3]
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    if (competitors.length === 0) {
+      toast.error("Add at least one competitor to compare against");
+      return;
+    }
 
     setIsGenerating(true);
+    setErrorMessage(null);
+    trackToolEvent("tool_scan_started", {
+      tool: "CompetitorAnalyzer",
+      domain: yourDomain,
+      competitor_count: competitors.length,
+    });
     try {
       const { data, error } = await supabase.functions.invoke("analyze-competitors", {
         body: { yourDomain, competitors, industry },
@@ -63,14 +78,22 @@ const CompetitorAnalyzer = () => {
 
       if (error) throw error;
       setResult(data);
+      trackToolEvent("tool_scan_completed", { tool: "CompetitorAnalyzer", domain: yourDomain });
       toast.success("Competitive analysis complete!");
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to analyze competitors. Please try again.");
+      const msg = error instanceof Error ? error.message : "Failed to analyze competitors. Please try again.";
+      setErrorMessage(msg);
+      await logToolError(error, {
+        tool: "CompetitorAnalyzer",
+        domain: yourDomain,
+        input: { competitors, industry },
+      });
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
   };
+
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return "text-green-600";
@@ -170,6 +193,19 @@ const CompetitorAnalyzer = () => {
                 "Analyze AI Visibility"
               )}
             </Button>
+
+            {errorMessage && !isGenerating && (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-red-500/40 bg-red-950/30 text-sm text-red-200">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-300/80 mt-1">We logged this. Try again — your input is preserved.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleGenerate} className="shrink-0">
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

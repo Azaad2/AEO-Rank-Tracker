@@ -7,15 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Layers, TrendingUp, BarChart3, Zap } from "lucide-react";
+import { Loader2, Layers, TrendingUp, BarChart3, RefreshCw, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { logToolError, trackToolEvent } from "@/lib/toolTelemetry";
 
 const LLMRankTracker = () => {
   const [domain, setDomain] = useState("");
   const [industry, setIndustry] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!domain.trim()) {
@@ -24,21 +26,26 @@ const LLMRankTracker = () => {
     }
 
     setIsAnalyzing(true);
+    setErrorMessage(null);
+    trackToolEvent("tool_scan_started", { tool: "LLMRankTracker", domain });
     try {
       const { data, error } = await supabase.functions.invoke("monitor-brand", {
-        body: { 
-          brandName: domain, 
-          industry: industry || "LLM SEO Visibility", 
-          products: "Multi-platform LLM rank tracking" 
+        body: {
+          brandName: domain,
+          industry: industry || "LLM SEO Visibility",
+          products: "Multi-platform LLM rank tracking",
         },
       });
 
       if (error) throw error;
       setResults(data);
+      trackToolEvent("tool_scan_completed", { tool: "LLMRankTracker", domain });
       toast.success("LLM visibility analysis complete!");
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to analyze. Please try again.");
+      const msg = error instanceof Error ? error.message : "Failed to analyze. Please try again.";
+      setErrorMessage(msg);
+      await logToolError(error, { tool: "LLMRankTracker", domain, input: { industry } });
+      toast.error(msg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -107,6 +114,19 @@ const LLMRankTracker = () => {
                 "Track LLM Rankings"
               )}
             </Button>
+
+            {errorMessage && !isAnalyzing && (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-red-500/40 bg-red-950/30 text-sm text-red-200">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-300/80 mt-1">We logged this. Try again — your input is preserved.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleAnalyze} className="shrink-0">
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -134,42 +154,13 @@ const LLMRankTracker = () => {
                       <p className="text-sm text-muted-foreground">Visibility Score</p>
                     </div>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    For platform-by-platform breakdown, run the{" "}
+                    <Link to="/" className="text-primary hover:underline">full AI Visibility Checker</Link>.
+                  </p>
                 </CardContent>
               </Card>
             )}
-
-            {/* Platform Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  LLM Platform Visibility
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-3 border rounded-lg text-center">
-                    <p className="font-medium">ChatGPT</p>
-                    <p className="text-2xl font-bold text-primary">--</p>
-                  </div>
-                  <div className="p-3 border rounded-lg text-center">
-                    <p className="font-medium">Claude</p>
-                    <p className="text-2xl font-bold text-primary">--</p>
-                  </div>
-                  <div className="p-3 border rounded-lg text-center">
-                    <p className="font-medium">Perplexity</p>
-                    <p className="text-2xl font-bold text-primary">--</p>
-                  </div>
-                  <div className="p-3 border rounded-lg text-center">
-                    <p className="font-medium">Gemini</p>
-                    <p className="text-2xl font-bold text-primary">--</p>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4 text-center">
-                  Use our <Link to="/" className="text-primary hover:underline">full AI Visibility Checker</Link> for detailed platform-by-platform analysis
-                </p>
-              </CardContent>
-            </Card>
 
             {results.likelyMentions && results.likelyMentions.length > 0 && (
               <Card>
@@ -178,12 +169,12 @@ const LLMRankTracker = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {results.likelyMentions.map((mention: any, i: number) => (
-                    <div key={i} className="p-4 border rounded-lg">
+                    <div key={`${mention.exampleQuery ?? i}`} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="outline">{mention.queryType}</Badge>
                         <Badge className={
-                          mention.mentionLikelihood === "high" 
-                            ? "bg-green-100 text-green-800" 
+                          mention.mentionLikelihood === "high"
+                            ? "bg-green-100 text-green-800"
                             : mention.mentionLikelihood === "medium"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-gray-100 text-gray-800"
@@ -209,7 +200,7 @@ const LLMRankTracker = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {results.recommendations.map((rec: any, i: number) => (
-                    <div key={i} className="p-4 border rounded-lg">
+                    <div key={`${rec.action ?? i}`} className="p-4 border rounded-lg">
                       <Badge className={
                         rec.priority === "high"
                           ? "bg-red-100 text-red-800"
@@ -232,9 +223,6 @@ const LLMRankTracker = () => {
         {/* SEO Content */}
         <div className="prose prose-slate max-w-none mt-12">
           <h2 className="text-2xl font-bold mb-4">Why Track LLM Rankings Across All Platforms?</h2>
-          <p className="text-muted-foreground mb-4">
-            Different LLMs have different training data, knowledge cutoffs, and source preferences. Tracking across all major platforms helps you:
-          </p>
           <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
             <li><strong>Identify platform gaps:</strong> See where you're visible vs. invisible</li>
             <li><strong>Prioritize optimization:</strong> Focus efforts on platforms with most potential</li>
@@ -243,9 +231,6 @@ const LLMRankTracker = () => {
           </ul>
 
           <h2 className="text-2xl font-bold mb-4 mt-8">Major LLMs to Track</h2>
-          <p className="text-muted-foreground mb-4">
-            Your <strong>LLM SEO strategy</strong> should cover these major platforms:
-          </p>
           <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
             <li><strong>ChatGPT (OpenAI):</strong> Largest user base, 100M+ weekly active users</li>
             <li><strong>Claude (Anthropic):</strong> Growing rapidly, known for accuracy</li>
@@ -254,24 +239,13 @@ const LLMRankTracker = () => {
             <li><strong>Copilot (Microsoft):</strong> Integrated across Microsoft ecosystem</li>
             <li><strong>Grok (xAI):</strong> Integrated with X/Twitter</li>
           </ul>
-
-          <h2 className="text-2xl font-bold mb-4 mt-8">LLM SEO Best Practices</h2>
-          <ol className="list-decimal pl-6 space-y-2 text-muted-foreground">
-            <li><strong>Create authoritative content:</strong> All LLMs favor comprehensive, accurate information</li>
-            <li><strong>Use structured data:</strong> Schema markup helps AI understand your content</li>
-            <li><strong>Build citations:</strong> Earn mentions from trusted sources</li>
-            <li><strong>Maintain consistency:</strong> Keep brand information accurate everywhere</li>
-            <li><strong>Monitor regularly:</strong> Track visibility changes weekly</li>
-          </ol>
         </div>
 
-        {/* Share Buttons */}
-        <ToolShareButtons 
-          toolName="LLM Rank Tracker" 
+        <ToolShareButtons
+          toolName="LLM Rank Tracker"
           description="Track your visibility across all major AI models."
         />
 
-        {/* Internal Links */}
         <div className="bg-muted/30 rounded-lg p-6 mt-8">
           <h3 className="font-semibold mb-4">Platform-Specific Trackers</h3>
           <div className="grid md:grid-cols-4 gap-4">

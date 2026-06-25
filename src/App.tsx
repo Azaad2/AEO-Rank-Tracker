@@ -48,6 +48,7 @@ import BulkScan from "./pages/admin/BulkScan";
 import Backfill from "./pages/admin/Backfill";
 import AdminRecommendations from "./pages/admin/Recommendations";
 import AdminScanErrors from "./pages/admin/ScanErrors";
+import Affiliates from "./pages/Affiliates";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 // Blog posts
 import AIVisibilityCheckerGuide from "./pages/blog/AIVisibilityCheckerGuide";
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="/admin/backfill" element={<Backfill />} />
             <Route path="/admin/recommendations" element={<AdminRecommendations />} />
             <Route path="/admin/scan-errors" element={<AdminScanErrors />} />
+            <Route path="/affiliates" element={<Affiliates />} />
             {/* Blog posts */}
             <Route path="/blog/ai-visibility-checker-guide" element={<AIVisibilityCheckerGuide />} />
             <Route path="/blog/competitor-ai-analysis" element={<CompetitorAIAnalysis />} />

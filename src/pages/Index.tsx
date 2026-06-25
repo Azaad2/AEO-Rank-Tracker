@@ -362,7 +362,7 @@ const Index = () => {
       // Track scan failure
       trackEvent('scan_failed', {
         domain: domain.trim(),
-        prompt_count: promptCount,
+        prompt_count: promptsText.trim().split(/[\n,]/).filter(Boolean).length,
         error_message: error instanceof Error ? error.message : "Unknown error",
       });
 

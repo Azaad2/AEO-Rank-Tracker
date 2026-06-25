@@ -193,6 +193,19 @@ const CompetitorAnalyzer = () => {
                 "Analyze AI Visibility"
               )}
             </Button>
+
+            {errorMessage && !isGenerating && (
+              <div className="flex items-start gap-2 p-3 rounded-md border border-red-500/40 bg-red-950/30 text-sm text-red-200">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-300/80 mt-1">We logged this. Try again — your input is preserved.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleGenerate} className="shrink-0">
+                  <RefreshCw className="h-3 w-3 mr-1" /> Retry
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

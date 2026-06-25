@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, FileText, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, FileText, ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { logScanError } from '@/lib/errorLogger';
 
 interface CitationRow {
   domain: string;
@@ -18,48 +20,90 @@ export function CitationIntelligenceTab() {
   const { user } = useAuth();
   const [rows, setRows] = useState<CitationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    async function run() {
       if (!user) return;
       setLoading(true);
-      const { data: scans } = await supabase
-        .from('scans')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      const scanIds = (scans || []).map((s: any) => s.id);
-      if (!scanIds.length) {
-        setRows([]);
+      setLoadError(null);
+      try {
+        const { data: scans, error: scansErr } = await supabase
+          .from('scans')
+          .select('id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (scansErr) throw scansErr;
+        const scanIds = (scans || []).map((s: any) => s.id);
+        if (!scanIds.length) {
+          if (!cancelled) {
+            setRows([]);
+            setLoading(false);
+          }
+          return;
+        }
+        const { data: results, error: resultsErr } = await supabase
+          .from('scan_results')
+          .select('id')
+          .in('scan_id', scanIds);
+        if (resultsErr) throw resultsErr;
+        const resultIds = (results || []).map((r: any) => r.id);
+        if (!resultIds.length) {
+          if (!cancelled) {
+            setRows([]);
+            setLoading(false);
+          }
+          return;
+        }
+        const { data: cits, error: citsErr } = await supabase
+          .from('citations')
+          .select('domain, engine, asset_type, source_type, url, cites_brand')
+          .in('scan_result_id', resultIds)
+          .limit(500);
+        if (citsErr) throw citsErr;
+        if (!cancelled) {
+          setRows((cits || []) as any);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'Failed to load citation intelligence.';
+        setLoadError(msg);
         setLoading(false);
-        return;
+        logScanError({ error: err, component: 'CitationIntelligenceTab', errorType: 'CitationLoadError' });
       }
-      const { data: results } = await supabase
-        .from('scan_results')
-        .select('id')
-        .in('scan_id', scanIds);
-      const resultIds = (results || []).map((r: any) => r.id);
-      if (!resultIds.length) {
-        setRows([]);
-        setLoading(false);
-        return;
-      }
-      const { data: cits } = await supabase
-        .from('citations')
-        .select('domain, engine, asset_type, source_type, url, cites_brand')
-        .in('scan_result_id', resultIds)
-        .limit(500);
-      setRows((cits || []) as any);
-      setLoading(false);
-    })();
-  }, [user]);
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, reloadKey]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card className="bg-red-950/30 border-red-500/40">
+        <CardContent className="p-6 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-300 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-100 font-medium">Couldn't load citation data</p>
+            <p className="text-xs text-red-200/80 mt-1">{loadError}</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setReloadKey((k) => k + 1)}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 

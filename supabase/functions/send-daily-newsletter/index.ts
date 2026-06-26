@@ -59,12 +59,41 @@ async function generateTip(topic: string, apiKey: string): Promise<{ subject: st
   });
   if (!res.ok) throw new Error(`AI gateway ${res.status}: ${await res.text()}`);
   const j = await res.json();
-  const content = j.choices?.[0]?.message?.content ?? '{}';
-  const parsed = JSON.parse(content);
+  const content: string = j.choices?.[0]?.message?.content ?? '{}';
+  const parsed = extractJson(content);
   const subject = String(parsed.subject || 'Your daily AI visibility tip').slice(0, 80);
-  const body_html = String(parsed.body_html || '<p>Check your AI visibility today.</p>');
+  const body_html = String(parsed.body_html || parsed.html || '<p>Check your AI visibility today.</p>');
   const snippet = body_html.replace(/<[^>]+>/g, '').slice(0, 280);
   return { subject, html: body_html, snippet };
+}
+
+// Robustly extract a JSON object from model output that may include code fences,
+// prose before/after, or multiple JSON-looking blocks.
+function extractJson(raw: string): Record<string, unknown> {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  try { return JSON.parse(cleaned); } catch { /* fall through */ }
+  const start = cleaned.indexOf('{');
+  if (start === -1) throw new Error('No JSON object found in model output');
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (inStr) {
+      if (esc) { esc = false; continue; }
+      if (ch === '\\') { esc = true; continue; }
+      if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') { inStr = true; continue; }
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        const slice = cleaned.slice(start, i + 1);
+        return JSON.parse(slice);
+      }
+    }
+  }
+  throw new Error('Unbalanced JSON in model output');
 }
 
 function renderEmail(subject: string, innerHtml: string): string {

@@ -1,6 +1,22 @@
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo-light.png";
 
+const PeerPushBadge = () => (
+  <a
+    href="https://peerpush.com/p/ai-search-visibility-checker"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-block"
+  >
+    <img
+      src="https://peerpush.com/p/ai-search-visibility-checker/badge.png"
+      alt="AI Mention You on PeerPush"
+      className="h-10 w-auto"
+      loading="lazy"
+    />
+  </a>
+);
+
 const engines = ["ChatGPT", "Gemini", "Claude", "Perplexity"];
 
 export const Footer = () => {

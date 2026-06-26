@@ -600,6 +600,20 @@ const Index = () => {
                 <p className="text-[11px] text-gray-500">
                   Updated continuously · Citation-grade evidence
                 </p>
+                <a
+                  href="https://peerpush.com/p/ai-search-visibility-checker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2"
+                >
+                  <img
+                    src="https://peerpush.com/p/ai-search-visibility-checker/badge.png"
+                    alt="AI Mention You on PeerPush"
+                    className="h-8 w-auto opacity-80 hover:opacity-100 transition-opacity"
+                    loading="lazy"
+                  />
+                </a>
+
               </div>
             </div>
           </div>

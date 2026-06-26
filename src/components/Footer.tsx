@@ -84,6 +84,7 @@ export const Footer = () => {
           <p className="text-sm text-gray-400">
             © {new Date().getFullYear()} AI Mention You. All rights reserved.
           </p>
+          <PeerPushBadge />
           <span className="text-xs text-yellow-400/80 font-medium">
             Recommendation Intelligence for AI Search
           </span>

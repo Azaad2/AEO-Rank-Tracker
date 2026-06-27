@@ -895,16 +895,32 @@ export function ScanResultsModal({
         {/* Sticky Footer */}
         <div className="p-4 border-t border-gray-800 bg-gray-900">
           {!isUnlocked && lockedCount > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Users className="h-4 w-4" />
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="hidden sm:flex items-center gap-2 text-xs text-gray-400">
+                <Users className="h-3.5 w-3.5" />
                 <span>Join 500+ marketers improving their AI visibility</span>
               </div>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                Close
-              </Button>
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleGoogleSignup}
+                  disabled={isGoogleSubmitting}
+                  className="bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
+                >
+                  {isGoogleSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create free account → unlock"}
+                </Button>
+              </div>
             </div>
           ) : (
+
             <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 Close

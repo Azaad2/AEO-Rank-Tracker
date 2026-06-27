@@ -342,64 +342,79 @@ export function ScanResultsModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleGoogleSignup = async () => {
+    try {
+      trackEvent("signup_google_clicked", {
+        domain: scanData.project,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+    // Stash pending scan so the dashboard can pick it up after the OAuth round-trip
+    try {
+      localStorage.setItem(
+        "pendingScanContext",
+        JSON.stringify({
+          domain: scanData.project,
+          scanId: scanData.scanId,
+          score: scanData.score,
+        })
+      );
+      if (scanData.scanId) localStorage.setItem("pendingScanId", scanData.scanId);
+    } catch {}
+    setIsGoogleSubmitting(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setIsGoogleSubmitting(false);
+      toast({
+        title: "Google sign-in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    // On success the browser redirects to Google; nothing else to do.
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateEmail(email)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+    if (!password || password.length < 6) {
+      toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      trackEvent("signup_email_clicked", {
+        domain: scanData.project,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+
+    const { error } = await signUp(email.trim().toLowerCase(), password);
+
+    if (error) {
+      setIsSubmitting(false);
       toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
+        title: "Could not create account",
+        description: error.message,
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await supabase.from("customers").insert({
-        email: email.trim().toLowerCase(),
-        scan_id: scanData.scanId || null,
-      });
-
-      if (error) throw error;
-
-      trackEvent("email_captured", {
-        domain: scanData.project,
-        score: scanData.score,
-        scan_id: scanData.scanId,
-        source: "results_modal_inline",
-      });
-
-      // Fire-and-forget scan complete email — don't block UX if it fails
-      supabase.functions
-        .invoke("send-scan-complete", {
-          body: {
-            email: email.trim().toLowerCase(),
-            domain: scanData.project,
-            score: scanData.score,
-            scanId: scanData.scanId || null,
-          },
-        })
-        .catch((err) => console.error("send-scan-complete invoke failed:", err));
-
-      toast({
-        title: "Access unlocked!",
-        description: "Check your inbox — we sent your scan summary too.",
-      });
-
-      onUnlock(email);
-    } catch (error) {
-      console.error("Email capture error:", error);
-      toast({
-        title: "Something went wrong",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({
+      title: "Account created!",
+      description: "Unlocking your full report…",
+    });
+    // The useEffect watching `user` will fire onUnlock + save domain once the session lands.
+    setIsSubmitting(false);
   };
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

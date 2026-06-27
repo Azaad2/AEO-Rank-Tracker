@@ -1,80 +1,64 @@
-## Why almost no one signs up today
+# Google One Tap on Homepage
 
-Looking at `ScanResultsModal.tsx`, the current "unlock" flow only asks for an email and writes to `customers` — it does **not** create an account. So users get the full report (all prompts, per-platform breakdown, competitors, improvement section) without ever signing up. There's no remaining reason to create an account on this page. The only signup nudge is the "Fix it" button, which most users ignore.
+## What we'll build
 
-On top of that:
+A non-intrusive Google One Tap (FedCM) prompt that appears in the top-right for logged-out visitors on the homepage (`/`). It supplements — does not replace — the existing post-scan signup wall.
 
-- Signup is email + password only — no Google OAuth, high friction.
-- The most valuable hooks (competitor "Beat" strategy, full fix content, action plan, tracking over time) aren't visibly tied to "create an account".
-- The footer says "Join 500+ marketers" but the primary CTA next to it is "Unlock Free" with just an email — signup is invisible.
+## Behavior
 
-## Plan
+- Shows automatically when a logged-out user lands on `/`.
+- Top-right placement (Google controls position; we use the default top-right One Tap UI).
+- Hidden if user is already authenticated.
+- Hidden once per session after it's shown (sessionStorage flag).
+- If dismissed (X / "not now" / `skipped_reason`), suppressed for 1 day via localStorage timestamp.
+- On successful sign-in: hide prompt, stay on current page, show toast: *"You're signed in. Your scans will now be saved automatically."*
+- Future scans auto-attach because `useAuth` already exposes the new session; existing scan code reads `user.id` when present.
 
-### 1. Replace email-only unlock with a one-click signup wall
+## Implementation
 
-In `ScanResultsModal.tsx`, replace the inline email capture card (lines ~558-607) with a **signup card**:
+### 1. New component: `src/components/GoogleOneTap.tsx`
 
-- Headline: "Create your free account to unlock the full report"
-- **Primary**: "Continue with Google" button (one click, no password)
-- **Secondary**: email + password inline form (collapsed under "or use email")
-- Pre-fill the new account with: the scanned domain (saved into `saved_domains`) and the scanId, so the dashboard immediately shows their result.
-- After auth success, set `isUnlocked=true` in-place (don't navigate away — let them keep reading the now-unlocked modal). On next dashboard visit, their scan is already there.
-- Keep "no credit card, free forever" microcopy.
+- Loads `https://accounts.google.com/gsi/client` script once.
+- Calls `google.accounts.id.initialize({ client_id, callback, use_fedcm_for_prompt: true, auto_select: false, cancel_on_tap_outside: false })`.
+- Calls `google.accounts.id.prompt(notification => { ... })` to:
+  - Track `google_one_tap_shown` when `isDisplayed()`.
+  - Track `google_one_tap_dismissed` when `isDismissedMoment()` (X, cancel, flow restarted) and write `googleOneTapDismissedAt` to localStorage.
+  - Track `google_one_tap_clicked` is approximated when the credential callback fires (One Tap doesn't expose a discrete click event; we fire it just before exchanging the credential).
+- Callback receives `{ credential }` (Google ID token). Exchange with Supabase:
+  ```ts
+  supabase.auth.signInWithIdToken({ provider: 'google', token: credential, nonce })
+  ```
+  Generate a nonce, hash with SHA-256 for `nonce` param to Google init, pass raw nonce to Supabase per Supabase's One Tap guide.
+- On success: track `google_one_tap_success`, toast, no navigation.
+- Guards before init:
+  - `user` is null and `!isLoading`.
+  - `sessionStorage.getItem('googleOneTapShown')` is unset (then set it).
+  - `localStorage.getItem('googleOneTapDismissedAt')` is empty or older than 7 days.
+  - `VITE_GOOGLE_CLIENT_ID` is present.
 
-Sticky footer CTA changes from "Close" to **"Create free account → unlock report"** so the action is always visible while scrolling.
+### 2. Mount it
 
-### 2. Add Google OAuth
+Render `<GoogleOneTap />` inside `src/pages/Index.tsx` (homepage only, per request).
 
-- Wire `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard?welcome=1&scanId=...' } })` from the modal.
-- Add the same Google button to `src/components/auth/AuthForm.tsx` so /auth and the modal share the flow.
-- Requires enabling the Google provider on the backend (auth → configure_social_auth). If credentials aren't supplied, the button surfaces a clear "ask admin" toast and we fall back to email/password.
+### 3. Auth wiring
 
-### 3. Tighten what's actually behind the wall
+No changes to `useAuth`. `signInWithIdToken` triggers `onAuthStateChange`, so the existing `account_created` telemetry, profile/referral persistence, and PostHog identify all fire automatically. No redirect logic added.
 
-Right now, after email unlock, the whole report is visible forever. Move signup-only value behind the account:
+### 4. Analytics
 
-- **Locked without account**: per-platform breakdown numbers (already blurred ✓), prompts 2..N, competitor list with names, "Fix it" buttons (already require signup ✓), Improvement Roadmap, "Save to Action Plan", domain monitoring.
-- **Visible without account (teaser)**: overall score, industry average comparison, count of competitors, count of issues, first prompt result.
-- Remove the email-only unlock path entirely so the wall is *signup*, not *email*. The `customers` table row is still created from the signup email automatically via `handle_new_user`.
+Use existing `trackEvent` pattern (PostHog + `user_activity` insert) consistent with current `signup_*` events in `ScanResultsModal`.
 
-### 4. Reduce post-signup drop-off
+### 5. Config
 
-- On successful signup from the modal, immediately call `saved_domains` insert + (optionally) auto-trigger `auto-optimize` so the dashboard has content waiting.
-- Show a 1-line toast: "Account created — your full report and action plan are ready in the dashboard."
-- Send the existing `send-scan-complete` email after signup instead of after email capture.
+- Add `VITE_GOOGLE_CLIENT_ID` to `.env` (Web OAuth Client ID from Google Cloud Console — same one already used by Supabase Google provider is fine; user must paste it).
+- Add the production + preview origins to "Authorized JavaScript origins" in the Google Cloud OAuth client (FedCM requires this).
 
-### 5. Track the funnel so we can tell if it worked
+## Out of scope
 
-Add `trackEvent` calls (already wired via `useActivityTracking`) for:
+- Post-scan signup wall in `ScanResultsModal` — left untouched.
+- `/auth` page Google button — unchanged.
+- Showing One Tap on routes other than `/`.
 
-- `signup_wall_viewed` (modal open while logged out)
-- `signup_google_clicked`, `signup_email_clicked`
-- `signup_completed_from_scan` with `{ scanId, domain, score }`
+## Open question
 
-This lets us read conversion in `Analytics.tsx` and iterate.
-
-## Technical details
-
-**Files to edit**
-
-- `src/components/ScanResultsModal.tsx` — replace email card + footer CTA, add Google + email signup, post-signup wiring.
-- `src/components/auth/AuthForm.tsx` — add Google button (shared component for /auth).
-- `src/hooks/useAuth.ts` — add `signInWithGoogle(redirectTo)` helper if missing.
-- `supabase/functions/send-scan-complete/index.ts` — no changes needed; invoked from new signup success path.
-
-**Backend**
-
-- Enable Google OAuth provider via `configure_social_auth` (needs Google Client ID/Secret from the user; ask before configuring).
-- No new tables. `handle_new_user` already creates the profile + free subscription on signup, so unlocking is automatic.
-
-**Out of scope (for this turn)**
-
-- Redesigning pricing page or paid upgrade flow.
-- Changing the guest scan limit or scan engine itself.
-
-## What I need from you before building
-
-1. OK to **remove the email-only unlock** entirely and require signup to see the full report? (Recommended — this is the core fix.)
-2. Want me to add **Google OAuth** now? If yes, I'll need a Google OAuth Client ID + Secret from Google Cloud Console (I can walk you through getting them), or you can say "email/password only for now" and I'll skip Google.  
-  
-Proceed with the implementation, but keep approximately 20–30% of the report visible before signup. Don't turn it into a blank gated page. Add Google OAuth as the primary signup method. Unlock the report immediately after successful signup without redirecting. Save the scan to the user's dashboard automatically. Also add a short AI analysis animation before revealing the first results to increase anticipation.
+Do you already have a Google OAuth **Web Client ID** you want to reuse (the one configured for Supabase Google sign-in), or should I prompt you to create one and add `VITE_GOOGLE_CLIENT_ID`? FedCM/One Tap requires the client ID exposed on the frontend and your site's origin registered in the Google Cloud Console.

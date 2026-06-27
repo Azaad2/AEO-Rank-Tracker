@@ -27,6 +27,7 @@ import { WhyCompetitorsWinPreview } from "@/components/WhyCompetitorsWinPreview"
 import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GoogleOneTap } from "@/components/GoogleOneTap";
 
 import logo from "@/assets/logo-light.png";
 
@@ -549,6 +550,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      <GoogleOneTap />
       <Header />
       <div className="pt-32 p-4 md:p-8">
         <div className="max-w-5xl mx-auto space-y-8">

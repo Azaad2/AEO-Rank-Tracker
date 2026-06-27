@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2, Wrench, Copy } from "lucide-react";
+import { Lock, Sparkles, Target, Zap, CheckCircle2, AlertTriangle, Users, Loader2, Wand2, Wrench, Copy, Mail, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { useAuth } from "@/hooks/useAuth";
+
 
 
 interface ScanResult {
@@ -191,10 +192,13 @@ export function ScanResultsModal({
   freePreviewCount = 1 // Changed from 2 to 1
 }: ScanResultsModalProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
-  const { user } = useAuth();
+  const { user, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [fixOpen, setFixOpen] = useState(false);
@@ -202,7 +206,77 @@ export function ScanResultsModal({
   const [fixContent, setFixContent] = useState("");
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
+  // AI analysis reveal animation (only shown to logged-out users on first open of a scan)
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeStep, setAnalyzeStep] = useState(0);
+  const lastAnimatedScanId = useRef<string | null>(null);
+  const analyzeSteps = [
+    "Querying Gemini, Perplexity & ChatGPT…",
+    "Scanning citations and competitor mentions…",
+    "Computing your AI visibility score…",
+  ];
+
+  useEffect(() => {
+    if (!open || !scanData) return;
+    const sid = scanData.scanId || scanData.project;
+    if (user) return; // logged-in users skip the wall and the animation
+    if (lastAnimatedScanId.current === sid) return;
+    lastAnimatedScanId.current = sid;
+    setAnalyzing(true);
+    setAnalyzeStep(0);
+    const t1 = setTimeout(() => setAnalyzeStep(1), 700);
+    const t2 = setTimeout(() => setAnalyzeStep(2), 1500);
+    const t3 = setTimeout(() => setAnalyzing(false), 2400);
+    try {
+      trackEvent("signup_wall_viewed", {
+        domain: scanData.project,
+        score: scanData.score,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [open, scanData, user, trackEvent]);
+
+  // Auto-unlock + save domain when the user becomes authenticated from inside the modal
+  useEffect(() => {
+    if (!user || !scanData || isUnlocked) return;
+    onUnlock(user.email || "");
+    (async () => {
+      try {
+        await supabase
+          .from("saved_domains")
+          .insert({ user_id: user.id, domain: scanData.project })
+          .select();
+      } catch {}
+      try {
+        supabase.functions
+          .invoke("send-scan-complete", {
+            body: {
+              email: user.email,
+              domain: scanData.project,
+              score: scanData.score,
+              scanId: scanData.scanId || null,
+            },
+          })
+          .catch(() => {});
+      } catch {}
+      try {
+        trackEvent("signup_completed_from_scan", {
+          domain: scanData.project,
+          score: scanData.score,
+          scan_id: scanData.scanId,
+        });
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, scanData, isUnlocked]);
+
   if (!scanData) return null;
+
 
   const visibility = calculateAIVisibility(scanData.results);
   const competitors = getUniqueCompetitors(scanData.results);
@@ -268,64 +342,79 @@ export function ScanResultsModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleGoogleSignup = async () => {
+    try {
+      trackEvent("signup_google_clicked", {
+        domain: scanData.project,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+    // Stash pending scan so the dashboard can pick it up after the OAuth round-trip
+    try {
+      localStorage.setItem(
+        "pendingScanContext",
+        JSON.stringify({
+          domain: scanData.project,
+          scanId: scanData.scanId,
+          score: scanData.score,
+        })
+      );
+      if (scanData.scanId) localStorage.setItem("pendingScanId", scanData.scanId);
+    } catch {}
+    setIsGoogleSubmitting(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setIsGoogleSubmitting(false);
+      toast({
+        title: "Google sign-in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+    // On success the browser redirects to Google; nothing else to do.
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateEmail(email)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+    if (!password || password.length < 6) {
+      toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      trackEvent("signup_email_clicked", {
+        domain: scanData.project,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+
+    const { error } = await signUp(email.trim().toLowerCase(), password);
+
+    if (error) {
+      setIsSubmitting(false);
       toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
+        title: "Could not create account",
+        description: error.message,
         variant: "destructive",
       });
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await supabase.from("customers").insert({
-        email: email.trim().toLowerCase(),
-        scan_id: scanData.scanId || null,
-      });
-
-      if (error) throw error;
-
-      trackEvent("email_captured", {
-        domain: scanData.project,
-        score: scanData.score,
-        scan_id: scanData.scanId,
-        source: "results_modal_inline",
-      });
-
-      // Fire-and-forget scan complete email — don't block UX if it fails
-      supabase.functions
-        .invoke("send-scan-complete", {
-          body: {
-            email: email.trim().toLowerCase(),
-            domain: scanData.project,
-            score: scanData.score,
-            scanId: scanData.scanId || null,
-          },
-        })
-        .catch((err) => console.error("send-scan-complete invoke failed:", err));
-
-      toast({
-        title: "Access unlocked!",
-        description: "Check your inbox — we sent your scan summary too.",
-      });
-
-      onUnlock(email);
-    } catch (error) {
-      console.error("Email capture error:", error);
-      toast({
-        title: "Something went wrong",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({
+      title: "Account created!",
+      description: "Unlocking your full report…",
+    });
+    // The useEffect watching `user` will fire onUnlock + save domain once the session lands.
+    setIsSubmitting(false);
   };
+
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -340,7 +429,29 @@ export function ScanResultsModal({
           </p>
         </DialogHeader>
 
+        {analyzing && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm rounded-lg p-8 text-center space-y-5">
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping rounded-full bg-yellow-400/20" />
+              <div className="relative h-16 w-16 rounded-full bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-center">
+                <Brain className="h-8 w-8 text-yellow-400 animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-semibold text-white">Analyzing {scanData.project}</p>
+              <p className="text-sm text-gray-400 transition-opacity">{analyzeSteps[analyzeStep]}</p>
+            </div>
+            <div className="w-64 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-400 transition-all duration-700"
+                style={{ width: `${((analyzeStep + 1) / analyzeSteps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1 overflow-auto">
+
           <div className="p-6 space-y-6">
             {/* Overall Score - Always visible */}
             <div className="text-center py-4 bg-gray-800 border border-gray-700 rounded-lg">
@@ -555,18 +666,20 @@ export function ScanResultsModal({
                 </div>
               ))}
 
-              {/* Inline Email Capture Card - appears after first prompt */}
+              {/* Signup wall — replaces email-only unlock */}
               {!isUnlocked && lockedCount > 0 && (
-                <div className="p-5 bg-gray-800 border-2 border-yellow-400/30 rounded-xl space-y-4">
+                <div className="p-5 bg-gray-800 border-2 border-yellow-400/40 rounded-xl space-y-4">
                   <div className="flex items-center gap-2">
                     <Lock className="h-5 w-5 text-yellow-400" />
-                    <span className="font-semibold text-white">Unlock {lockedCount} More Results</span>
+                    <span className="font-semibold text-white">
+                      Create your free account to unlock the full report
+                    </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
-                      <span>Full AI visibility score</span>
+                      <span>Per-platform breakdown</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
@@ -574,37 +687,76 @@ export function ScanResultsModal({
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
-                      <span>Competitor breakdown</span>
+                      <span>Competitor names + “beat” strategy</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
-                      <span>Improvement roadmap</span>
+                      <span>One-click fixes & action plan</span>
                     </div>
                   </div>
 
-                  <form onSubmit={handleEmailSubmit} className="flex gap-2">
-                    <Input
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isSubmitting}
-                      className="flex-1 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
-                    />
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Unlock Free"
-                      )}
-                    </Button>
-                  </form>
-                  
+                  <Button
+                    type="button"
+                    onClick={handleGoogleSignup}
+                    disabled={isGoogleSubmitting || isSubmitting}
+                    className="w-full bg-white text-gray-900 hover:bg-gray-100 font-semibold"
+                  >
+                    {isGoogleSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
+                        </svg>
+                        Continue with Google
+                      </>
+                    )}
+                  </Button>
+
+                  {!showEmailForm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailForm(true)}
+                      className="w-full text-xs text-gray-400 hover:text-gray-200 flex items-center justify-center gap-1"
+                    >
+                      <Mail className="h-3 w-3" /> or sign up with email
+                    </button>
+                  ) : (
+                    <form onSubmit={handleEmailSignup} className="space-y-2">
+                      <Input
+                        type="email"
+                        placeholder="you@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isSubmitting}
+                        autoComplete="email"
+                        className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
+                      />
+                      <Input
+                        type="password"
+                        placeholder="Create a password (6+ chars)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting}
+                        autoComplete="new-password"
+                        className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
+                      />
+                      <Button type="submit" disabled={isSubmitting} className="w-full bg-yellow-400 text-black hover:bg-yellow-300 font-semibold">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create free account & unlock"}
+                      </Button>
+                    </form>
+                  )}
+
                   <p className="text-xs text-gray-500 text-center">
-                    No spam. Just your AI visibility insights.
+                    Free forever · No credit card · Your scan saves to your dashboard
                   </p>
                 </div>
               )}
+
+
 
               {/* Locked prompts preview */}
               {!isUnlocked && scanData.results.slice(freePreviewCount).map((_, idx) => (
@@ -743,16 +895,32 @@ export function ScanResultsModal({
         {/* Sticky Footer */}
         <div className="p-4 border-t border-gray-800 bg-gray-900">
           {!isUnlocked && lockedCount > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Users className="h-4 w-4" />
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="hidden sm:flex items-center gap-2 text-xs text-gray-400">
+                <Users className="h-3.5 w-3.5" />
                 <span>Join 500+ marketers improving their AI visibility</span>
               </div>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                Close
-              </Button>
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleGoogleSignup}
+                  disabled={isGoogleSubmitting}
+                  className="bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
+                >
+                  {isGoogleSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create free account → unlock"}
+                </Button>
+              </div>
             </div>
           ) : (
+
             <div className="flex justify-center gap-3">
               <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 Close

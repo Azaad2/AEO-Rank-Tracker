@@ -429,7 +429,29 @@ export function ScanResultsModal({
           </p>
         </DialogHeader>
 
+        {analyzing && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-900/95 backdrop-blur-sm rounded-lg p-8 text-center space-y-5">
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping rounded-full bg-yellow-400/20" />
+              <div className="relative h-16 w-16 rounded-full bg-yellow-400/10 border border-yellow-400/40 flex items-center justify-center">
+                <Brain className="h-8 w-8 text-yellow-400 animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-semibold text-white">Analyzing {scanData.project}</p>
+              <p className="text-sm text-gray-400 transition-opacity">{analyzeSteps[analyzeStep]}</p>
+            </div>
+            <div className="w-64 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-400 transition-all duration-700"
+                style={{ width: `${((analyzeStep + 1) / analyzeSteps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1 overflow-auto">
+
           <div className="p-6 space-y-6">
             {/* Overall Score - Always visible */}
             <div className="text-center py-4 bg-gray-800 border border-gray-700 rounded-lg">

@@ -192,10 +192,13 @@ export function ScanResultsModal({
   freePreviewCount = 1 // Changed from 2 to 1
 }: ScanResultsModalProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
-  const { user } = useAuth();
+  const { user, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [fixOpen, setFixOpen] = useState(false);
@@ -203,7 +206,77 @@ export function ScanResultsModal({
   const [fixContent, setFixContent] = useState("");
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
 
+  // AI analysis reveal animation (only shown to logged-out users on first open of a scan)
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeStep, setAnalyzeStep] = useState(0);
+  const lastAnimatedScanId = useRef<string | null>(null);
+  const analyzeSteps = [
+    "Querying Gemini, Perplexity & ChatGPT…",
+    "Scanning citations and competitor mentions…",
+    "Computing your AI visibility score…",
+  ];
+
+  useEffect(() => {
+    if (!open || !scanData) return;
+    const sid = scanData.scanId || scanData.project;
+    if (user) return; // logged-in users skip the wall and the animation
+    if (lastAnimatedScanId.current === sid) return;
+    lastAnimatedScanId.current = sid;
+    setAnalyzing(true);
+    setAnalyzeStep(0);
+    const t1 = setTimeout(() => setAnalyzeStep(1), 700);
+    const t2 = setTimeout(() => setAnalyzeStep(2), 1500);
+    const t3 = setTimeout(() => setAnalyzing(false), 2400);
+    try {
+      trackEvent("signup_wall_viewed", {
+        domain: scanData.project,
+        score: scanData.score,
+        scan_id: scanData.scanId,
+      });
+    } catch {}
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [open, scanData, user, trackEvent]);
+
+  // Auto-unlock + save domain when the user becomes authenticated from inside the modal
+  useEffect(() => {
+    if (!user || !scanData || isUnlocked) return;
+    onUnlock(user.email || "");
+    (async () => {
+      try {
+        await supabase
+          .from("saved_domains")
+          .insert({ user_id: user.id, domain: scanData.project })
+          .select();
+      } catch {}
+      try {
+        supabase.functions
+          .invoke("send-scan-complete", {
+            body: {
+              email: user.email,
+              domain: scanData.project,
+              score: scanData.score,
+              scanId: scanData.scanId || null,
+            },
+          })
+          .catch(() => {});
+      } catch {}
+      try {
+        trackEvent("signup_completed_from_scan", {
+          domain: scanData.project,
+          score: scanData.score,
+          scan_id: scanData.scanId,
+        });
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, scanData, isUnlocked]);
+
   if (!scanData) return null;
+
 
   const visibility = calculateAIVisibility(scanData.results);
   const competitors = getUniqueCompetitors(scanData.results);

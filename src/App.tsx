@@ -83,6 +83,7 @@ import FiftySaaSBrandsAIVisibility from "./pages/blog/FiftySaaSBrandsAIVisibilit
 import HowToTrackBrandMentionsInAISearch from "./pages/blog/HowToTrackBrandMentionsInAISearch";
 import HowToCheckAISearchVisibility from "./pages/blog/HowToCheckAISearchVisibility";
 import HowToImproveBrandVisibilityInAISearch from "./pages/blog/HowToImproveBrandVisibilityInAISearch";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -176,6 +177,7 @@ const App = () => (
             <Route path="/blog/how-to-improve-brand-visibility-in-ai-search-engines" element={<HowToImproveBrandVisibilityInAISearch />} />
             <Route path="/ai-visibility" element={<AIVisibilityHub />} />
             <Route path="/ai-visibility/:slug" element={<ProgrammaticSEOPage />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

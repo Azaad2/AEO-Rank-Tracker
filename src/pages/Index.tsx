@@ -28,6 +28,7 @@ import { LandingBenchmarkTeaser } from "@/components/LandingBenchmarkTeaser";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GoogleOneTap } from "@/components/GoogleOneTap";
+import { ProductWalkthrough } from "@/components/ProductWalkthrough";
 
 import logo from "@/assets/logo-light.png";
 
@@ -1459,6 +1460,11 @@ const Index = () => {
               </li>
             </ol>
           </section>
+
+          {/* Product walkthrough with real screenshots */}
+          <ProductWalkthrough />
+
+
 
           {/* Why It Matters Section */}
           <section className="max-w-3xl mx-auto space-y-4">

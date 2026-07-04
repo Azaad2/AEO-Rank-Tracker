@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://sxcsbqglcmwbueztpvei.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "ai-mention-you-mcp",
+      "version": "0.1.0",
+      "title": "AI Mention You"
+    },
+    "tools": [
+      {
+        "name": "scan_domain",
+        "title": "Scan a domain for AI visibility",
+        "description": "Run an AI visibility scan for a domain against ChatGPT, Gemini, Perplexity and web search. Returns the score, per-prompt mentions and citations, and top competitors.",
+        "annotations": {
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string",
+              "minLength": 3,
+              "description": "The domain to scan, e.g. example.com"
+            },
+            "prompts": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3
+              },
+              "maxItems": 10,
+              "description": "Optional list of prompts to test (max 10). Defaults to a small built-in prompt set."
+            },
+            "market": {
+              "type": "string",
+              "description": "Market/locale code, e.g. 'us' or 'gb'. Defaults to 'us'."
+            }
+          },
+          "required": [
+            "domain"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_scans",
+        "title": "List my recent AI visibility scans",
+        "description": "List the signed-in user's most recent AI visibility scans (id, domain, score, created_at).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "How many scans to return (default 10)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_scan",
+        "title": "Get a scan by ID",
+        "description": "Fetch a single AI visibility scan by ID, including per-prompt results (mentions, citations, competitors).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "scanId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The scan's UUID."
+            }
+          },
+          "required": [
+            "scanId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_saved_domains",
+        "title": "List my saved domains",
+        "description": "List the signed-in user's saved domains being tracked for AI visibility.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

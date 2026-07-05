@@ -75,7 +75,7 @@ export function DashboardSidebar({ activeTab, onSelect, planName }: DashboardSid
   const isPro = planName.toLowerCase() !== 'free';
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-gray-800 bg-gray-950">
+    <Sidebar collapsible="icon" className="border-r border-gray-800 bg-gray-950 !top-14 !h-[calc(100svh-3.5rem)]">
       <SidebarContent className="bg-gray-950">
         {GROUPS.map((group) => (
           <SidebarGroup key={group.label}>

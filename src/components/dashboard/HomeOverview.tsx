@@ -86,7 +86,7 @@ export function HomeOverview({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-400 mb-4">Jump into your prioritized action list to close the biggest gaps.</p>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('recommendations')} className="border-gray-700 text-gray-200 hover:bg-gray-800">
+              <Button size="sm" onClick={() => onNavigate('recommendations')} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
                 View recommendations <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardContent>
@@ -101,7 +101,7 @@ export function HomeOverview({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-400 mb-4">See which competitors AI models cite more often — and why.</p>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('competitors')} className="border-gray-700 text-gray-200 hover:bg-gray-800">
+              <Button size="sm" onClick={() => onNavigate('competitors')} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
                 Analyze gap <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardContent>
@@ -116,7 +116,7 @@ export function HomeOverview({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-400 mb-4">Track the sources AI assistants pull from when answering about you.</p>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('citations')} className="border-gray-700 text-gray-200 hover:bg-gray-800">
+              <Button size="sm" onClick={() => onNavigate('citations')} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
                 View citations <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardContent>
@@ -131,7 +131,7 @@ export function HomeOverview({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-400 mb-4">Compare your visibility against the industry average of 34.</p>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('benchmark')} className="border-gray-700 text-gray-200 hover:bg-gray-800">
+              <Button size="sm" onClick={() => onNavigate('benchmark')} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
                 Open benchmark <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardContent>

@@ -621,6 +621,10 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Product walkthrough with real screenshots */}
+          <ProductWalkthrough />
+
+
           {/* Example competitor intelligence report — static illustrative output */}
           {!scanData && (
             <section className="py-2">

@@ -1,64 +1,137 @@
-# Google One Tap on Homepage
+## Dashboard UX Redesign Plan
 
-## What we'll build
+Goal: turn the flat 9-tab dashboard into a focused workspace that works for both first-time free users (guided onboarding) and returning paid users (fast access to trends + actions).
 
-A non-intrusive Google One Tap (FedCM) prompt that appears in the top-right for logged-out visitors on the homepage (`/`). It supplements — does not replace — the existing post-scan signup wall.
+### Problems being fixed
 
-## Behavior
+1. Header cuts off the "Dashboard" title (pt-32 insufficient at some viewports).
+2. 9 sibling tabs = decision paralysis, no hierarchy between "actions" and "insights".
+3. No first-run guidance; empty states are silent.
+4. Jargon labels ("Prompt Diagnostics", "Citation Intelligence") sound internal.
+5. Core action (Scan) is buried at position 8.
+6. AI Assistant empty state has no visible suggested prompts above the fold.
 
-- Shows automatically when a logged-out user lands on `/`.
-- Top-right placement (Google controls position; we use the default top-right One Tap UI).
-- Hidden if user is already authenticated.
-- Hidden once per session after it's shown (sessionStorage flag).
-- If dismissed (X / "not now" / `skipped_reason`), suppressed for 1 day via localStorage timestamp.
-- On successful sign-in: hide prompt, stay on current page, show toast: *"You're signed in. Your scans will now be saved automatically."*
-- Future scans auto-attach because `useAuth` already exposes the new session; existing scan code reads `user.id` when present.
+---
 
-## Implementation
+### New layout: Sidebar shell
 
-### 1. New component: `src/components/GoogleOneTap.tsx`
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Top bar: logo · trigger · domain switcher · plan · avatar    │
+├──────────┬───────────────────────────────────────────────────┤
+│ SIDEBAR  │  MAIN WORKSPACE                                   │
+│          │                                                   │
+│ HOME     │  [Getting started checklist — dismissible]        │
+│  Home    │                                                   │
+│          │  KPI strip: Visibility · Trend · Citations · Rank │
+│ SCAN     │                                                   │
+│  New scan│  Primary panel (contextual to sidebar selection)  │
+│  History │                                                   │
+│          │                                                   │
+│ INSIGHTS │                                                   │
+│  Recos   │                                                   │
+│  Compete │                                                   │
+│  Bench   │                                                   │
+│  Cites   │                                                   │
+│  Prompts │                                                   │
+│  Metrics │                                                   │
+│          │                                                   │
+│ TOOLS    │                                                   │
+│  AI Chat │                                                   │
+│  Domains │                                                   │
+└──────────┴───────────────────────────────────────────────────┘
+```
 
-- Loads `https://accounts.google.com/gsi/client` script once.
-- Calls `google.accounts.id.initialize({ client_id, callback, use_fedcm_for_prompt: true, auto_select: false, cancel_on_tap_outside: false })`.
-- Calls `google.accounts.id.prompt(notification => { ... })` to:
-  - Track `google_one_tap_shown` when `isDisplayed()`.
-  - Track `google_one_tap_dismissed` when `isDismissedMoment()` (X, cancel, flow restarted) and write `googleOneTapDismissedAt` to localStorage.
-  - Track `google_one_tap_clicked` is approximated when the credential callback fires (One Tap doesn't expose a discrete click event; we fire it just before exchanging the credential).
-- Callback receives `{ credential }` (Google ID token). Exchange with Supabase:
-  ```ts
-  supabase.auth.signInWithIdToken({ provider: 'google', token: credential, nonce })
-  ```
-  Generate a nonce, hash with SHA-256 for `nonce` param to Google init, pass raw nonce to Supabase per Supabase's One Tap guide.
-- On success: track `google_one_tap_success`, toast, no navigation.
-- Guards before init:
-  - `user` is null and `!isLoading`.
-  - `sessionStorage.getItem('googleOneTapShown')` is unset (then set it).
-  - `localStorage.getItem('googleOneTapDismissedAt')` is empty or older than 7 days.
-  - `VITE_GOOGLE_CLIENT_ID` is present.
+- Sidebar uses shadcn `Sidebar` with `collapsible="icon"` (narrow icon rail when collapsed, never disappears).
+- `SidebarTrigger` lives in the top bar so it's always visible.
+- Active route highlighted; groups stay expanded when their child is active.
 
-### 2. Mount it
+### Information architecture (9 tabs → 4 groups + Home)
 
-Render `<GoogleOneTap />` inside `src/pages/Index.tsx` (homepage only, per request).
+| Group | Items | Renamed from |
+|---|---|---|
+| Home | Overview | (new) |
+| Scan | New scan, Scan history | Scans |
+| Insights | Recommendations, Competitors, Benchmark, Citations, Prompts, Metrics | Recommendations, Why Competitors Win, Industry Benchmark, Citation Intelligence, Prompt Diagnostics, Metrics |
+| Tools | AI Assistant, Domains | AI Assistant, Domains |
 
-### 3. Auth wiring
+Renames prioritize user goals over feature names ("Competitors" > "Why Competitors Win").
 
-No changes to `useAuth`. `signInWithIdToken` triggers `onAuthStateChange`, so the existing `account_created` telemetry, profile/referral persistence, and PostHog identify all fire automatically. No redirect logic added.
+### Home overview (new)
 
-### 4. Analytics
+Landing panel for both audiences. Bento-style cards:
+- **First-time users**: Getting Started checklist takes the top slot; other cards show empty states with primary CTAs.
+- **Returning users**: Checklist auto-collapses once complete; cards populate with real data.
 
-Use existing `trackEvent` pattern (PostHog + `user_activity` insert) consistent with current `signup_*` events in `ScanResultsModal`.
+Cards:
+1. Latest visibility score + 7-day trend spark
+2. Top recommendation (single actionable card)
+3. Closest competitor gap
+4. Recent citations feed (3 rows)
+5. Quick action: "Run scan" input inline
 
-### 5. Config
+### Guided onboarding checklist
 
-- Add `VITE_GOOGLE_CLIENT_ID` to `.env` (Web OAuth Client ID from Google Cloud Console — same one already used by Supabase Google provider is fine; user must paste it).
-- Add the production + preview origins to "Authorized JavaScript origins" in the Google Cloud OAuth client (FedCM requires this).
+Persistent card at top of Home until dismissed or 100% complete:
 
-## Out of scope
+- [ ] Add your domain
+- [ ] Run your first AI visibility scan
+- [ ] Add 1–3 competitors
+- [ ] Review your top recommendation
+- [ ] Explore the AI Assistant
 
-- Post-scan signup wall in `ScanResultsModal` — left untouched.
-- `/auth` page Google button — unchanged.
-- Showing One Tap on routes other than `/`.
+Progress bar; each item deep-links to the right sidebar item. Dismiss state stored in `localStorage` keyed by user id; re-openable from a help menu.
 
-## Open question
+### Empty states
 
-Do you already have a Google OAuth **Web Client ID** you want to reuse (the one configured for Supabase Google sign-in), or should I prompt you to create one and add `VITE_GOOGLE_CLIENT_ID`? FedCM/One Tap requires the client ID exposed on the frontend and your site's origin registered in the Google Cloud Console.
+Every Insights panel gets a real empty state instead of a blank tab:
+- Icon + one-line explanation + primary CTA that routes to Scan.
+- AI Assistant panel: 4 suggested prompt chips visible immediately, no scroll needed.
+
+### Header / layout fixes
+
+- Replace `pt-32` page padding with proper flex shell: sticky top bar (`h-14`) + `flex-1` main; no manual top padding needed inside routes.
+- Title "Dashboard" moves into the top bar next to the sidebar trigger, freeing vertical space.
+
+### Responsive
+
+- Desktop (≥1024px): sidebar expanded by default.
+- Tablet: sidebar collapsed to icon rail.
+- Mobile: sidebar becomes off-canvas sheet, triggered from top bar; KPI strip stacks; bento becomes single column.
+
+### Routing
+
+- Keep `/dashboard` as the entry route.
+- Use `?tab=` param for sidebar selection (preserves existing deep-link behavior for `tab=recommendations`, `tab=ai-assistant`, etc.). Add legacy redirect map so old links still work.
+- Add `?tab=home` as new default.
+
+---
+
+### Technical notes
+
+- New files:
+  - `src/components/dashboard/DashboardSidebar.tsx` — the sidebar (Sidebar + groups above).
+  - `src/components/dashboard/DashboardShell.tsx` — SidebarProvider + top bar + Outlet-equivalent.
+  - `src/components/dashboard/HomeOverview.tsx` — bento home panel.
+  - `src/components/dashboard/OnboardingChecklist.tsx` — dismissible checklist with progress.
+  - `src/components/dashboard/EmptyState.tsx` — shared empty-state primitive.
+- Rewrite `src/pages/Dashboard.tsx` to use the shell; keep `DashboardContent` data-fetching logic; render the active panel based on `?tab=`.
+- Move `UserProfile` info (email, plan, upgrade button) into sidebar footer + top-bar avatar menu.
+- Add legacy tab-param redirect map (existing map in `Dashboard.tsx` is extended, not replaced).
+- All colors via existing arcade tokens: `bg-black`, `bg-gray-900`, `border-gray-800`, `text-yellow-400`. No hardcoded values changed; shadcn Sidebar styled via wrapper classes.
+- Onboarding progress derived from real data (has domain? has scan? has competitors set?) rather than local flags, so re-installs/re-logins don't reset it. Dismissal only hides the card.
+- No backend/schema changes. No new tables. No changes to Edge Functions.
+- Typecheck + build after each major file addition.
+
+### Out of scope (call out explicitly)
+
+- Redesigning individual panels' internals (RecommendationIntelligence, WhyCompetitorsWin, etc.) — reused as-is.
+- Any changes to scan engine, pricing, auth, or Edge Functions.
+- Renaming/removing dashboard features — this is IA + shell, not feature cuts.
+
+### Verification
+
+- Typecheck + build pass.
+- Playwright: visit `/dashboard`, screenshot desktop (1280) and mobile (390) viewports, verify sidebar renders, checklist visible for empty account, deep-link `?tab=ai-assistant` still lands correctly.
+
+After you approve, I'll implement in this order: shell + sidebar → Home overview + checklist → empty states + label renames → legacy redirects → verification screenshots.

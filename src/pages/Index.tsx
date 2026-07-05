@@ -1461,8 +1461,6 @@ const Index = () => {
             </ol>
           </section>
 
-          {/* Product walkthrough with real screenshots */}
-          <ProductWalkthrough />
 
 
 

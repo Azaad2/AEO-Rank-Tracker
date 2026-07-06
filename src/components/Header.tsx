@@ -34,7 +34,7 @@ export const Header = () => {
             {user ? (
               <Link 
                 to="/dashboard" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Dashboard
               </Link>

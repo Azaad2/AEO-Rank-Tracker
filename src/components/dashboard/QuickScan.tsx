@@ -188,7 +188,7 @@ export function QuickScan({ onScanComplete }: QuickScanProps) {
                 <p className="text-xs text-gray-500">AI Score</p>
               </div>
             </div>
-            <Link to={`/?scanId=${result.scanId}#scan`}>
+            <Link to={`/dashboard?tab=competitors&scanId=${result.scanId}`}>
               <Button
                 variant="outline"
                 size="sm"

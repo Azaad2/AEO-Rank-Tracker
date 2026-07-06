@@ -97,12 +97,12 @@ function BrowserFrame({ src, alt, onClick }: { src: string; alt: string; onClick
         <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
         <span className="ml-3 truncate text-[10px] text-gray-500">aimentionyou.com</span>
       </div>
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-black">
+      <div className="relative w-full overflow-hidden bg-black">
         <img
           src={src}
           alt={alt}
           loading="lazy"
-          className="h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.02]"
+          className="block h-auto w-full object-contain transition duration-300 group-hover:scale-[1.01]"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
           }}

@@ -7,6 +7,7 @@ import { SavedDomains } from '@/components/dashboard/SavedDomains';
 import { QuickScan } from '@/components/dashboard/QuickScan';
 import { RecommendationIntelligence } from '@/components/dashboard/RecommendationIntelligence';
 import { WhyCompetitorsWin } from '@/components/dashboard/WhyCompetitorsWin';
+import { CompetitorWatch } from '@/components/dashboard/CompetitorWatch';
 import { MetricsExplain } from '@/components/dashboard/MetricsExplain';
 import { IndustryBenchmarkTab } from '@/components/dashboard/IndustryBenchmarkTab';
 import { CitationIntelligenceTab } from '@/components/dashboard/CitationIntelligenceTab';
@@ -239,7 +240,12 @@ function DashboardInner() {
       case 'recommendations':
         return <RecommendationIntelligence />;
       case 'competitors':
-        return <WhyCompetitorsWin />;
+        return (
+          <div className="space-y-6">
+            <CompetitorWatch />
+            <WhyCompetitorsWin />
+          </div>
+        );
       case 'benchmark':
         return <IndustryBenchmarkTab />;
       case 'citations':

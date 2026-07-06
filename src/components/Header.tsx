@@ -34,55 +34,55 @@ export const Header = () => {
             {user ? (
               <Link 
                 to="/dashboard" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Dashboard
               </Link>
             ) : (
               <Link 
                 to="/" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Home
               </Link>
             )}
             <Link 
               to="/tools" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
             >
               Tools
             </Link>
             <Link 
               to="/integrations" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
             >
               Integrations
             </Link>
             {user ? (
               <a 
                 href="mailto:hello@aimentionyou.com" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Help
               </a>
             ) : (
               <Link 
                 to="/pricing" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Pricing
               </Link>
             )}
             <Link 
               to="/blog" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-foreground hover:text-foreground transition-colors"
             >
               Blog
             </Link>
             {isAdmin && (
               <Link
                 to="/admin/bulk-scan"
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
               >
                 Bulk Scan
                 <Badge variant="outline" className="border-yellow-400 text-yellow-400 text-[10px] px-1.5 py-0">Admin</Badge>
@@ -130,7 +130,7 @@ export const Header = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-gray-300 hover:text-white hover:bg-gray-800"
+                        className="text-foreground hover:text-foreground hover:bg-accent"
                       >
                         Sign In
                       </Button>

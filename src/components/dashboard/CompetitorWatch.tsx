@@ -257,43 +257,94 @@ export function CompetitorWatch() {
               </Button>
             </div>
 
-            {/* Expandable Strategy Panel */}
+            {/* Expandable Strategy Panel — Visual Data Graph */}
             {expandedCompetitor === comp.name && strategies[comp.name] && (
-              <div className="mt-2 ml-9 p-4 rounded-lg bg-gray-800 border border-gray-700 space-y-4 animate-in slide-in-from-top-2">
+              <div className="mt-2 ml-9 p-4 rounded-lg bg-gray-800 border border-gray-700 space-y-5 animate-in slide-in-from-top-2">
+                {/* Head-to-head visibility bar */}
                 <div>
-                  <h4 className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5 mb-2">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                    Visibility Head-to-Head
+                  </h4>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-red-400 truncate max-w-[60%]">{comp.name}</span>
+                        <span className="text-red-400 font-bold">{comp.percentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-red-500 to-red-400 h-2 rounded-full"
+                          style={{ width: `${Math.min(comp.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-yellow-400 truncate max-w-[60%]">{userDomain || 'You'}</span>
+                        <span className="text-yellow-400 font-bold">0%</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-yellow-500 to-yellow-400 h-2 rounded-full" style={{ width: '2%' }} />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Gap: <span className="text-red-400 font-semibold">−{comp.percentage} pts</span> across {competitorPrompts[comp.name]?.length || 0} shared queries
+                    </p>
+                  </div>
+                </div>
+
+                {/* Why They Rank — factor cards */}
+                <div>
+                  <h4 className="text-xs font-semibold text-yellow-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
                     <Target className="h-3.5 w-3.5" />
-                    Why They Rank
+                    Ranking Factors
                   </h4>
-                  <ul className="space-y-1.5">
+                  <div className="grid grid-cols-1 gap-2">
                     {strategies[comp.name].whyTheyRank.map((reason, idx) => (
-                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
-                        <span className="text-gray-500 mt-0.5">•</span>
-                        {reason}
-                      </li>
+                      <div key={idx} className="flex items-start gap-2 p-2 rounded bg-gray-900/60 border border-yellow-400/20">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 text-yellow-400 text-[10px] font-bold flex items-center justify-center">
+                          F{idx + 1}
+                        </span>
+                        <p className="text-xs text-gray-300 leading-relaxed">{reason}</p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
+                {/* How to Beat — flow diagram */}
                 <div>
-                  <h4 className="text-sm font-semibold text-green-400 flex items-center gap-1.5 mb-2">
+                  <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
                     <Lightbulb className="h-3.5 w-3.5" />
-                    How to Beat Them
+                    Action Flow to Outrank
                   </h4>
-                  <ul className="space-y-1.5">
-                    {strategies[comp.name].howToBeat.map((step, idx) => (
-                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">{idx + 1}.</span>
-                        {step}
-                      </li>
+                  <div className="relative pl-6 space-y-2">
+                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-green-500 via-green-500/50 to-transparent" />
+                    {strategies[comp.name].howToBeat.map((step, idx, arr) => (
+                      <div key={idx} className="relative flex items-start gap-3">
+                        <span className="absolute -left-6 flex-shrink-0 w-6 h-6 rounded-full bg-green-500 text-black text-[10px] font-bold flex items-center justify-center ring-2 ring-gray-800">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 p-2 rounded bg-gray-900/60 border border-green-500/20 ml-1">
+                          <p className="text-xs text-gray-300 leading-relaxed">{step}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[9px] text-green-400 uppercase font-semibold">
+                              Step {idx + 1} of {arr.length}
+                            </span>
+                            <div className="flex-1 h-0.5 bg-gray-700 rounded overflow-hidden">
+                              <div className="h-full bg-green-500" style={{ width: `${((idx + 1) / arr.length) * 100}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
+                {/* Tools */}
                 <div>
-                  <h4 className="text-sm font-semibold text-blue-400 flex items-center gap-1.5 mb-2">
+                  <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
                     <Wrench className="h-3.5 w-3.5" />
-                    Recommended Tools
+                    Deploy These Tools
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {strategies[comp.name].tools.map((tool) => (
@@ -301,8 +352,9 @@ export function CompetitorWatch() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white h-7"
+                          className="text-xs border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-white h-7"
                         >
+                          <Wrench className="h-3 w-3 mr-1" />
                           {tool.name}
                         </Button>
                       </Link>

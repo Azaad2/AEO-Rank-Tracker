@@ -105,7 +105,7 @@ export function CompetitorWatch() {
     try {
       const { data: scans } = await supabase
         .from('scans')
-        .select('id, project_domain, visibility_score')
+        .select('id, project_domain, score')
         .eq('user_id', user.id);
 
       if (!scans || scans.length === 0) {
@@ -113,11 +113,11 @@ export function CompetitorWatch() {
         return;
       }
 
-      if (scans[0]?.project_domain) setUserDomain(scans[0].project_domain);
-      const avgVis = scans.reduce((s, x: any) => s + (x.visibility_score || 0), 0) / scans.length;
+      if ((scans[0] as any)?.project_domain) setUserDomain((scans[0] as any).project_domain);
+      const avgVis = scans.reduce((s, x: any) => s + (x.score || 0), 0) / scans.length;
       setUserVisibility(Math.round(avgVis));
 
-      const scanIds = scans.map((s) => s.id);
+      const scanIds = scans.map((s: any) => s.id);
 
       const { data: results } = await supabase
         .from('scan_results')

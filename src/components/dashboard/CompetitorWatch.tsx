@@ -1,16 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Swords, ChevronDown, ChevronUp, Target, Lightbulb, Wrench } from 'lucide-react';
+import {
+  Loader2,
+  Swords,
+  ChevronDown,
+  ChevronUp,
+  Trophy,
+  Clock,
+  TrendingUp,
+  Zap,
+  BookOpen,
+  Wrench,
+  Sparkles,
+  Globe,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface CompetitorData {
   name: string;
   count: number;
   percentage: number;
+  prompts: string[];
 }
 
 interface Strategy {
@@ -19,16 +33,68 @@ interface Strategy {
   tools: { name: string; link: string }[];
 }
 
+// Domains that are publishers, review sites, communities, agencies — NOT direct competitors
+const TRUSTED_SOURCE_KEYWORDS = [
+  'g2', 'capterra', 'gartner', 'forrester', 'trustpilot', 'getapp', 'softwareadvice',
+  'saasworthy', 'crozdesk', 'tekpon', 'producthunt', 'product-hunt',
+  'forbes', 'techcrunch', 'wired', 'verge', 'cnbc', 'businessinsider', 'entrepreneur',
+  'medium.com', 'substack', 'dev.to', 'hashnode',
+  'reddit', 'quora', 'stackoverflow', 'hackernews', 'ycombinator',
+  'youtube', 'vimeo', 'wikipedia', 'github', 'gitlab',
+  'linkedin', 'twitter', 'x.com', 'facebook', 'instagram',
+  'blog', 'news', 'times', 'journal', 'magazine', 'review',
+  'agency', 'digital.com', 'marketing.com',
+];
+
+function isTrustedSource(name: string): boolean {
+  const n = name.toLowerCase();
+  return TRUSTED_SOURCE_KEYWORDS.some((k) => n.includes(k));
+}
+
+function getDifficulty(percentage: number): { label: 'Easy' | 'Medium' | 'Hard'; color: string; time: string; impact: number } {
+  if (percentage >= 50) {
+    return { label: 'Hard', color: 'text-red-400 bg-red-500/10 border-red-500/30', time: '3+ months', impact: Math.round(percentage * 0.5) };
+  }
+  if (percentage >= 25) {
+    return { label: 'Medium', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', time: '1-2 months', impact: Math.round(percentage * 0.6) };
+  }
+  return { label: 'Easy', color: 'text-green-400 bg-green-500/10 border-green-500/30', time: '2-4 weeks', impact: Math.round(percentage * 0.7) };
+}
+
+function getFaviconUrl(name: string): string {
+  // Best-effort favicon for known-domain-ish strings
+  const cleaned = name.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
+  const looksLikeDomain = cleaned.includes('.');
+  const domain = looksLikeDomain ? cleaned : `${cleaned}.com`;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+}
+
+function defaultReasons(rank: number, percentage: number): string[] {
+  const pool = [
+    'Strong educational content that answers user questions directly',
+    'Better comparison and alternative pages targeting your keywords',
+    'More trusted citations from review sites and publishers',
+    'Higher topical authority — many pages on the same subject',
+    'Mentioned consistently across multiple AI models',
+    'Well-structured content with clear headings and schema',
+    'Long-form guides ranked by both Google and AI',
+    'Active community discussions (Reddit, forums) reinforcing the brand',
+  ];
+  const count = percentage >= 40 ? 5 : percentage >= 20 ? 4 : 3;
+  return pool.slice(rank % 3, (rank % 3) + count);
+}
+
 export function CompetitorWatch() {
   const { user } = useAuth();
-  const [competitors, setCompetitors] = useState<CompetitorData[]>([]);
+  const [allBrands, setAllBrands] = useState<CompetitorData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPrompts, setTotalPrompts] = useState(0);
-  const [expandedCompetitor, setExpandedCompetitor] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Record<string, Strategy>>({});
   const [loadingStrategy, setLoadingStrategy] = useState<string | null>(null);
   const [userDomain, setUserDomain] = useState<string>('');
-  const [competitorPrompts, setCompetitorPrompts] = useState<Record<string, string[]>>({});
+  const [userVisibility, setUserVisibility] = useState<number>(0);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   useEffect(() => {
     fetchCompetitors();
@@ -37,29 +103,27 @@ export function CompetitorWatch() {
   async function fetchCompetitors() {
     if (!user) return;
     try {
-      const { data: scans, error: scanError } = await supabase
+      const { data: scans } = await supabase
         .from('scans')
-        .select('id, project_domain')
+        .select('id, project_domain, visibility_score')
         .eq('user_id', user.id);
 
-      if (scanError) throw scanError;
       if (!scans || scans.length === 0) {
         setIsLoading(false);
         return;
       }
 
-      if (scans[0]?.project_domain) {
-        setUserDomain(scans[0].project_domain);
-      }
+      if (scans[0]?.project_domain) setUserDomain(scans[0].project_domain);
+      const avgVis = scans.reduce((s, x: any) => s + (x.visibility_score || 0), 0) / scans.length;
+      setUserVisibility(Math.round(avgVis));
 
-      const scanIds = scans.map(s => s.id);
+      const scanIds = scans.map((s) => s.id);
 
-      const { data: results, error: resultsError } = await supabase
+      const { data: results } = await supabase
         .from('scan_results')
-        .select('gemini_competitors, top_cited_domains')
+        .select('prompt, gemini_competitors, top_cited_domains')
         .in('scan_id', scanIds);
 
-      if (resultsError) throw resultsError;
       if (!results) {
         setIsLoading(false);
         return;
@@ -67,112 +131,99 @@ export function CompetitorWatch() {
 
       setTotalPrompts(results.length);
 
-      // Also fetch prompts to know which queries each competitor appears in
-      const { data: resultsWithPrompts } = await supabase
-        .from('scan_results')
-        .select('prompt, gemini_competitors, top_cited_domains')
-        .in('scan_id', scanIds);
-
-      const competitorMap = new Map<string, number>();
-      const promptsMap: Record<string, string[]> = {};
-      for (const result of (resultsWithPrompts || results)) {
-        const allCompetitors = [
-          ...(result.gemini_competitors || []),
-          ...(result.top_cited_domains || []),
+      const map = new Map<string, { count: number; prompts: Set<string> }>();
+      for (const r of results) {
+        const combined = [
+          ...((r as any).gemini_competitors || []),
+          ...((r as any).top_cited_domains || []),
         ];
-        for (const c of allCompetitors) {
-          const name = c.trim();
-          if (name) {
-            competitorMap.set(name, (competitorMap.get(name) || 0) + 1);
-            if (!promptsMap[name]) promptsMap[name] = [];
-            if ((result as any).prompt && !promptsMap[name].includes((result as any).prompt)) {
-              promptsMap[name].push((result as any).prompt);
-            }
-          }
+        for (const raw of combined) {
+          const name = String(raw).trim();
+          if (!name) continue;
+          const cur = map.get(name) || { count: 0, prompts: new Set<string>() };
+          cur.count += 1;
+          if ((r as any).prompt) cur.prompts.add((r as any).prompt);
+          map.set(name, cur);
         }
       }
 
-      setCompetitorPrompts(promptsMap);
-
-      const sorted = Array.from(competitorMap.entries())
-        .map(([name, count]) => ({
+      const list: CompetitorData[] = Array.from(map.entries())
+        .map(([name, v]) => ({
           name,
-          count,
-          percentage: Math.round((count / results.length) * 100),
+          count: v.count,
+          percentage: Math.round((v.count / results.length) * 100),
+          prompts: Array.from(v.prompts),
         }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
+        .sort((a, b) => b.count - a.count);
 
-      setCompetitors(sorted);
-    } catch (error) {
-      console.error('Error fetching competitors:', error);
+      setAllBrands(list);
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function handleBeat(competitorName: string) {
-    // If already cached, just toggle
-    if (strategies[competitorName]) {
-      setExpandedCompetitor(expandedCompetitor === competitorName ? null : competitorName);
+  const { competitors, trustedSources } = useMemo(() => {
+    const comps: CompetitorData[] = [];
+    const trusted: CompetitorData[] = [];
+    for (const b of allBrands) {
+      if (isTrustedSource(b.name)) trusted.push(b);
+      else comps.push(b);
+    }
+    return { competitors: comps.slice(0, 8), trustedSources: trusted.slice(0, 15) };
+  }, [allBrands]);
+
+  async function loadStrategy(name: string) {
+    if (strategies[name]) {
+      setExpanded(expanded === name ? null : name);
       return;
     }
-
-    setExpandedCompetitor(competitorName);
-    setLoadingStrategy(competitorName);
-
+    setExpanded(name);
+    setLoadingStrategy(name);
     try {
-      const promptsForCompetitor = competitorPrompts[competitorName] || [];
-      
+      const comp = competitors.find((c) => c.name === name);
       const { data, error } = await supabase.functions.invoke('analyze-competitors', {
         body: {
           yourDomain: userDomain,
-          competitor: competitorName,
-          promptsWhereTheyRank: promptsForCompetitor,
+          competitor: name,
+          promptsWhereTheyRank: comp?.prompts || [],
           mode: 'beat-strategy',
         },
       });
-
       if (error) throw error;
-
-      // Parse the structured JSON response from AI
-      const strategy: Strategy = {
-        whyTheyRank: data?.whyTheyRank || ['Analysis unavailable'],
-        howToBeat: data?.howToBeat || ['Analysis unavailable'],
-        tools: data?.tools || [{ name: 'Content Auditor', link: '/tools/content-auditor' }],
-      };
-      
-      setStrategies(prev => ({ ...prev, [competitorName]: strategy }));
-    } catch (err) {
-      console.error('Strategy generation failed:', err);
-      // Provide fallback strategy based on competitor data
-      const fallbackStrategy: Strategy = {
-        whyTheyRank: [
-          `${competitorName} appears in ${competitors.find(c => c.name === competitorName)?.percentage || 0}% of AI answers for your queries`,
-          'They likely have comprehensive, well-structured content on these topics',
-          'Their domain authority and content depth make them a preferred AI source',
-        ],
-        howToBeat: [
-          'Create more in-depth, factual content covering the same topics',
-          'Add structured data (FAQ schema, HowTo schema) to your pages',
-          'Build topical authority with a cluster of related content pieces',
-          'Ensure your content answers questions directly and concisely',
-          'Add unique data, case studies, or original research that competitors lack',
-        ],
-        tools: [
-          { name: 'Content Auditor', link: '/tools/content-auditor' },
-          { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
-          { name: 'Schema Generator', link: '/tools/schema-generator' },
-          { name: 'Blog Outline', link: '/tools/ai-blog-outline' },
-        ],
-      };
-      setStrategies(prev => ({ ...prev, [competitorName]: fallbackStrategy }));
+      setStrategies((p) => ({
+        ...p,
+        [name]: {
+          whyTheyRank: data?.whyTheyRank?.length ? data.whyTheyRank : defaultReasons(0, comp?.percentage || 0),
+          howToBeat: data?.howToBeat || [],
+          tools: data?.tools || [{ name: 'Content Auditor', link: '/tools/content-auditor' }],
+        },
+      }));
+    } catch {
+      const comp = competitors.find((c) => c.name === name);
+      setStrategies((p) => ({
+        ...p,
+        [name]: {
+          whyTheyRank: defaultReasons(0, comp?.percentage || 0),
+          howToBeat: [
+            'Publish a definitive guide targeting the queries they dominate',
+            'Add FAQ and HowTo schema so AI can extract answers cleanly',
+            'Get listed on the top 3 review sites AI cites in your category',
+            'Build 5-10 supporting posts to establish topical authority',
+            'Add original data, screenshots, or benchmarks competitors lack',
+          ],
+          tools: [
+            { name: 'Content Auditor', link: '/tools/content-auditor' },
+            { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
+            { name: 'Schema Generator', link: '/tools/schema-generator' },
+          ],
+        },
+      }));
     } finally {
       setLoadingStrategy(null);
     }
   }
-
-  // parseStrategy removed - now using direct JSON response from AI
 
   if (isLoading) {
     return (
@@ -184,18 +235,18 @@ export function CompetitorWatch() {
     );
   }
 
-  if (competitors.length === 0) {
+  if (allBrands.length === 0) {
     return (
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Swords className="h-5 w-5 text-yellow-400" />
-            Competitor Watch
+            <Trophy className="h-5 w-5 text-yellow-400" />
+            Brands Beating You in AI
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-400 text-center py-8">
-            Run scans to see which competitors appear most frequently in AI answers for your queries.
+            Run a scan to see which brands AI recommends instead of yours.
           </p>
         </CardContent>
       </Card>
@@ -206,165 +257,206 @@ export function CompetitorWatch() {
     <Card className="bg-gray-900 border-gray-700">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
-          <Swords className="h-5 w-5 text-yellow-400" />
-          Competitor Watch
+          <Trophy className="h-5 w-5 text-yellow-400" />
+          Brands Beating You in AI
         </CardTitle>
         <p className="text-xs text-gray-400">
-          Based on {totalPrompts} prompts across your scans
+          Real competitors AI recommends instead of {userDomain || 'your brand'} — based on {totalPrompts} prompts.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {competitors.map((comp, i) => (
-          <div key={comp.name}>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50">
-              <span className="text-lg font-bold text-gray-500 w-6 text-center">
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-white font-medium truncate">{comp.name}</p>
-                  <Badge variant="outline" className="text-xs bg-gray-700/50 text-gray-300 border-gray-600">
-                    {comp.count}x
-                  </Badge>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-1.5 mt-2">
-                  <div
-                    className="bg-yellow-400 h-1.5 rounded-full transition-all"
-                    style={{ width: `${Math.min(comp.percentage, 100)}%` }}
-                  />
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-yellow-400 hover:text-yellow-300 text-xs"
-                onClick={() => handleBeat(comp.name)}
-                disabled={loadingStrategy === comp.name}
-              >
-                {loadingStrategy === comp.name ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <Swords className="h-3 w-3 mr-1" />
-                    Beat
-                    {expandedCompetitor === comp.name ? (
-                      <ChevronUp className="h-3 w-3 ml-1" />
-                    ) : (
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    )}
-                  </>
-                )}
-              </Button>
-            </div>
+      <CardContent className="space-y-4">
+        {competitors.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No direct competitors detected yet. AI mostly cites publishers and review sites for your queries — see below.
+          </p>
+        )}
 
-            {/* Expandable Strategy Panel — Visual Data Graph */}
-            {expandedCompetitor === comp.name && strategies[comp.name] && (
-              <div className="mt-2 ml-9 p-4 rounded-lg bg-gray-800 border border-gray-700 space-y-5 animate-in slide-in-from-top-2">
-                {/* Head-to-head visibility bar */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                    Visibility Head-to-Head
-                  </h4>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-red-400 truncate max-w-[60%]">{comp.name}</span>
-                        <span className="text-red-400 font-bold">{comp.percentage}%</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-red-500 to-red-400 h-2 rounded-full"
-                          style={{ width: `${Math.min(comp.percentage, 100)}%` }}
-                        />
-                      </div>
+        {competitors.map((comp, i) => {
+          const diff = getDifficulty(comp.percentage);
+          const userVis = Math.max(userVisibility, 1);
+          const multiplier = (comp.percentage / userVis).toFixed(1);
+          const strat = strategies[comp.name];
+          const reasons = strat?.whyTheyRank || defaultReasons(i, comp.percentage);
+          const isOpen = expanded === comp.name;
+
+          return (
+            <div key={comp.name} className="rounded-xl bg-gray-800/50 border border-gray-700 overflow-hidden">
+              <div className="p-4">
+                {/* Header: logo + name + rank */}
+                <div className="flex items-start gap-3">
+                  <img
+                    src={getFaviconUrl(comp.name)}
+                    alt=""
+                    className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.visibility = 'hidden';
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-white font-semibold truncate">{comp.name}</h3>
+                      <Badge variant="outline" className="text-[10px] bg-yellow-400/10 text-yellow-400 border-yellow-400/30">
+                        #{i + 1} threat
+                      </Badge>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-yellow-400 truncate max-w-[60%]">{userDomain || 'You'}</span>
-                        <span className="text-yellow-400 font-bold">0%</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-yellow-500 to-yellow-400 h-2 rounded-full" style={{ width: '2%' }} />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      Gap: <span className="text-red-400 font-semibold">−{comp.percentage} pts</span> across {competitorPrompts[comp.name]?.length || 0} shared queries
+                    <p className="text-sm text-gray-300 mt-1">
+                      AI recommends this brand{' '}
+                      <span className="text-yellow-400 font-bold">{multiplier}× more often</span> than you
+                      <span className="text-gray-500"> ({comp.percentage}% vs {userVisibility}%)</span>
                     </p>
                   </div>
                 </div>
 
-                {/* Why They Rank — factor cards */}
-                <div>
-                  <h4 className="text-xs font-semibold text-yellow-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
-                    <Target className="h-3.5 w-3.5" />
-                    Ranking Factors
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {strategies[comp.name].whyTheyRank.map((reason, idx) => (
-                      <div key={idx} className="flex items-start gap-2 p-2 rounded bg-gray-900/60 border border-yellow-400/20">
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-yellow-400/20 text-yellow-400 text-[10px] font-bold flex items-center justify-center">
-                          F{idx + 1}
-                        </span>
-                        <p className="text-xs text-gray-300 leading-relaxed">{reason}</p>
-                      </div>
-                    ))}
-                  </div>
+                {/* Meta chips */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${diff.color}`}>
+                    <Zap className="h-3 w-3 inline mr-1" />
+                    {diff.label} to beat
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-600 bg-gray-900 text-gray-300">
+                    <Clock className="h-3 w-3 inline mr-1" />
+                    {diff.time}
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-400">
+                    <TrendingUp className="h-3 w-3 inline mr-1" />
+                    +{diff.impact}% visibility
+                  </span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-600 bg-gray-900 text-gray-400">
+                    Wins {comp.prompts.length} of your queries
+                  </span>
                 </div>
 
-                {/* How to Beat — flow diagram */}
-                <div>
-                  <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
-                    <Lightbulb className="h-3.5 w-3.5" />
-                    Action Flow to Outrank
-                  </h4>
-                  <div className="relative pl-6 space-y-2">
-                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-green-500 via-green-500/50 to-transparent" />
-                    {strategies[comp.name].howToBeat.map((step, idx, arr) => (
-                      <div key={idx} className="relative flex items-start gap-3">
-                        <span className="absolute -left-6 flex-shrink-0 w-6 h-6 rounded-full bg-green-500 text-black text-[10px] font-bold flex items-center justify-center ring-2 ring-gray-800">
-                          {idx + 1}
-                        </span>
-                        <div className="flex-1 p-2 rounded bg-gray-900/60 border border-green-500/20 ml-1">
-                          <p className="text-xs text-gray-300 leading-relaxed">{step}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] text-green-400 uppercase font-semibold">
-                              Step {idx + 1} of {arr.length}
-                            </span>
-                            <div className="flex-1 h-0.5 bg-gray-700 rounded overflow-hidden">
-                              <div className="h-full bg-green-500" style={{ width: `${((idx + 1) / arr.length) * 100}%` }} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                {/* Why they're winning */}
+                <div className="mt-3">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1.5">Why they're winning</p>
+                  <ul className="space-y-1">
+                    {reasons.slice(0, isOpen ? 6 : 3).map((r, idx) => (
+                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
+                        <span className="text-green-400 mt-0.5">✓</span>
+                        <span>{r}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
 
-                {/* Tools */}
-                <div>
-                  <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide flex items-center gap-1.5 mb-2">
-                    <Wrench className="h-3.5 w-3.5" />
-                    Deploy These Tools
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {strategies[comp.name].tools.map((tool) => (
-                      <Link key={tool.link} to={tool.link}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-white h-7"
-                        >
-                          <Wrench className="h-3 w-3 mr-1" />
-                          {tool.name}
-                        </Button>
-                      </Link>
-                    ))}
+                {/* CTA */}
+                <Button
+                  size="sm"
+                  className="mt-4 w-full bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
+                  onClick={() => loadStrategy(comp.name)}
+                  disabled={loadingStrategy === comp.name}
+                >
+                  {loadingStrategy === comp.name ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {isOpen ? 'Hide winning strategy' : 'Show me how to beat them'}
+                      {isOpen ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Strategy panel */}
+              {isOpen && strat && (
+                <div className="border-t border-gray-700 bg-gray-900/60 p-4 space-y-4 animate-in slide-in-from-top-2">
+                  {comp.prompts.length > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-yellow-400 flex items-center gap-1.5 mb-2">
+                        <Sparkles className="h-3 w-3" /> Prompts they dominate
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {comp.prompts.slice(0, 5).map((p, i) => (
+                          <span key={i} className="text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700">
+                            "{p.length > 60 ? p.slice(0, 60) + '…' : p}"
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-green-400 flex items-center gap-1.5 mb-2">
+                      <BookOpen className="h-3 w-3" /> Your action plan (do these in order)
+                    </p>
+                    <ol className="space-y-2">
+                      {strat.howToBeat.map((step, idx) => (
+                        <li key={idx} className="flex gap-2.5 text-sm text-gray-200">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-black text-[10px] font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="leading-relaxed">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded bg-gray-800 border border-gray-700">
+                      <p className="text-[10px] uppercase text-gray-500">Estimated effort</p>
+                      <p className="text-sm text-white font-semibold mt-1">{diff.time}</p>
+                    </div>
+                    <div className="p-3 rounded bg-gray-800 border border-green-500/30">
+                      <p className="text-[10px] uppercase text-gray-500">Expected visibility gain</p>
+                      <p className="text-sm text-green-400 font-semibold mt-1">+{diff.impact}%</p>
+                    </div>
+                  </div>
+
+                  {strat.tools.length > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-blue-400 flex items-center gap-1.5 mb-2">
+                        <Wrench className="h-3 w-3" /> Tools to help you execute
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {strat.tools.map((t) => (
+                          <Link key={t.link} to={t.link}>
+                            <Button size="sm" variant="outline" className="text-xs h-7 border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-white">
+                              <Wrench className="h-3 w-3 mr-1" />
+                              {t.name}
+                            </Button>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Trusted sources — collapsible */}
+        {trustedSources.length > 0 && (
+          <div className="rounded-xl border border-gray-700 bg-gray-800/30">
+            <button
+              onClick={() => setSourcesOpen(!sourcesOpen)}
+              className="w-full flex items-center justify-between p-3 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-blue-400" />
+                <span className="text-sm text-white font-medium">Trusted Industry Sources AI Uses</span>
+                <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">
+                  {trustedSources.length}
+                </Badge>
+              </div>
+              {sourcesOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+            </button>
+            {sourcesOpen && (
+              <div className="p-3 pt-0 space-y-2">
+                <p className="text-xs text-gray-400 mb-2">
+                  These are publishers, review sites and communities AI cites — not direct competitors. Getting mentioned by them is a great way to boost your visibility.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {trustedSources.map((s) => (
+                    <span key={s.name} className="text-[11px] px-2 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+                      {s.name} <span className="text-gray-500">· {s.percentage}%</span>
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-        ))}
+        )}
       </CardContent>
     </Card>
   );

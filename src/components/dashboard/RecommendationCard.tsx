@@ -27,7 +27,12 @@ import {
   TrendingUp,
   Users,
   Lightbulb,
+  AlertTriangle,
+  Target,
+  Circle,
 } from 'lucide-react';
+import { useEffect } from 'react';
+
 
 export interface RecommendationRow {
   id: string;

@@ -412,6 +412,13 @@ export type Database = {
             referencedRelation: "industries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "content_assets_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
         ]
       }
       customers: {
@@ -636,6 +643,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "global_intelligence_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+          {
             foreignKeyName: "global_intelligence_topic_cluster_id_fkey"
             columns: ["topic_cluster_id"]
             isOneToOne: false
@@ -769,6 +783,13 @@ export type Database = {
             referencedRelation: "industries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "industries_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
         ]
       }
       industry_leaderboard: {
@@ -829,11 +850,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "industry_leaderboard_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+          {
             foreignKeyName: "industry_leaderboard_topic_cluster_id_fkey"
             columns: ["topic_cluster_id"]
             isOneToOne: false
             referencedRelation: "topic_clusters"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_provider_flags: {
+        Row: {
+          description: string | null
+          display_name: string
+          enabled: boolean
+          last_run_at: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          display_name: string
+          enabled?: boolean
+          last_run_at?: string | null
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          display_name?: string
+          enabled?: boolean
+          last_run_at?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      market_intelligence_reports: {
+        Row: {
+          created_at: string
+          id: string
+          industry_id: string | null
+          payload: Json
+          period_end: string
+          period_start: string
+          published: boolean
+          report_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          industry_id?: string | null
+          payload: Json
+          period_end: string
+          period_start: string
+          published?: boolean
+          report_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          industry_id?: string | null
+          payload?: Json
+          period_end?: string
+          period_start?: string
+          published?: boolean
+          report_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_intelligence_reports_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_intelligence_reports_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
           },
         ]
       }
@@ -1027,6 +1130,148 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      prompt_clusters: {
+        Row: {
+          cluster_label: string
+          commercial_intent_score: number | null
+          first_seen_at: string
+          id: string
+          industry_id: string | null
+          intent: string | null
+          member_hashes: string[]
+          representative_prompt: string
+          topic_cluster_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_label: string
+          commercial_intent_score?: number | null
+          first_seen_at?: string
+          id?: string
+          industry_id?: string | null
+          intent?: string | null
+          member_hashes?: string[]
+          representative_prompt: string
+          topic_cluster_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_label?: string
+          commercial_intent_score?: number | null
+          first_seen_at?: string
+          id?: string
+          industry_id?: string | null
+          intent?: string | null
+          member_hashes?: string[]
+          representative_prompt?: string
+          topic_cluster_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+          {
+            foreignKeyName: "prompt_clusters_topic_cluster_id_fkey"
+            columns: ["topic_cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topic_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompt_hash_display: {
+        Row: {
+          display_text: string
+          prompt_template_hash: string
+          sample_count: number
+          updated_at: string
+        }
+        Insert: {
+          display_text: string
+          prompt_template_hash: string
+          sample_count?: number
+          updated_at?: string
+        }
+        Update: {
+          display_text?: string
+          prompt_template_hash?: string
+          sample_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prompt_intelligence_daily: {
+        Row: {
+          citation_frequency: number
+          day: string
+          distinct_brands: number
+          distinct_domains: number
+          engines: string[]
+          id: number
+          industry_id: string | null
+          prompt_template_hash: string
+          scan_count: number
+          top_brands: Json
+          top_domains: Json
+          updated_at: string
+        }
+        Insert: {
+          citation_frequency?: number
+          day: string
+          distinct_brands?: number
+          distinct_domains?: number
+          engines?: string[]
+          id?: number
+          industry_id?: string | null
+          prompt_template_hash: string
+          scan_count?: number
+          top_brands?: Json
+          top_domains?: Json
+          updated_at?: string
+        }
+        Update: {
+          citation_frequency?: number
+          day?: string
+          distinct_brands?: number
+          distinct_domains?: number
+          engines?: string[]
+          id?: number
+          industry_id?: string | null
+          prompt_template_hash?: string
+          scan_count?: number
+          top_brands?: Json
+          top_domains?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+        ]
       }
       proprietary_metrics_cache: {
         Row: {
@@ -1679,6 +1924,13 @@ export type Database = {
             referencedRelation: "industries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "topic_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
         ]
       }
       user_activity: {
@@ -1734,7 +1986,181 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      competitor_intelligence: {
+        Row: {
+          brand: string | null
+          citations_30d: number | null
+          engines_active: number | null
+          engines_list: string[] | null
+          industry_id: string | null
+          industry_name: string | null
+          observations_30d: number | null
+          prompts_won_30d: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_intelligence_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "global_intelligence_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+        ]
+      }
+      emerging_topics: {
+        Row: {
+          cluster_id: string | null
+          cluster_label: string | null
+          commercial_intent_score: number | null
+          industry_id: string | null
+          industry_name: string | null
+          intent: string | null
+          last_day: string | null
+          opportunity_score: number | null
+          prompts_in_cluster: number | null
+          recency_share_pct: number | null
+          representative_prompt: string | null
+          scans_14d: number | null
+          scans_30d: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_clusters_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+        ]
+      }
+      first_mover_opportunities: {
+        Row: {
+          citation_growth_pct: number | null
+          cites_7d: number | null
+          competitors_answering: number | null
+          confidence_score: number | null
+          display_text: string | null
+          domains_cited: number | null
+          first_seen_day: string | null
+          freshness_days: number | null
+          growth_pct: number | null
+          industry_id: string | null
+          industry_name: string | null
+          industry_slug: string | null
+          last_seen_day: string | null
+          opportunity_score: number | null
+          prompt_template_hash: string | null
+          reasons: Json | null
+          scans_30d: number | null
+          scans_7d: number | null
+          scans_90d: number | null
+          scans_all: number | null
+          scans_prev_7d: number | null
+          trend_bucket: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+        ]
+      }
+      industry_intelligence: {
+        Row: {
+          avg_authority_30d: number | null
+          citations_30d: number | null
+          distinct_brands_30d: number | null
+          distinct_domains_30d: number | null
+          distinct_prompts_30d: number | null
+          industry_id: string | null
+          industry_name: string | null
+          industry_slug: string | null
+          scans_30d: number | null
+          scans_7d: number | null
+        }
+        Relationships: []
+      }
+      market_intelligence_stats: {
+        Row: {
+          as_of: string | null
+          brands_tracked: number | null
+          clusters_discovered: number | null
+          domains_tracked: number | null
+          engines_tracked: number | null
+          industries_covered: number | null
+          opportunities_tracked: number | null
+          scans_7d: number | null
+          total_citations: number | null
+          total_scans: number | null
+        }
+        Relationships: []
+      }
+      prompt_intelligence_trending: {
+        Row: {
+          citation_growth_pct: number | null
+          cites_7d: number | null
+          competitors_answering: number | null
+          confidence_score: number | null
+          display_text: string | null
+          domains_cited: number | null
+          first_seen_day: string | null
+          freshness_days: number | null
+          growth_pct: number | null
+          industry_id: string | null
+          industry_name: string | null
+          industry_slug: string | null
+          last_seen_day: string | null
+          opportunity_score: number | null
+          prompt_template_hash: string | null
+          reasons: Json | null
+          scans_30d: number | null
+          scans_7d: number | null
+          scans_90d: number | null
+          scans_all: number | null
+          scans_prev_7d: number | null
+          trend_bucket: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_intelligence_daily_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industry_intelligence"
+            referencedColumns: ["industry_id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_guest_scan_limit: {

@@ -24,6 +24,7 @@ import {
   Globe,
   Crown,
   LogOut,
+  Flame,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ const GROUPS: { label: string; items: { id: string; label: string; icon: any }[]
     label: 'Insights',
     items: [
       { id: 'recommendations', label: 'Recommendations', icon: Sparkles },
+      { id: 'intelligence', label: 'Market Intelligence', icon: Flame },
       { id: 'competitors', label: 'Competitors', icon: Swords },
       { id: 'benchmark', label: 'Benchmark', icon: TrendingUp },
       { id: 'citations', label: 'Citations', icon: FileText },

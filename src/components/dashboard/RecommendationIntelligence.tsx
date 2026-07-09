@@ -5,6 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, ListChecks, AlertTriangle, RefreshCw } from 'lucide-react';
 import { RecommendationCard, type RecommendationRow } from './RecommendationCard';
+import { AIGrowthBrief } from './AIGrowthBrief';
+
 import { ActionPlan } from './ActionPlan';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { logScanError } from '@/lib/errorLogger';

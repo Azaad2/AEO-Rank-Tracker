@@ -150,24 +150,9 @@ export function RecommendationIntelligence() {
 
   return (
     <div className="space-y-5">
-      {/* Header strip */}
-      <Card className="bg-gradient-to-r from-yellow-400/10 to-transparent border-yellow-400/30">
-        <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-2xl font-bold text-white">
-              {evidenceBound.length} prioritized actions
-            </div>
-            <div className="text-sm text-gray-400">
-              Projected impact:{' '}
-              <span className="text-green-400 font-semibold">+{totalImpact.toFixed(1)} points</span>{' '}
-              across visibility metrics
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 max-w-xs text-right">
-            Every card is evidence-bound. No score without proof.
-          </div>
-        </CardContent>
-      </Card>
+      {/* AI Growth Brief — executive summary */}
+      <AIGrowthBrief recs={evidenceBound} />
+
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2">

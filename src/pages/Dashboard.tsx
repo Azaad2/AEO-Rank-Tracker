@@ -277,6 +277,7 @@ function DashboardInner() {
     scan: 'New scan',
     scans: 'Scan history',
     recommendations: 'Recommendations',
+    intelligence: 'Market Intelligence',
     competitors: 'Competitors',
     benchmark: 'Benchmark',
     citations: 'Citations',

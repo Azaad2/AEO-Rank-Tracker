@@ -453,47 +453,82 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           )}
 
-          {/* Your status vs industry */}
-          {sample >= 1 && (peerMedian > 0 || userValue > 0) && (
+          {/* Your status vs industry — visual comparison */}
+          {sample >= 2 && (peerMedian > 0 || userValue > 0) ? (
             <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                  Your status
+                  You vs industry
                 </div>
                 <span className="text-[11px] text-gray-500">based on {sample} peers</span>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="space-y-2">
                 <div>
-                  <div className="text-2xl font-bold text-white">{userValue}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Your brand</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-yellow-400">{peerMedian}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Industry average</div>
-                </div>
-                <div>
-                  <div className={`text-2xl font-bold ${gap > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {gap > 0 ? `-${gap}` : '✓'}
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-gray-400">Your brand</span>
+                    <span className="text-white font-medium">{userValue}</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Gap</div>
+                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-gray-500 transition-all"
+                      style={{ width: `${Math.max(4, (userValue / max) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-yellow-400/80">Industry average</span>
+                    <span className="text-yellow-400 font-medium">{peerMedian}</span>
+                  </div>
+                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-yellow-400 transition-all"
+                      style={{ width: `${Math.max(4, (peerMedian / max) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5 pt-1">
-                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-gray-500"
-                    style={{ width: `${(userValue / max) * 100}%` }}
-                  />
+              {gap > 0 && (
+                <div className="text-[11px] text-red-300">
+                  You're behind by <span className="font-semibold">{gap}</span> {unit}.
                 </div>
-                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-yellow-400"
-                    style={{ width: `${(peerMedian / max) * 100}%` }}
-                  />
-                </div>
-              </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-md border border-gray-800 bg-black/30 p-3 text-xs text-gray-400">
+              We're collecting more industry data for this recommendation.
             </div>
           )}
+
+          {/* If you ignore this */}
+          <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 flex gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-red-300/90 font-semibold mb-1">
+                If you ignore this
+              </div>
+              <p className="text-xs text-gray-300 leading-relaxed">{ifIgnoredCopy(rec)}</p>
+            </div>
+          </div>
+
+          {/* When completed */}
+          <div className="rounded-md border border-green-500/20 bg-green-500/5 p-3 flex gap-2">
+            <Target className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-green-300/90 font-semibold mb-1">
+                When completed
+              </div>
+              <ul className="space-y-1">
+                {whenCompletedBullets(rec).map((b, i) => (
+                  <li key={i} className="text-xs text-gray-300 flex gap-2">
+                    <span className="text-green-400">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
 
           {/* Companies doing this better */}
           {competitors.length > 0 && (

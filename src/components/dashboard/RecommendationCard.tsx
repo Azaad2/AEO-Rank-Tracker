@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -11,9 +21,12 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  Target,
-  Zap,
-  History,
+  Sparkles,
+  Info,
+  Star,
+  TrendingUp,
+  Users,
+  Lightbulb,
 } from 'lucide-react';
 
 export interface RecommendationRow {
@@ -41,19 +54,106 @@ export interface RecommendationRow {
   expected_impact: number;
 }
 
+/** Human labels + tooltip descriptions for the raw internal metric codes. */
+const METRIC_INFO: Record<string, { label: string; blurb: string; unit: string }> = {
+  RSS: {
+    label: 'AI Recommendation Score',
+    blurb: 'How often AI assistants recommend your brand for prompts in your space.',
+    unit: 'mentions',
+  },
+  CAG: {
+    label: 'Competitor Gap',
+    blurb: 'How far behind you are compared to the competitors AI recommends most.',
+    unit: 'points',
+  },
+  TSD: {
+    label: 'Citation Diversity',
+    blurb: 'How many different trusted websites cite your brand. AI trusts variety.',
+    unit: 'domains',
+  },
+  CIS: {
+    label: 'Citation Impact',
+    blurb: 'How influential the sites that mention you are.',
+    unit: 'score',
+  },
+  COI: {
+    label: 'Content Opportunity',
+    blurb: 'How much untapped content ground exists for you to claim.',
+    unit: 'opportunities',
+  },
+};
+
+const DIFF_LABEL: Record<string, string> = {
+  easy: 'Quick win',
+  medium: 'Moderate effort',
+  hard: 'Bigger project',
+};
+
 const DIFF_COLORS: Record<string, string> = {
   easy: 'bg-green-500/10 text-green-400 border-green-500/30',
   medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
   hard: 'bg-red-500/10 text-red-400 border-red-500/30',
 };
 
-const METRIC_COLORS: Record<string, string> = {
-  RSS: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  CAG: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  TSD: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
-  CIS: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  COI: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+/** Map priority_score (0–1000+ scale) → 1–5 star impact. */
+function priorityToStars(score: number | null | undefined): number {
+  if (score == null) return 3;
+  const s = Number(score);
+  if (s >= 800) return 5;
+  if (s >= 600) return 4;
+  if (s >= 400) return 3;
+  if (s >= 200) return 2;
+  return 1;
+}
+
+function impactLabel(stars: number): string {
+  return ['', 'Low Impact', 'Moderate Impact', 'Solid Impact', 'High Impact', 'Critical Impact'][stars];
+}
+
+/** Turn an action asset type into a friendly button label + why-it-helps blurb. */
+const ACTION_INFO: Record<string, { label: string; why: string }> = {
+  outreach: {
+    label: 'Generate Outreach Plan',
+    why: 'Get pitched on the trusted sites competitors already appear on.',
+  },
+  guest_post: {
+    label: 'Generate Guest Posting Strategy',
+    why: 'Publish on high-authority sites AI assistants already cite.',
+  },
+  comparison: {
+    label: 'Generate Comparison Article',
+    why: 'Show up in "X vs Y" prompts where competitors currently win.',
+  },
+  faq: {
+    label: 'Generate FAQ',
+    why: 'AI assistants quote clean Q&A pages more than any other format.',
+  },
+  landing_page: {
+    label: 'Generate Landing Page',
+    why: 'Give AI a dedicated page to cite for this exact topic.',
+  },
+  pr: {
+    label: 'Generate PR Campaign',
+    why: 'Trigger fresh mentions on trusted news + review sites.',
+  },
+  article: {
+    label: 'Generate Article',
+    why: 'Long-form content is the #1 source AI pulls citations from.',
+  },
+  schema: {
+    label: 'Generate Schema Markup',
+    why: 'Structured data helps AI understand and quote your pages.',
+  },
 };
+
+function humanizeAsset(type: string): { label: string; why: string } {
+  return (
+    ACTION_INFO[type] ?? {
+      label: `Generate ${type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`,
+      why: 'Recommended content asset to close this gap.',
+    }
+  );
+}
 
 interface Props {
   rec: RecommendationRow;
@@ -62,11 +162,17 @@ interface Props {
 
 export function RecommendationCard({ rec, onChanged }: Props) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [advOpen, setAdvOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const done = rec.status === 'completed';
-  const evidenceKeys = rec.evidence && typeof rec.evidence === 'object' ? Object.keys(rec.evidence) : [];
+  const stars = priorityToStars(rec.priority_score);
+  const metricCode = rec.target_metric || '';
+  const metricInfo = METRIC_INFO[metricCode];
+
+  const evidenceKeys =
+    rec.evidence && typeof rec.evidence === 'object' ? Object.keys(rec.evidence) : [];
   const urls = rec.evidence_urls ?? [];
   const benchmark = rec.industry_benchmark || {};
   const peerMedian = Number(benchmark.peer_median ?? benchmark.median ?? 0);
@@ -75,220 +181,380 @@ export function RecommendationCard({ rec, onChanged }: Props) {
   const sample = Number(benchmark.peer_sample_size ?? benchmark.sample_size ?? 0);
   const competitors: any[] = Array.isArray(rec.competitor_examples) ? rec.competitor_examples : [];
   const max = Math.max(peerMedian, userValue, 1);
+  const unit = metricInfo?.unit ?? 'points';
+
+  const projected = rec.projected_metric_delta != null ? Number(rec.projected_metric_delta) : 0;
+  const gainLine =
+    projected > 0
+      ? `+${projected.toFixed(1)}% AI visibility gain`
+      : stars >= 5
+      ? 'Your #1 opportunity right now'
+      : 'Meaningful visibility gain';
+
+  // "Why AI is telling you this" — real-data narrative
+  const whyAI = (() => {
+    if (sample >= 2 && peerMedian > 0) {
+      const ratio = userValue > 0 ? (peerMedian / Math.max(userValue, 1)).toFixed(1) : '3.0';
+      return `Across ${sample.toLocaleString()} recent scans in your industry, brands with ${peerMedian}+ ${unit} were recommended by AI assistants roughly ${ratio}× more often than brands like yours (${userValue}).`;
+    }
+    if (competitors.length > 0) {
+      return `AI assistants consistently recommend ${competitors
+        .slice(0, 2)
+        .map((c) => c.brand || c.name)
+        .filter(Boolean)
+        .join(' and ')} for this topic instead of your brand. Closing the gap moves you into that recommendation set.`;
+    }
+    return 'Based on your latest scan, this is one of the biggest levers to increase how often AI assistants surface your brand.';
+  })();
 
   async function updateStatus(status: string) {
     setBusy(true);
     const { error } = await supabase
       .from('recommendations')
-      .update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null })
+      .update({
+        status,
+        completed_at: status === 'completed' ? new Date().toISOString() : null,
+      })
       .eq('id', rec.id);
     setBusy(false);
     if (error) {
       toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
       return;
     }
-    // Log outcome (fire-and-forget) for completed/dismissed transitions so we can
-    // measure recommendation impact over time.
     if (status === 'completed' || status === 'dismissed') {
-      supabase.rpc('record_recommendation_outcome', {
-        _recommendation_id: rec.id,
-        _success: status === 'completed',
-      }).then(({ error: outErr }) => {
-        if (outErr) console.warn('record_recommendation_outcome failed:', outErr.message);
-      });
+      supabase
+        .rpc('record_recommendation_outcome', {
+          _recommendation_id: rec.id,
+          _success: status === 'completed',
+        })
+        .then(({ error: outErr }) => {
+          if (outErr) console.warn('record_recommendation_outcome failed:', outErr.message);
+        });
     }
     toast({ title: status === 'completed' ? 'Marked done' : 'Updated' });
     onChanged?.();
   }
 
+  const assetTypes = rec.supporting_asset_types?.length
+    ? rec.supporting_asset_types
+    : rec.execution_payload?.generator && rec.execution_payload.generator !== 'manual'
+    ? [rec.execution_payload.generator]
+    : [];
+
   return (
-    <Card className={`bg-gray-900 border-gray-800 ${done ? 'opacity-60' : ''}`}>
-      <CardContent className="p-5 space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              {rec.target_metric && (
-                <Badge variant="outline" className={METRIC_COLORS[rec.target_metric] || 'border-gray-700 text-gray-300'}>
-                  <Target className="h-3 w-3 mr-1" />
-                  {rec.target_metric}
-                </Badge>
-              )}
-              <Badge variant="outline" className={DIFF_COLORS[rec.difficulty] || ''}>
-                {rec.difficulty}
-              </Badge>
-              {rec.time_estimate_minutes != null && (
-                <Badge variant="outline" className="border-gray-700 text-gray-400">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {rec.time_estimate_minutes}m
-                </Badge>
-              )}
-              {rec.recurrence_count && rec.recurrence_count > 1 && (
-                <Badge variant="outline" className="border-gray-700 text-gray-500">
-                  <History className="h-3 w-3 mr-1" />
-                  seen {rec.recurrence_count}×
-                </Badge>
-              )}
-            </div>
-            <h3 className="text-white font-semibold leading-tight">{rec.title}</h3>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-[10px] uppercase tracking-wide text-gray-500">Priority</div>
-            <div className="text-yellow-400 font-bold text-lg leading-none">
-              {rec.priority_score != null ? Math.round(Number(rec.priority_score)) : '—'}
-            </div>
-            {rec.projected_metric_delta != null && Number(rec.projected_metric_delta) !== 0 && (
-              <div className="text-[10px] text-green-400 mt-1">
-                +{Number(rec.projected_metric_delta).toFixed(1)} {rec.target_metric || ''}
+    <TooltipProvider delayDuration={200}>
+      <Card className={`bg-gray-900 border-gray-800 ${done ? 'opacity-60' : ''}`}>
+        <CardContent className="p-5 space-y-4">
+          {/* Why AI is telling you this — banner */}
+          <div className="rounded-md border border-yellow-500/20 bg-yellow-500/5 p-3 flex gap-2">
+            <Lightbulb className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-yellow-400/80 font-semibold mb-1">
+                Why AI is telling you this
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Why this matters */}
-        {rec.why_this_matters && (
-          <p className="text-sm text-gray-300 leading-relaxed">{rec.why_this_matters}</p>
-        )}
-        {!rec.why_this_matters && rec.description && (
-          <p className="text-sm text-gray-400 leading-relaxed">{rec.description}</p>
-        )}
-
-        {/* Industry benchmark bar */}
-        {sample >= 1 && (peerMedian > 0 || userValue > 0) && (
-          <div className="rounded border border-gray-800 bg-black/40 p-3 space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>Industry benchmark</span>
-              <span className="text-gray-500">n={sample}</span>
+              <p className="text-xs text-gray-300 leading-relaxed">{whyAI}</p>
             </div>
-            <div className="space-y-1.5">
-              <div>
-                <div className="flex justify-between text-[11px] mb-0.5">
-                  <span className="text-gray-400">You</span>
-                  <span className="text-white">{userValue}</span>
+          </div>
+
+          {/* Header: title + impact */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-semibold text-lg leading-snug">{rec.title}</h3>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <Badge variant="outline" className={DIFF_COLORS[rec.difficulty] || ''}>
+                  {DIFF_LABEL[rec.difficulty] || rec.difficulty}
+                </Badge>
+                {rec.time_estimate_minutes != null && (
+                  <Badge variant="outline" className="border-gray-700 text-gray-400">
+                    <Clock className="h-3 w-3 mr-1" />~{rec.time_estimate_minutes} min
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="text-right shrink-0 min-w-[130px]">
+              <div className="flex items-center justify-end gap-0.5 mb-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Star
+                    key={i}
+                    className={`h-3.5 w-3.5 ${
+                      i <= stars ? 'fill-yellow-400 text-yellow-400' : 'text-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="text-xs text-yellow-400 font-semibold">{impactLabel(stars)}</div>
+              <div className="text-[11px] text-green-400 mt-1 flex items-center justify-end gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {gainLine}
+              </div>
+            </div>
+          </div>
+
+          {/* Why this matters */}
+          {(rec.why_this_matters || rec.description) && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                Why this matters
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                {rec.why_this_matters || rec.description}
+              </p>
+            </div>
+          )}
+
+          {/* Your status vs industry */}
+          {sample >= 1 && (peerMedian > 0 || userValue > 0) && (
+            <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                  Your status
+                </div>
+                <span className="text-[11px] text-gray-500">based on {sample} peers</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-white">{userValue}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">Your brand</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-yellow-400">{peerMedian}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">Industry average</div>
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold ${gap > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    {gap > 0 ? `-${gap}` : '✓'}
+                  </div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">Gap</div>
+                </div>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
+                  <div
+                    className="h-full bg-gray-500"
+                    style={{ width: `${(userValue / max) * 100}%` }}
+                  />
                 </div>
                 <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div className="h-full bg-gray-500" style={{ width: `${(userValue / max) * 100}%` }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] mb-0.5">
-                  <span className="text-gray-400">Peer median</span>
-                  <span className="text-yellow-400">{peerMedian}</span>
-                </div>
-                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div className="h-full bg-yellow-400" style={{ width: `${(peerMedian / max) * 100}%` }} />
+                  <div
+                    className="h-full bg-yellow-400"
+                    style={{ width: `${(peerMedian / max) * 100}%` }}
+                  />
                 </div>
               </div>
             </div>
-            {gap > 0 && (
-              <div className="text-[11px] text-red-400">Gap: {gap} behind peer median</div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Top competitors */}
-        {competitors.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wide mr-1 self-center">
-              Top peers:
-            </span>
-            {competitors.slice(0, 3).map((c, i) => (
-              <Badge key={i} variant="outline" className="border-gray-700 text-gray-300 text-[11px]">
-                {c.brand || c.name || `peer ${i + 1}`}
-                {c.value != null && <span className="ml-1 text-yellow-400">{c.value}</span>}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Evidence drawer */}
-        {(urls.length > 0 || evidenceKeys.length > 0) && (
-          <Collapsible open={open} onOpenChange={setOpen}>
-            <CollapsibleTrigger asChild>
-              <button className="flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-400 transition-colors">
-                {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                Evidence ({urls.length + evidenceKeys.length})
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2 space-y-2">
-              {urls.length > 0 && (
-                <ul className="space-y-1">
-                  {urls.map((u, i) => (
-                    <li key={i}>
-                      <a
-                        href={u}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1 break-all"
-                      >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        {u}
-                      </a>
+          {/* Companies doing this better */}
+          {competitors.length > 0 && (
+            <div className="rounded-md border border-gray-800 bg-black/40 p-3">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-2">
+                <Users className="h-3 w-3" />
+                Companies doing this better
+              </div>
+              <ul className="space-y-1.5">
+                {competitors.slice(0, 3).map((c, i) => {
+                  const name = c.brand || c.name || `Competitor ${i + 1}`;
+                  const value = c.value ?? c.count;
+                  return (
+                    <li key={i} className="text-sm text-gray-300 flex items-baseline gap-2">
+                      <span className="text-yellow-400">•</span>
+                      <span className="font-medium text-white">{name}</span>
+                      {value != null && (
+                        <span className="text-xs text-gray-400">
+                          appears on {value} {unit}
+                        </span>
+                      )}
                     </li>
-                  ))}
-                </ul>
-              )}
-              {evidenceKeys.length > 0 && (
-                <dl className="grid grid-cols-[max-content,1fr] gap-x-3 gap-y-1 text-xs bg-black/40 rounded p-2 border border-gray-800">
-                  {evidenceKeys.map((k) => (
-                    <div key={k} className="contents">
-                      <dt className="text-gray-500">{k}</dt>
-                      <dd className="text-gray-300 break-all">
-                        {typeof rec.evidence[k] === 'object'
-                          ? JSON.stringify(rec.evidence[k])
-                          : String(rec.evidence[k])}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+                  );
+                })}
+                {userValue >= 0 && (
+                  <li className="text-sm text-gray-500 flex items-baseline gap-2 pt-1 border-t border-gray-800 mt-2">
+                    <span>•</span>
+                    <span>Your brand appears on only <span className="text-white">{userValue}</span>.</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-1">
-          {!done && (
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => updateStatus('completed')}
-              className="bg-yellow-400 text-black hover:bg-yellow-300"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-              Mark done
-            </Button>
+          {/* Recommended actions */}
+          {assetTypes.length > 0 && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
+                Recommended actions
+              </div>
+              <div className="space-y-2">
+                {assetTypes.slice(0, 4).map((t) => {
+                  const info = humanizeAsset(t);
+                  return (
+                    <div
+                      key={t}
+                      className="flex items-start justify-between gap-3 rounded border border-gray-800 bg-black/30 p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm text-white font-medium">{info.label}</div>
+                        <div className="text-[11px] text-gray-400 mt-0.5">{info.why}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 shrink-0"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Let AI help
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
-          {done && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => updateStatus('pending')}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              Reopen
-            </Button>
+
+          {/* Why we're recommending this (evidence) */}
+          {(urls.length > 0 || evidenceKeys.length > 0) && (
+            <Collapsible open={evidenceOpen} onOpenChange={setEvidenceOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-400 transition-colors">
+                  {evidenceOpen ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                  Why we're recommending this ({urls.length + evidenceKeys.length})
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-2">
+                {evidenceKeys.length > 0 && (
+                  <ul className="space-y-1 text-xs text-gray-300">
+                    {evidenceKeys.map((k) => {
+                      const v = rec.evidence[k];
+                      const text = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                      return (
+                        <li key={k} className="flex gap-2">
+                          <span className="text-green-400 shrink-0">✓</span>
+                          <span>
+                            <span className="text-gray-500">{k.replace(/_/g, ' ')}:</span>{' '}
+                            <span className="text-gray-200">{text}</span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {urls.length > 0 && (
+                  <ul className="space-y-1">
+                    {urls.map((u, i) => (
+                      <li key={i}>
+                        <a
+                          href={u}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:underline inline-flex items-center gap-1 break-all"
+                        >
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                          {u}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           )}
-          {!done && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => updateStatus('dismissed')}
-              className="border-gray-700 text-gray-400 hover:bg-gray-800"
-            >
-              Snooze
-            </Button>
+
+          {/* Advanced metrics — hidden by default */}
+          {metricInfo && (
+            <Collapsible open={advOpen} onOpenChange={setAdvOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                  {advOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  Advanced metrics
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="rounded border border-gray-800 bg-black/40 p-3 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-300">{metricInfo.label}</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-gray-500" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">{metricInfo.blurb}</p>
+                          <p className="text-[10px] text-gray-400 mt-1">Internal code: {metricCode}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="text-gray-500 font-mono">{metricCode}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-gray-400">
+                    <div>
+                      Priority score:{' '}
+                      <span className="text-gray-200">
+                        {rec.priority_score != null ? Math.round(Number(rec.priority_score)) : '—'}
+                      </span>
+                    </div>
+                    <div>
+                      Confidence:{' '}
+                      <span className="text-gray-200">
+                        {Math.round((rec.confidence ?? 0) * 100)}%
+                      </span>
+                    </div>
+                    <div>
+                      Expected impact:{' '}
+                      <span className="text-gray-200">{rec.expected_impact ?? '—'}</span>
+                    </div>
+                    <div>
+                      Projected Δ:{' '}
+                      <span className="text-gray-200">
+                        {projected ? `+${projected.toFixed(2)}` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
-          {rec.execution_payload?.generator && rec.execution_payload?.generator !== 'manual' && (
-            <Badge variant="outline" className="border-purple-500/30 text-purple-300 self-center">
-              <Zap className="h-3 w-3 mr-1" />
-              Auto-fixable
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {!done && (
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => updateStatus('completed')}
+                className="bg-yellow-400 text-black hover:bg-yellow-300"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                Mark done
+              </Button>
+            )}
+            {done && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => updateStatus('pending')}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                Reopen
+              </Button>
+            )}
+            {!done && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => updateStatus('dismissed')}
+                className="border-gray-700 text-gray-400 hover:bg-gray-800"
+              >
+                Snooze
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }

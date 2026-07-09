@@ -160,6 +160,117 @@ function humanizeAsset(type: string): { label: string; why: string } {
   );
 }
 
+type CategoryTag = {
+  label: string;
+  emoji: string;
+  className: string;
+};
+
+function categorize(rec: RecommendationRow, stars: number): CategoryTag {
+  if (stars >= 5)
+    return {
+      label: 'Do First',
+      emoji: '🔥',
+      className: 'bg-red-500/15 text-red-300 border-red-500/40',
+    };
+  if (rec.difficulty === 'easy')
+    return {
+      label: 'Quick Win',
+      emoji: '⚡',
+      className: 'bg-green-500/15 text-green-300 border-green-500/40',
+    };
+  if (rec.difficulty === 'hard')
+    return {
+      label: 'Long-term',
+      emoji: '🛡',
+      className: 'bg-blue-500/15 text-blue-300 border-blue-500/40',
+    };
+  return {
+    label: 'High Growth',
+    emoji: '📈',
+    className: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40',
+  };
+}
+
+const EFFORT: Record<string, { dot: string; label: string; color: string }> = {
+  easy: { dot: '🟢', label: 'Low effort', color: 'text-green-400' },
+  medium: { dot: '🟡', label: 'Medium effort', color: 'text-yellow-400' },
+  hard: { dot: '🔴', label: 'High effort', color: 'text-red-400' },
+};
+
+/** Consequence copy — derived from target metric, no fake numbers. */
+function ifIgnoredCopy(rec: RecommendationRow): string {
+  const m = (rec.target_metric || '').toUpperCase();
+  if (m === 'RSS')
+    return 'Competitors will keep receiving more AI recommendations for this topic while your brand stays invisible.';
+  if (m === 'CAG')
+    return 'The recommendation gap between you and the leading brands in your industry will keep widening.';
+  if (m === 'TSD')
+    return 'Your citation diversity will remain below the industry average, making AI assistants trust you less.';
+  if (m === 'CIS')
+    return 'You will continue missing citations from the most influential sources AI relies on.';
+  if (m === 'COI')
+    return 'Untapped content opportunities in your space will be claimed by competitors first.';
+  return 'This gap will keep compounding and cost you AI visibility over time.';
+}
+
+/** Outcome bullets — derived from target metric + category. */
+function whenCompletedBullets(rec: RecommendationRow): string[] {
+  const m = (rec.target_metric || '').toUpperCase();
+  const base: Record<string, string[]> = {
+    RSS: [
+      'More frequent AI recommendations for your brand',
+      'Higher share of voice inside your topic',
+      'Better chance of being the answer AI picks',
+    ],
+    CAG: [
+      'Smaller gap versus the top-cited competitors',
+      'Better parity with industry leaders in AI output',
+      'Stronger positioning in "best X" style prompts',
+    ],
+    TSD: [
+      'Stronger AI trust signals',
+      'Better citation diversity across trusted sites',
+      'Greater chance of appearing in AI recommendations',
+    ],
+    CIS: [
+      'Citations from higher-authority sources',
+      'AI weights your mentions more heavily',
+      'More durable long-term visibility',
+    ],
+    COI: [
+      'Ownership of untapped topic ground',
+      'First-mover advantage before competitors catch up',
+      'New surfaces where AI can quote your brand',
+    ],
+  };
+  return (
+    base[m] ?? [
+      'Improved AI visibility for this topic',
+      'Stronger presence in AI-generated answers',
+      'Better positioning against competitors',
+    ]
+  );
+}
+
+/** Simple actionable checklist derived from asset types + generic steps. */
+function buildChecklist(rec: RecommendationRow, assetTypes: string[]): string[] {
+  const items: string[] = [];
+  const seen = new Set<string>();
+  for (const t of assetTypes.slice(0, 3)) {
+    const label = humanizeAsset(t).label;
+    if (!seen.has(label)) {
+      seen.add(label);
+      items.push(label);
+    }
+  }
+  if (items.length === 0) items.push('Complete the recommended action');
+  items.push('Publish and index the new asset');
+  items.push('Monitor results in your next scan');
+  return items;
+}
+
+
 interface Props {
   rec: RecommendationRow;
   onChanged?: () => void;

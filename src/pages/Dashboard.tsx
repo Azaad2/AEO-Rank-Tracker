@@ -8,6 +8,7 @@ import { QuickScan } from '@/components/dashboard/QuickScan';
 import { RecommendationIntelligence } from '@/components/dashboard/RecommendationIntelligence';
 import { WhyCompetitorsWin } from '@/components/dashboard/WhyCompetitorsWin';
 import { CompetitorWatch } from '@/components/dashboard/CompetitorWatch';
+import { MarketIntelligence } from '@/components/dashboard/intelligence/MarketIntelligence';
 import { MetricsExplain } from '@/components/dashboard/MetricsExplain';
 import { IndustryBenchmarkTab } from '@/components/dashboard/IndustryBenchmarkTab';
 import { CitationIntelligenceTab } from '@/components/dashboard/CitationIntelligenceTab';

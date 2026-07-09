@@ -27,7 +27,12 @@ import {
   TrendingUp,
   Users,
   Lightbulb,
+  AlertTriangle,
+  Target,
+  Circle,
 } from 'lucide-react';
+import { useEffect } from 'react';
+
 
 export interface RecommendationRow {
   id: string;
@@ -155,6 +160,117 @@ function humanizeAsset(type: string): { label: string; why: string } {
   );
 }
 
+type CategoryTag = {
+  label: string;
+  emoji: string;
+  className: string;
+};
+
+function categorize(rec: RecommendationRow, stars: number): CategoryTag {
+  if (stars >= 5)
+    return {
+      label: 'Do First',
+      emoji: '🔥',
+      className: 'bg-red-500/15 text-red-300 border-red-500/40',
+    };
+  if (rec.difficulty === 'easy')
+    return {
+      label: 'Quick Win',
+      emoji: '⚡',
+      className: 'bg-green-500/15 text-green-300 border-green-500/40',
+    };
+  if (rec.difficulty === 'hard')
+    return {
+      label: 'Long-term',
+      emoji: '🛡',
+      className: 'bg-blue-500/15 text-blue-300 border-blue-500/40',
+    };
+  return {
+    label: 'High Growth',
+    emoji: '📈',
+    className: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40',
+  };
+}
+
+const EFFORT: Record<string, { dot: string; label: string; color: string }> = {
+  easy: { dot: '🟢', label: 'Low effort', color: 'text-green-400' },
+  medium: { dot: '🟡', label: 'Medium effort', color: 'text-yellow-400' },
+  hard: { dot: '🔴', label: 'High effort', color: 'text-red-400' },
+};
+
+/** Consequence copy — derived from target metric, no fake numbers. */
+function ifIgnoredCopy(rec: RecommendationRow): string {
+  const m = (rec.target_metric || '').toUpperCase();
+  if (m === 'RSS')
+    return 'Competitors will keep receiving more AI recommendations for this topic while your brand stays invisible.';
+  if (m === 'CAG')
+    return 'The recommendation gap between you and the leading brands in your industry will keep widening.';
+  if (m === 'TSD')
+    return 'Your citation diversity will remain below the industry average, making AI assistants trust you less.';
+  if (m === 'CIS')
+    return 'You will continue missing citations from the most influential sources AI relies on.';
+  if (m === 'COI')
+    return 'Untapped content opportunities in your space will be claimed by competitors first.';
+  return 'This gap will keep compounding and cost you AI visibility over time.';
+}
+
+/** Outcome bullets — derived from target metric + category. */
+function whenCompletedBullets(rec: RecommendationRow): string[] {
+  const m = (rec.target_metric || '').toUpperCase();
+  const base: Record<string, string[]> = {
+    RSS: [
+      'More frequent AI recommendations for your brand',
+      'Higher share of voice inside your topic',
+      'Better chance of being the answer AI picks',
+    ],
+    CAG: [
+      'Smaller gap versus the top-cited competitors',
+      'Better parity with industry leaders in AI output',
+      'Stronger positioning in "best X" style prompts',
+    ],
+    TSD: [
+      'Stronger AI trust signals',
+      'Better citation diversity across trusted sites',
+      'Greater chance of appearing in AI recommendations',
+    ],
+    CIS: [
+      'Citations from higher-authority sources',
+      'AI weights your mentions more heavily',
+      'More durable long-term visibility',
+    ],
+    COI: [
+      'Ownership of untapped topic ground',
+      'First-mover advantage before competitors catch up',
+      'New surfaces where AI can quote your brand',
+    ],
+  };
+  return (
+    base[m] ?? [
+      'Improved AI visibility for this topic',
+      'Stronger presence in AI-generated answers',
+      'Better positioning against competitors',
+    ]
+  );
+}
+
+/** Simple actionable checklist derived from asset types + generic steps. */
+function buildChecklist(rec: RecommendationRow, assetTypes: string[]): string[] {
+  const items: string[] = [];
+  const seen = new Set<string>();
+  for (const t of assetTypes.slice(0, 3)) {
+    const label = humanizeAsset(t).label;
+    if (!seen.has(label)) {
+      seen.add(label);
+      items.push(label);
+    }
+  }
+  if (items.length === 0) items.push('Complete the recommended action');
+  items.push('Publish and index the new asset');
+  items.push('Monitor results in your next scan');
+  return items;
+}
+
+
 interface Props {
   rec: RecommendationRow;
   onChanged?: () => void;
@@ -165,6 +281,25 @@ export function RecommendationCard({ rec, onChanged }: Props) {
   const [advOpen, setAdvOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`rec-checklist-${rec.id}`);
+      if (raw) setChecked(JSON.parse(raw));
+    } catch {}
+  }, [rec.id]);
+
+  function toggle(i: number) {
+    setChecked((prev) => {
+      const next = { ...prev, [i]: !prev[i] };
+      try {
+        localStorage.setItem(`rec-checklist-${rec.id}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
 
   const done = rec.status === 'completed';
   const stars = priorityToStars(rec.priority_score);
@@ -261,15 +396,31 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-lg leading-snug">{rec.title}</h3>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <Badge variant="outline" className={DIFF_COLORS[rec.difficulty] || ''}>
-                  {DIFF_LABEL[rec.difficulty] || rec.difficulty}
-                </Badge>
+                {(() => {
+                  const cat = categorize(rec, stars);
+                  return (
+                    <Badge variant="outline" className={cat.className}>
+                      <span className="mr-1">{cat.emoji}</span>
+                      {cat.label}
+                    </Badge>
+                  );
+                })()}
+                {(() => {
+                  const ef = EFFORT[rec.difficulty] ?? EFFORT.medium;
+                  return (
+                    <Badge variant="outline" className={`border-gray-700 ${ef.color}`}>
+                      <span className="mr-1">{ef.dot}</span>
+                      {ef.label}
+                    </Badge>
+                  );
+                })()}
                 {rec.time_estimate_minutes != null && (
                   <Badge variant="outline" className="border-gray-700 text-gray-400">
                     <Clock className="h-3 w-3 mr-1" />~{rec.time_estimate_minutes} min
                   </Badge>
                 )}
               </div>
+
             </div>
             <div className="text-right shrink-0 min-w-[130px]">
               <div className="flex items-center justify-end gap-0.5 mb-1">
@@ -302,47 +453,82 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           )}
 
-          {/* Your status vs industry */}
-          {sample >= 1 && (peerMedian > 0 || userValue > 0) && (
+          {/* Your status vs industry — visual comparison */}
+          {sample >= 2 && (peerMedian > 0 || userValue > 0) ? (
             <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                  Your status
+                  You vs industry
                 </div>
                 <span className="text-[11px] text-gray-500">based on {sample} peers</span>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="space-y-2">
                 <div>
-                  <div className="text-2xl font-bold text-white">{userValue}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Your brand</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-yellow-400">{peerMedian}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Industry average</div>
-                </div>
-                <div>
-                  <div className={`text-2xl font-bold ${gap > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {gap > 0 ? `-${gap}` : '✓'}
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-gray-400">Your brand</span>
+                    <span className="text-white font-medium">{userValue}</span>
                   </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">Gap</div>
+                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-gray-500 transition-all"
+                      style={{ width: `${Math.max(4, (userValue / max) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-yellow-400/80">Industry average</span>
+                    <span className="text-yellow-400 font-medium">{peerMedian}</span>
+                  </div>
+                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-yellow-400 transition-all"
+                      style={{ width: `${Math.max(4, (peerMedian / max) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5 pt-1">
-                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-gray-500"
-                    style={{ width: `${(userValue / max) * 100}%` }}
-                  />
+              {gap > 0 && (
+                <div className="text-[11px] text-red-300">
+                  You're behind by <span className="font-semibold">{gap}</span> {unit}.
                 </div>
-                <div className="h-1.5 bg-gray-800 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-yellow-400"
-                    style={{ width: `${(peerMedian / max) * 100}%` }}
-                  />
-                </div>
-              </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-md border border-gray-800 bg-black/30 p-3 text-xs text-gray-400">
+              We're collecting more industry data for this recommendation.
             </div>
           )}
+
+          {/* If you ignore this */}
+          <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 flex gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-red-300/90 font-semibold mb-1">
+                If you ignore this
+              </div>
+              <p className="text-xs text-gray-300 leading-relaxed">{ifIgnoredCopy(rec)}</p>
+            </div>
+          </div>
+
+          {/* When completed */}
+          <div className="rounded-md border border-green-500/20 bg-green-500/5 p-3 flex gap-2">
+            <Target className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-green-300/90 font-semibold mb-1">
+                When completed
+              </div>
+              <ul className="space-y-1">
+                {whenCompletedBullets(rec).map((b, i) => (
+                  <li key={i} className="text-xs text-gray-300 flex gap-2">
+                    <span className="text-green-400">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
 
           {/* Companies doing this better */}
           {competitors.length > 0 && (
@@ -409,6 +595,51 @@ export function RecommendationCard({ rec, onChanged }: Props) {
               </div>
             </div>
           )}
+
+          {/* Progress checklist */}
+          {(() => {
+            const items = buildChecklist(rec, assetTypes);
+            const doneCount = items.filter((_, i) => checked[i]).length;
+            return (
+              <div className="rounded-md border border-gray-800 bg-black/40 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                    Your progress
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    {doneCount}/{items.length}
+                  </div>
+                </div>
+                <ul className="space-y-1.5">
+                  {items.map((it, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(i)}
+                        className="flex items-start gap-2 text-left w-full group"
+                      >
+                        {checked[i] ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-gray-600 shrink-0 mt-0.5 group-hover:text-gray-400" />
+                        )}
+                        <span
+                          className={`text-sm ${
+                            checked[i]
+                              ? 'text-gray-500 line-through'
+                              : 'text-gray-200 group-hover:text-white'
+                          }`}
+                        >
+                          {it}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
 
           {/* Why we're recommending this (evidence) */}
           {(urls.length > 0 || evidenceKeys.length > 0) && (

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { TrendingUp, Sparkles, Swords, FileText, Radar, ArrowRight } from 'lucide-react';
 import { EmptyState } from './EmptyState';
+import { TrendingIntelligenceWidget } from './intelligence/TrendingIntelligenceWidget';
 
 interface HomeOverviewProps {
   onNavigate: (tab: string) => void;
@@ -66,6 +67,8 @@ export function HomeOverview({
         <KpiCard label="Scans" value={`${scanCount}`} hint="Lifetime" />
         <KpiCard label="Industry avg" value="34" hint="Benchmark" />
       </div>
+
+      {hasScan && <TrendingIntelligenceWidget onOpen={() => onNavigate('intelligence')} />}
 
       {!hasScan ? (
         <EmptyState

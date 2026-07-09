@@ -281,6 +281,25 @@ export function RecommendationCard({ rec, onChanged }: Props) {
   const [advOpen, setAdvOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`rec-checklist-${rec.id}`);
+      if (raw) setChecked(JSON.parse(raw));
+    } catch {}
+  }, [rec.id]);
+
+  function toggle(i: number) {
+    setChecked((prev) => {
+      const next = { ...prev, [i]: !prev[i] };
+      try {
+        localStorage.setItem(`rec-checklist-${rec.id}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
 
   const done = rec.status === 'completed';
   const stars = priorityToStars(rec.priority_score);

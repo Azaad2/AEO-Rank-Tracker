@@ -240,6 +240,8 @@ function DashboardInner() {
         return <ScanHistory />;
       case 'recommendations':
         return <RecommendationIntelligence />;
+      case 'intelligence':
+        return <MarketIntelligence />;
       case 'competitors':
         return (
           <div className="space-y-6">

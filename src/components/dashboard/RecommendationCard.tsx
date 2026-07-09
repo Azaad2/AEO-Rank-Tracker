@@ -596,6 +596,51 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           )}
 
+          {/* Progress checklist */}
+          {(() => {
+            const items = buildChecklist(rec, assetTypes);
+            const doneCount = items.filter((_, i) => checked[i]).length;
+            return (
+              <div className="rounded-md border border-gray-800 bg-black/40 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                    Your progress
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    {doneCount}/{items.length}
+                  </div>
+                </div>
+                <ul className="space-y-1.5">
+                  {items.map((it, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(i)}
+                        className="flex items-start gap-2 text-left w-full group"
+                      >
+                        {checked[i] ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-gray-600 shrink-0 mt-0.5 group-hover:text-gray-400" />
+                        )}
+                        <span
+                          className={`text-sm ${
+                            checked[i]
+                              ? 'text-gray-500 line-through'
+                              : 'text-gray-200 group-hover:text-white'
+                          }`}
+                        >
+                          {it}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
+
           {/* Why we're recommending this (evidence) */}
           {(urls.length > 0 || evidenceKeys.length > 0) && (
             <Collapsible open={evidenceOpen} onOpenChange={setEvidenceOpen}>

@@ -396,15 +396,31 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-semibold text-lg leading-snug">{rec.title}</h3>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <Badge variant="outline" className={DIFF_COLORS[rec.difficulty] || ''}>
-                  {DIFF_LABEL[rec.difficulty] || rec.difficulty}
-                </Badge>
+                {(() => {
+                  const cat = categorize(rec, stars);
+                  return (
+                    <Badge variant="outline" className={cat.className}>
+                      <span className="mr-1">{cat.emoji}</span>
+                      {cat.label}
+                    </Badge>
+                  );
+                })()}
+                {(() => {
+                  const ef = EFFORT[rec.difficulty] ?? EFFORT.medium;
+                  return (
+                    <Badge variant="outline" className={`border-gray-700 ${ef.color}`}>
+                      <span className="mr-1">{ef.dot}</span>
+                      {ef.label}
+                    </Badge>
+                  );
+                })()}
                 {rec.time_estimate_minutes != null && (
                   <Badge variant="outline" className="border-gray-700 text-gray-400">
                     <Clock className="h-3 w-3 mr-1" />~{rec.time_estimate_minutes} min
                   </Badge>
                 )}
               </div>
+
             </div>
             <div className="text-right shrink-0 min-w-[130px]">
               <div className="flex items-center justify-end gap-0.5 mb-1">

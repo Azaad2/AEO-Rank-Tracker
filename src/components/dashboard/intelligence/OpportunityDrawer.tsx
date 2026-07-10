@@ -53,26 +53,26 @@ export function OpportunityDrawer({ prompt, open, onOpenChange }: { prompt: Tren
         <div className="grid grid-cols-4 gap-2">
           <Kpi label="Opportunity" value={`${prompt.opportunity_score}`} accent />
           <Kpi label="Growth" value={prompt.growth_pct >= 999 ? 'new' : `${prompt.growth_pct > 0 ? '+' : ''}${prompt.growth_pct}%`} />
-          <Kpi label="Confidence" value={`${prompt.confidence_score}%`} />
-          <Kpi label="Freshness" value={`${prompt.freshness_days}d`} />
+          <Kpi label="How sure" value={`${prompt.confidence_score}%`} />
+          <Kpi label="Last asked" value={`${prompt.freshness_days}d ago`} />
         </div>
 
         <Section icon={Sparkles} title="Why this matters">
           <p className="text-sm text-gray-300">
-            {prompt.trend_bucket === 'exploding' && 'This prompt is exploding across AI assistants. Publishing content now positions your brand before competition intensifies.'}
-            {prompt.trend_bucket === 'growing' && 'Interest is growing steadily. Great time to publish before competition catches up.'}
-            {prompt.trend_bucket === 'stable' && 'Steady, reliable demand. Strong evergreen opportunity if you can outrank incumbents.'}
-            {prompt.trend_bucket === 'declining' && 'Demand is softening. Only pursue if you can differentiate.'}
+            {prompt.trend_bucket === 'exploding' && 'Tons of people are asking AI this question right now. Publish content today and get in before it gets crowded.'}
+            {prompt.trend_bucket === 'growing' && 'Interest is picking up. Good time to publish before more brands jump in.'}
+            {prompt.trend_bucket === 'stable' && 'People keep asking this. If you can beat the current top answers, this is a reliable long-term win.'}
+            {prompt.trend_bucket === 'declining' && 'Interest is slowing down. Only worth going after if you have a clear angle no one else has.'}
           </p>
           <div className="mt-2 text-xs text-gray-400">
             Based on <b className="text-yellow-400">{prompt.scans_all}</b> scans across
-            {' '}<b className="text-yellow-400">{engines.length || '—'}</b> AI platforms.
+            {' '}<b className="text-yellow-400">{engines.length || '—'}</b> AI tools.
           </div>
         </Section>
 
-        <Section icon={Swords} title={`Competitors already winning (${competitors.length})`}>
+        <Section icon={Swords} title={`Rivals already winning this (${competitors.length})`}>
           {competitors.length === 0 ? (
-            <p className="text-xs text-gray-500 italic">No brands winning yet — first-mover territory.</p>
+            <p className="text-xs text-gray-500 italic">Nobody's winning this yet — you could be first.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {competitors.map(c => (
@@ -84,31 +84,31 @@ export function OpportunityDrawer({ prompt, open, onOpenChange }: { prompt: Tren
           )}
         </Section>
 
-        <Section icon={FileText} title={`Domains cited by AI (${domains.length})`}>
+        <Section icon={FileText} title={`Websites AI is quoting (${domains.length})`}>
           {domains.length === 0 ? (
-            <p className="text-xs text-gray-500 italic">No domains cited yet.</p>
+            <p className="text-xs text-gray-500 italic">No websites are being quoted for this yet.</p>
           ) : (
             <ul className="text-xs text-gray-300 space-y-1">
               {domains.map(d => (
                 <li key={d.domain} className="flex items-center justify-between">
                   <span>{d.domain}</span>
-                  <span className="text-yellow-400">{d.citations} citations</span>
+                  <span className="text-yellow-400">{d.citations} times cited</span>
                 </li>
               ))}
             </ul>
           )}
         </Section>
 
-        <Section icon={Layers} title="AI platforms recommending this">
+        <Section icon={Layers} title="AI tools that answer this">
           <div className="flex flex-wrap gap-1.5">
             {engines.length === 0
-              ? <span className="text-xs text-gray-500 italic">No platform data yet.</span>
+              ? <span className="text-xs text-gray-500 italic">No AI tool data yet.</span>
               : engines.map(e => <Badge key={e} variant="outline" className="border-gray-700 text-gray-300 text-xs">{e}</Badge>)}
           </div>
         </Section>
 
         <div className="border-t border-gray-800 pt-3">
-          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Create content targeting this prompt</div>
+          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Create content to win this question</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Link to={`/tools/ai-blog-outline?topic=${encoded}`}>
               <Button size="sm" variant="outline" className="w-full border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-white text-xs">
@@ -117,12 +117,12 @@ export function OpportunityDrawer({ prompt, open, onOpenChange }: { prompt: Tren
             </Link>
             <Link to={`/tools/ai-faq-generator?topic=${encoded}`}>
               <Button size="sm" variant="outline" className="w-full border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-white text-xs">
-                FAQ <ExternalLink className="ml-1 h-3 w-3" />
+                FAQ page <ExternalLink className="ml-1 h-3 w-3" />
               </Button>
             </Link>
             <Link to={`/tools/competitor-analyzer?topic=${encoded}`}>
               <Button size="sm" variant="outline" className="w-full border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-white text-xs">
-                Comparison <ExternalLink className="ml-1 h-3 w-3" />
+                Comparison post <ExternalLink className="ml-1 h-3 w-3" />
               </Button>
             </Link>
             <Link to={`/tools/meta-optimizer?topic=${encoded}`}>

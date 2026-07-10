@@ -26,22 +26,22 @@ export function IntelligenceStatsCard() {
   }, []);
 
   const items = [
-    { label: 'Scans', value: stats?.total_scans, icon: Activity, hint: `+${stats?.scans_7d ?? 0} this week` },
+    { label: 'Scans done', value: stats?.total_scans, icon: Activity, hint: `+${stats?.scans_7d ?? 0} this week` },
     { label: 'Industries', value: stats?.industries_covered, icon: Layers },
-    { label: 'AI platforms', value: stats?.engines_tracked, icon: Zap },
-    { label: 'Citations', value: stats?.total_citations, icon: Database },
+    { label: 'AI tools', value: stats?.engines_tracked, icon: Zap },
+    { label: 'AI mentions', value: stats?.total_citations, icon: Database },
     { label: 'Opportunities', value: stats?.opportunities_tracked, icon: Flame },
-    { label: 'Brands tracked', value: stats?.brands_tracked, icon: Users },
+    { label: 'Brands watched', value: stats?.brands_tracked, icon: Users },
   ];
 
   return (
     <div className="rounded-lg border border-yellow-400/30 bg-gradient-to-r from-yellow-400/10 via-gray-900 to-gray-900 p-4">
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <div>
-          <div className="text-[10px] tracking-widest uppercase text-yellow-400/80">Powered by AI Mention You Intelligence</div>
-          <div className="text-sm text-gray-300 mt-1">Anonymous aggregated platform data — grows sharper with every scan.</div>
+          <div className="text-[10px] tracking-widest uppercase text-yellow-400/80">Powered by AI Mention You</div>
+          <div className="text-sm text-gray-300 mt-1">Real, anonymous data from every scan we run — the more brands we see, the smarter this gets.</div>
         </div>
-        <div className="text-[10px] text-gray-500">Every scan makes this smarter for everyone.</div>
+        <div className="text-[10px] text-gray-500">Every scan helps everyone.</div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {items.map(it => (

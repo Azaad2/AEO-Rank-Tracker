@@ -385,7 +385,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <Lightbulb className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-yellow-400/80 font-semibold mb-1">
-                Why AI is telling you this
+                Why we're suggesting this
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">{whyAI}</p>
             </div>
@@ -416,7 +416,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 })()}
                 {rec.time_estimate_minutes != null && (
                   <Badge variant="outline" className="border-gray-700 text-gray-400">
-                    <Clock className="h-3 w-3 mr-1" />~{rec.time_estimate_minutes} min
+                    <Clock className="h-3 w-3 mr-1" />About {rec.time_estimate_minutes} min
                   </Badge>
                 )}
               </div>
@@ -445,7 +445,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {(rec.why_this_matters || rec.description) && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                Why this matters
+                Why this matters for your business
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
                 {rec.why_this_matters || rec.description}
@@ -458,14 +458,14 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                  You vs industry
+                  You vs. others in your industry
                 </div>
-                <span className="text-[11px] text-gray-500">based on {sample} peers</span>
+                <span className="text-[11px] text-gray-500">from {sample} similar brands</span>
               </div>
               <div className="space-y-2">
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-400">Your brand</span>
+                    <span className="text-gray-400">You</span>
                     <span className="text-white font-medium">{userValue}</span>
                   </div>
                   <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
@@ -477,7 +477,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-yellow-400/80">Industry average</span>
+                    <span className="text-yellow-400/80">Typical brand in your space</span>
                     <span className="text-yellow-400 font-medium">{peerMedian}</span>
                   </div>
                   <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
@@ -496,7 +496,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           ) : (
             <div className="rounded-md border border-gray-800 bg-black/30 p-3 text-xs text-gray-400">
-              We're collecting more industry data for this recommendation.
+              We're still gathering enough industry data to compare you here.
             </div>
           )}
 
@@ -505,7 +505,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-red-300/90 font-semibold mb-1">
-                If you ignore this
+                What happens if you skip this
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">{ifIgnoredCopy(rec)}</p>
             </div>
@@ -516,7 +516,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <Target className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-green-300/90 font-semibold mb-1">
-                When completed
+                What you get once it's done
               </div>
               <ul className="space-y-1">
                 {whenCompletedBullets(rec).map((b, i) => (
@@ -535,7 +535,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="rounded-md border border-gray-800 bg-black/40 p-3">
               <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-2">
                 <Users className="h-3 w-3" />
-                Companies doing this better
+                Brands winning this instead of you
               </div>
               <ul className="space-y-1.5">
                 {competitors.slice(0, 3).map((c, i) => {
@@ -547,7 +547,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                       <span className="font-medium text-white">{name}</span>
                       {value != null && (
                         <span className="text-xs text-gray-400">
-                          appears on {value} {unit}
+                          mentioned on {value} {unit}
                         </span>
                       )}
                     </li>
@@ -556,7 +556,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 {userValue >= 0 && (
                   <li className="text-sm text-gray-500 flex items-baseline gap-2 pt-1 border-t border-gray-800 mt-2">
                     <span>•</span>
-                    <span>Your brand appears on only <span className="text-white">{userValue}</span>.</span>
+                    <span>You're only on <span className="text-white">{userValue}</span>.</span>
                   </li>
                 )}
               </ul>
@@ -567,7 +567,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {assetTypes.length > 0 && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-                Recommended actions
+                What you should do
               </div>
               <div className="space-y-2">
                 {assetTypes.slice(0, 4).map((t) => {
@@ -604,7 +604,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
               <div className="rounded-md border border-gray-800 bg-black/40 p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                    Your progress
+                    Your checklist
                   </div>
                   <div className="text-[11px] text-gray-500">
                     {doneCount}/{items.length}
@@ -651,7 +651,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  Why we're recommending this ({urls.length + evidenceKeys.length})
+                  See the proof ({urls.length + evidenceKeys.length})
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-2">
@@ -699,7 +699,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
               <CollapsibleTrigger asChild>
                 <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
                   {advOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  Advanced metrics
+                  Extra details
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
@@ -713,21 +713,19 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">{metricInfo.blurb}</p>
-                          <p className="text-[10px] text-gray-400 mt-1">Internal code: {metricCode}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <span className="text-gray-500 font-mono">{metricCode}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-gray-400">
                     <div>
-                      Priority score:{' '}
+                      Priority:{' '}
                       <span className="text-gray-200">
                         {rec.priority_score != null ? Math.round(Number(rec.priority_score)) : '—'}
                       </span>
                     </div>
                     <div>
-                      Confidence:{' '}
+                      How sure we are:{' '}
                       <span className="text-gray-200">
                         {Math.round((rec.confidence ?? 0) * 100)}%
                       </span>
@@ -737,9 +735,9 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                       <span className="text-gray-200">{rec.expected_impact ?? '—'}</span>
                     </div>
                     <div>
-                      Projected Δ:{' '}
+                      Expected gain:{' '}
                       <span className="text-gray-200">
-                        {projected ? `+${projected.toFixed(2)}` : '—'}
+                        {projected ? `+${projected.toFixed(2)}%` : '—'}
                       </span>
                     </div>
                   </div>

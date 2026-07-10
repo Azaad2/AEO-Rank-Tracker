@@ -112,7 +112,7 @@ export function RecommendationIntelligence() {
         <CardContent className="p-6 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-red-300 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-100 font-medium">Couldn't load recommendations</p>
+            <p className="text-sm text-red-100 font-medium">We couldn't load your suggestions</p>
             <p className="text-xs text-red-200/80 mt-1">{loadError}</p>
           </div>
           <Button size="sm" variant="outline" onClick={load}>
@@ -128,9 +128,9 @@ export function RecommendationIntelligence() {
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-10 text-center space-y-3">
           <Sparkles className="h-10 w-10 text-yellow-400 mx-auto" />
-          <h3 className="text-white font-semibold text-lg">No recommendations yet</h3>
+          <h3 className="text-white font-semibold text-lg">No suggestions yet</h3>
           <p className="text-gray-400 text-sm max-w-md mx-auto">
-            Run a scan to surface evidence-bound recommendations backed by your industry's peer data.
+            Run a scan and we'll show you exactly what to fix, based on real data from brands like yours.
           </p>
         </CardContent>
       </Card>
@@ -140,11 +140,11 @@ export function RecommendationIntelligence() {
   const filters: { key: Filter; label: string; count: number }[] = (
     [
       { key: 'all', label: 'All', count: evidenceBound.length },
-      { key: 'quick', label: 'Quick Wins', count: evidenceBound.filter((r) => r.difficulty === 'easy').length },
-      { key: 'high', label: 'High Impact', count: evidenceBound.filter((r) => (r.priority_score ?? 0) >= 100).length },
-      { key: 'rss', label: 'RSS', count: metricCounts.rss },
-      { key: 'cag', label: 'CAG', count: metricCounts.cag },
-      { key: 'tsd', label: 'TSD', count: metricCounts.tsd },
+      { key: 'quick', label: 'Quick wins', count: evidenceBound.filter((r) => r.difficulty === 'easy').length },
+      { key: 'high', label: 'Big impact', count: evidenceBound.filter((r) => (r.priority_score ?? 0) >= 100).length },
+      { key: 'rss', label: 'AI mentions', count: metricCounts.rss },
+      { key: 'cag', label: 'Catch up to rivals', count: metricCounts.cag },
+      { key: 'tsd', label: 'Get on more websites', count: metricCounts.tsd },
     ] as { key: Filter; label: string; count: number }[]
   ).filter((f) => f.count > 0 || f.key === 'all');
 
@@ -180,7 +180,7 @@ export function RecommendationIntelligence() {
           <RecommendationCard key={r.id} rec={r} onChanged={load} />
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-gray-500 text-sm">No matches for this filter.</div>
+          <div className="text-center py-8 text-gray-500 text-sm">Nothing here for this filter.</div>
         )}
       </div>
 
@@ -189,7 +189,7 @@ export function RecommendationIntelligence() {
         <CollapsibleTrigger asChild>
           <button className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors pt-4">
             <ListChecks className="h-3 w-3" />
-            {legacyOpen ? 'Hide' : 'Show'} legacy auto-fix tasks
+            {legacyOpen ? 'Hide' : 'Show'} older tasks
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">

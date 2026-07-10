@@ -62,28 +62,28 @@ export interface RecommendationRow {
 /** Human labels + tooltip descriptions for the raw internal metric codes. */
 const METRIC_INFO: Record<string, { label: string; blurb: string; unit: string }> = {
   RSS: {
-    label: 'AI Recommendation Score',
-    blurb: 'How often AI assistants recommend your brand for prompts in your space.',
+    label: 'How often AI mentions you',
+    blurb: 'How often AI assistants like ChatGPT recommend your brand when people ask about your space.',
     unit: 'mentions',
   },
   CAG: {
-    label: 'Competitor Gap',
-    blurb: 'How far behind you are compared to the competitors AI recommends most.',
+    label: 'Gap vs. competitors',
+    blurb: 'How far behind you are compared to the brands AI recommends most.',
     unit: 'points',
   },
   TSD: {
-    label: 'Citation Diversity',
-    blurb: 'How many different trusted websites cite your brand. AI trusts variety.',
-    unit: 'domains',
+    label: 'Websites talking about you',
+    blurb: 'How many different trusted websites mention your brand. More variety = more trust from AI.',
+    unit: 'websites',
   },
   CIS: {
-    label: 'Citation Impact',
-    blurb: 'How influential the sites that mention you are.',
+    label: 'Quality of mentions',
+    blurb: 'How trusted and well-known the websites mentioning you are.',
     unit: 'score',
   },
   COI: {
-    label: 'Content Opportunity',
-    blurb: 'How much untapped content ground exists for you to claim.',
+    label: 'Untapped opportunities',
+    blurb: 'How much room there is to grow before competitors take it.',
     unit: 'opportunities',
   },
 };
@@ -112,42 +112,42 @@ function priorityToStars(score: number | null | undefined): number {
 }
 
 function impactLabel(stars: number): string {
-  return ['', 'Low Impact', 'Moderate Impact', 'Solid Impact', 'High Impact', 'Critical Impact'][stars];
+  return ['', 'Small boost', 'Nice boost', 'Strong boost', 'Big boost', 'Game changer'][stars];
 }
 
 /** Turn an action asset type into a friendly button label + why-it-helps blurb. */
 const ACTION_INFO: Record<string, { label: string; why: string }> = {
   outreach: {
-    label: 'Generate Outreach Plan',
-    why: 'Get pitched on the trusted sites competitors already appear on.',
+    label: 'Build an outreach plan',
+    why: 'Get your brand featured on the same trusted websites competitors already appear on.',
   },
   guest_post: {
-    label: 'Generate Guest Posting Strategy',
-    why: 'Publish on high-authority sites AI assistants already cite.',
+    label: 'Plan guest articles',
+    why: 'Publish on popular websites that AI assistants already quote.',
   },
   comparison: {
-    label: 'Generate Comparison Article',
-    why: 'Show up in "X vs Y" prompts where competitors currently win.',
+    label: 'Write a comparison article',
+    why: 'Win when people ask AI questions like "X vs Y" — where competitors currently show up instead of you.',
   },
   faq: {
-    label: 'Generate FAQ',
-    why: 'AI assistants quote clean Q&A pages more than any other format.',
+    label: 'Create an FAQ page',
+    why: 'AI assistants love simple question-and-answer pages and quote them more than anything else.',
   },
   landing_page: {
-    label: 'Generate Landing Page',
-    why: 'Give AI a dedicated page to cite for this exact topic.',
+    label: 'Build a landing page',
+    why: 'Give AI a clear page to point to when people ask about this topic.',
   },
   pr: {
-    label: 'Generate PR Campaign',
-    why: 'Trigger fresh mentions on trusted news + review sites.',
+    label: 'Launch a PR push',
+    why: 'Get fresh mentions on news and review websites AI trusts.',
   },
   article: {
-    label: 'Generate Article',
-    why: 'Long-form content is the #1 source AI pulls citations from.',
+    label: 'Write an article',
+    why: 'Longer, helpful articles are the #1 thing AI pulls answers from.',
   },
   schema: {
-    label: 'Generate Schema Markup',
-    why: 'Structured data helps AI understand and quote your pages.',
+    label: 'Add page tags for AI',
+    why: 'Small hidden tags help AI understand your page and quote it correctly.',
   },
 };
 
@@ -169,49 +169,49 @@ type CategoryTag = {
 function categorize(rec: RecommendationRow, stars: number): CategoryTag {
   if (stars >= 5)
     return {
-      label: 'Do First',
+      label: 'Do this first',
       emoji: '🔥',
       className: 'bg-red-500/15 text-red-300 border-red-500/40',
     };
   if (rec.difficulty === 'easy')
     return {
-      label: 'Quick Win',
+      label: 'Quick win',
       emoji: '⚡',
       className: 'bg-green-500/15 text-green-300 border-green-500/40',
     };
   if (rec.difficulty === 'hard')
     return {
-      label: 'Long-term',
+      label: 'Bigger project',
       emoji: '🛡',
       className: 'bg-blue-500/15 text-blue-300 border-blue-500/40',
     };
   return {
-    label: 'High Growth',
+    label: 'Good growth bet',
     emoji: '📈',
     className: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40',
   };
 }
 
 const EFFORT: Record<string, { dot: string; label: string; color: string }> = {
-  easy: { dot: '🟢', label: 'Low effort', color: 'text-green-400' },
-  medium: { dot: '🟡', label: 'Medium effort', color: 'text-yellow-400' },
-  hard: { dot: '🔴', label: 'High effort', color: 'text-red-400' },
+  easy: { dot: '🟢', label: 'Easy', color: 'text-green-400' },
+  medium: { dot: '🟡', label: 'Some work', color: 'text-yellow-400' },
+  hard: { dot: '🔴', label: 'Takes real work', color: 'text-red-400' },
 };
 
 /** Consequence copy — derived from target metric, no fake numbers. */
 function ifIgnoredCopy(rec: RecommendationRow): string {
   const m = (rec.target_metric || '').toUpperCase();
   if (m === 'RSS')
-    return 'Competitors will keep receiving more AI recommendations for this topic while your brand stays invisible.';
+    return 'Your competitors will keep showing up when people ask AI about your space — and your brand will stay invisible.';
   if (m === 'CAG')
-    return 'The recommendation gap between you and the leading brands in your industry will keep widening.';
+    return 'The gap between you and the top brands in your industry will keep growing.';
   if (m === 'TSD')
-    return 'Your citation diversity will remain below the industry average, making AI assistants trust you less.';
+    return 'AI will trust you less than your competitors because fewer websites talk about you.';
   if (m === 'CIS')
-    return 'You will continue missing citations from the most influential sources AI relies on.';
+    return 'You\'ll keep missing mentions on the most trusted websites AI relies on.';
   if (m === 'COI')
-    return 'Untapped content opportunities in your space will be claimed by competitors first.';
-  return 'This gap will keep compounding and cost you AI visibility over time.';
+    return 'Competitors will grab these topics before you get a chance.';
+  return 'This problem will grow over time and cost you real visibility.';
 }
 
 /** Outcome bullets — derived from target metric + category. */
@@ -219,36 +219,36 @@ function whenCompletedBullets(rec: RecommendationRow): string[] {
   const m = (rec.target_metric || '').toUpperCase();
   const base: Record<string, string[]> = {
     RSS: [
-      'More frequent AI recommendations for your brand',
-      'Higher share of voice inside your topic',
+      'AI will start recommending your brand more often',
+      'You\'ll show up in more customer questions',
       'Better chance of being the answer AI picks',
     ],
     CAG: [
-      'Smaller gap versus the top-cited competitors',
-      'Better parity with industry leaders in AI output',
-      'Stronger positioning in "best X" style prompts',
+      'You catch up to the top brands in your space',
+      'You\'ll appear next to the leaders in AI answers',
+      'You start winning "best X" type questions',
     ],
     TSD: [
-      'Stronger AI trust signals',
-      'Better citation diversity across trusted sites',
-      'Greater chance of appearing in AI recommendations',
+      'AI will start trusting your brand more',
+      'You get mentioned on a wider mix of websites',
+      'Higher chance of showing up in AI answers',
     ],
     CIS: [
-      'Citations from higher-authority sources',
-      'AI weights your mentions more heavily',
-      'More durable long-term visibility',
+      'You get mentions on more trusted websites',
+      'AI takes your brand more seriously',
+      'Your visibility lasts longer over time',
     ],
     COI: [
-      'Ownership of untapped topic ground',
-      'First-mover advantage before competitors catch up',
-      'New surfaces where AI can quote your brand',
+      'You own topics before competitors do',
+      'First-mover advantage in your space',
+      'New places where AI can quote your brand',
     ],
   };
   return (
     base[m] ?? [
-      'Improved AI visibility for this topic',
-      'Stronger presence in AI-generated answers',
-      'Better positioning against competitors',
+      'More AI visibility on this topic',
+      'You show up more in AI answers',
+      'You look stronger vs. your competitors',
     ]
   );
 }
@@ -264,9 +264,9 @@ function buildChecklist(rec: RecommendationRow, assetTypes: string[]): string[] 
       items.push(label);
     }
   }
-  if (items.length === 0) items.push('Complete the recommended action');
-  items.push('Publish and index the new asset');
-  items.push('Monitor results in your next scan');
+  if (items.length === 0) items.push('Do the suggested action');
+  items.push('Publish it on your website');
+  items.push('Check your next scan to see the results');
   return items;
 }
 
@@ -321,25 +321,25 @@ export function RecommendationCard({ rec, onChanged }: Props) {
   const projected = rec.projected_metric_delta != null ? Number(rec.projected_metric_delta) : 0;
   const gainLine =
     projected > 0
-      ? `+${projected.toFixed(1)}% AI visibility gain`
+      ? `+${projected.toFixed(1)}% more AI visibility`
       : stars >= 5
-      ? 'Your #1 opportunity right now'
-      : 'Meaningful visibility gain';
+      ? 'Your biggest opportunity right now'
+      : 'Real boost to your visibility';
 
   // "Why AI is telling you this" — real-data narrative
   const whyAI = (() => {
     if (sample >= 2 && peerMedian > 0) {
       const ratio = userValue > 0 ? (peerMedian / Math.max(userValue, 1)).toFixed(1) : '3.0';
-      return `Across ${sample.toLocaleString()} recent scans in your industry, brands with ${peerMedian}+ ${unit} were recommended by AI assistants roughly ${ratio}× more often than brands like yours (${userValue}).`;
+      return `We looked at ${sample.toLocaleString()} recent brands in your industry. The ones with ${peerMedian}+ ${unit} get recommended by AI about ${ratio}× more often than your brand (${userValue}).`;
     }
     if (competitors.length > 0) {
-      return `AI assistants consistently recommend ${competitors
+      return `AI keeps recommending ${competitors
         .slice(0, 2)
         .map((c) => c.brand || c.name)
         .filter(Boolean)
-        .join(' and ')} for this topic instead of your brand. Closing the gap moves you into that recommendation set.`;
+        .join(' and ')} for this topic instead of you. Fixing this puts your brand in the same conversation.`;
     }
-    return 'Based on your latest scan, this is one of the biggest levers to increase how often AI assistants surface your brand.';
+    return 'Based on your latest scan, this is one of the fastest ways to get AI to start recommending your brand more.';
   })();
 
   async function updateStatus(status: string) {
@@ -385,7 +385,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <Lightbulb className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-yellow-400/80 font-semibold mb-1">
-                Why AI is telling you this
+                Why we're suggesting this
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">{whyAI}</p>
             </div>
@@ -416,7 +416,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 })()}
                 {rec.time_estimate_minutes != null && (
                   <Badge variant="outline" className="border-gray-700 text-gray-400">
-                    <Clock className="h-3 w-3 mr-1" />~{rec.time_estimate_minutes} min
+                    <Clock className="h-3 w-3 mr-1" />About {rec.time_estimate_minutes} min
                   </Badge>
                 )}
               </div>
@@ -445,7 +445,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {(rec.why_this_matters || rec.description) && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                Why this matters
+                Why this matters for your business
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
                 {rec.why_this_matters || rec.description}
@@ -458,14 +458,14 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                  You vs industry
+                  You vs. others in your industry
                 </div>
-                <span className="text-[11px] text-gray-500">based on {sample} peers</span>
+                <span className="text-[11px] text-gray-500">from {sample} similar brands</span>
               </div>
               <div className="space-y-2">
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-400">Your brand</span>
+                    <span className="text-gray-400">You</span>
                     <span className="text-white font-medium">{userValue}</span>
                   </div>
                   <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
@@ -477,7 +477,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-yellow-400/80">Industry average</span>
+                    <span className="text-yellow-400/80">Typical brand in your space</span>
                     <span className="text-yellow-400 font-medium">{peerMedian}</span>
                   </div>
                   <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
@@ -496,7 +496,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           ) : (
             <div className="rounded-md border border-gray-800 bg-black/30 p-3 text-xs text-gray-400">
-              We're collecting more industry data for this recommendation.
+              We're still gathering enough industry data to compare you here.
             </div>
           )}
 
@@ -505,7 +505,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-red-300/90 font-semibold mb-1">
-                If you ignore this
+                What happens if you skip this
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">{ifIgnoredCopy(rec)}</p>
             </div>
@@ -516,7 +516,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <Target className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-green-300/90 font-semibold mb-1">
-                When completed
+                What you get once it's done
               </div>
               <ul className="space-y-1">
                 {whenCompletedBullets(rec).map((b, i) => (
@@ -535,7 +535,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             <div className="rounded-md border border-gray-800 bg-black/40 p-3">
               <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400 mb-2">
                 <Users className="h-3 w-3" />
-                Companies doing this better
+                Brands winning this instead of you
               </div>
               <ul className="space-y-1.5">
                 {competitors.slice(0, 3).map((c, i) => {
@@ -547,7 +547,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                       <span className="font-medium text-white">{name}</span>
                       {value != null && (
                         <span className="text-xs text-gray-400">
-                          appears on {value} {unit}
+                          mentioned on {value} {unit}
                         </span>
                       )}
                     </li>
@@ -556,7 +556,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                 {userValue >= 0 && (
                   <li className="text-sm text-gray-500 flex items-baseline gap-2 pt-1 border-t border-gray-800 mt-2">
                     <span>•</span>
-                    <span>Your brand appears on only <span className="text-white">{userValue}</span>.</span>
+                    <span>You're only on <span className="text-white">{userValue}</span>.</span>
                   </li>
                 )}
               </ul>
@@ -567,7 +567,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {assetTypes.length > 0 && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-                Recommended actions
+                What you should do
               </div>
               <div className="space-y-2">
                 {assetTypes.slice(0, 4).map((t) => {
@@ -604,7 +604,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
               <div className="rounded-md border border-gray-800 bg-black/40 p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                    Your progress
+                    Your checklist
                   </div>
                   <div className="text-[11px] text-gray-500">
                     {doneCount}/{items.length}
@@ -651,7 +651,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  Why we're recommending this ({urls.length + evidenceKeys.length})
+                  See the proof ({urls.length + evidenceKeys.length})
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2 space-y-2">
@@ -699,7 +699,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
               <CollapsibleTrigger asChild>
                 <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
                   {advOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  Advanced metrics
+                  Extra details
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
@@ -713,21 +713,19 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">{metricInfo.blurb}</p>
-                          <p className="text-[10px] text-gray-400 mt-1">Internal code: {metricCode}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <span className="text-gray-500 font-mono">{metricCode}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-gray-400">
                     <div>
-                      Priority score:{' '}
+                      Priority:{' '}
                       <span className="text-gray-200">
                         {rec.priority_score != null ? Math.round(Number(rec.priority_score)) : '—'}
                       </span>
                     </div>
                     <div>
-                      Confidence:{' '}
+                      How sure we are:{' '}
                       <span className="text-gray-200">
                         {Math.round((rec.confidence ?? 0) * 100)}%
                       </span>
@@ -737,9 +735,9 @@ export function RecommendationCard({ rec, onChanged }: Props) {
                       <span className="text-gray-200">{rec.expected_impact ?? '—'}</span>
                     </div>
                     <div>
-                      Projected Δ:{' '}
+                      Expected gain:{' '}
                       <span className="text-gray-200">
-                        {projected ? `+${projected.toFixed(2)}` : '—'}
+                        {projected ? `+${projected.toFixed(2)}%` : '—'}
                       </span>
                     </div>
                   </div>

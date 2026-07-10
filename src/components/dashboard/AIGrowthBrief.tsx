@@ -48,14 +48,14 @@ export function AIGrowthBrief({ recs }: Props) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-yellow-400" />
           <div className="text-[11px] uppercase tracking-widest text-yellow-400 font-semibold">
-            AI Growth Brief
+            Your growth brief
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div>
             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
-              AI Visibility Health
+              Overall health
             </div>
             <div className={`text-3xl font-bold ${healthColor}`}>
               {health}
@@ -64,19 +64,19 @@ export function AIGrowthBrief({ recs }: Props) {
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Critical
+              <AlertTriangle className="h-3 w-3" /> Urgent
             </div>
             <div className="text-3xl font-bold text-red-400">{critical}</div>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <Zap className="h-3 w-3" /> Quick Wins
+              <Zap className="h-3 w-3" /> Quick wins
             </div>
             <div className="text-3xl font-bold text-green-400">{quickWins}</div>
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> Est. Gain
+              <TrendingUp className="h-3 w-3" /> Possible gain
             </div>
             <div className="text-3xl font-bold text-yellow-400">
               +{Math.round(totalGain)}
@@ -85,7 +85,7 @@ export function AIGrowthBrief({ recs }: Props) {
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Est. Time
+              <Clock className="h-3 w-3" /> Time needed
             </div>
             <div className="text-3xl font-bold text-white">
               {hoursLo}–{hoursHi}
@@ -99,7 +99,7 @@ export function AIGrowthBrief({ recs }: Props) {
             <ArrowRight className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] uppercase tracking-wide text-yellow-400/80 font-semibold mb-0.5">
-                Recommended first step
+                Start with this
               </div>
               <div className="text-sm text-white">{first.title}</div>
             </div>

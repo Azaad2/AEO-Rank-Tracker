@@ -26,7 +26,7 @@ export function TrendingIntelligenceWidget({ onOpen, industryId }: { onOpen: () 
       <CardHeader className="pb-3">
         <CardTitle className="text-white text-base flex items-center gap-2">
           <Flame className="h-4 w-4 text-orange-400" />
-          This week's AI opportunities
+          Hot opportunities this week
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -34,7 +34,7 @@ export function TrendingIntelligenceWidget({ onOpen, industryId }: { onOpen: () 
           {rows.map(r => (
             <li key={r.prompt_template_hash} className="flex items-start gap-2 text-xs">
               <span className="text-orange-400 shrink-0 mt-0.5">🔥</span>
-              <span className="text-gray-200 line-clamp-1 flex-1">{r.display_text ?? 'Trending prompt'}</span>
+              <span className="text-gray-200 line-clamp-1 flex-1">{r.display_text ?? 'Trending question'}</span>
               <span className="text-yellow-400 font-bold shrink-0">
                 {r.growth_pct >= 999 ? 'new' : `+${r.growth_pct}%`}
               </span>
@@ -42,7 +42,7 @@ export function TrendingIntelligenceWidget({ onOpen, industryId }: { onOpen: () 
           ))}
         </ul>
         <Button size="sm" onClick={onOpen} className="bg-orange-500 hover:bg-orange-600 text-white font-semibold">
-          View all opportunities <ArrowRight className="ml-1 h-3 w-3" />
+          See all opportunities <ArrowRight className="ml-1 h-3 w-3" />
         </Button>
       </CardContent>
     </Card>

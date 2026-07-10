@@ -31,20 +31,20 @@ export interface TrendingPrompt {
 }
 
 const bucketMeta: Record<TrendingPrompt['trend_bucket'], { label: string; cls: string; Icon: typeof Flame }> = {
-  exploding: { label: '🔥 Exploding', cls: 'bg-orange-500/20 text-orange-300 border-orange-500/40', Icon: Flame },
+  exploding: { label: '🔥 Blowing up', cls: 'bg-orange-500/20 text-orange-300 border-orange-500/40', Icon: Flame },
   growing: { label: '📈 Growing', cls: 'bg-green-500/20 text-green-300 border-green-500/40', Icon: TrendingUp },
-  stable: { label: '➡ Stable', cls: 'bg-gray-800 text-gray-300 border-gray-700', Icon: Minus },
-  declining: { label: '📉 Declining', cls: 'bg-red-500/20 text-red-300 border-red-500/40', Icon: TrendingDown },
+  stable: { label: '➡ Steady', cls: 'bg-gray-800 text-gray-300 border-gray-700', Icon: Minus },
+  declining: { label: '📉 Cooling off', cls: 'bg-red-500/20 text-red-300 border-red-500/40', Icon: TrendingDown },
 };
 
 export function PromptCard({ p, onSelect }: { p: TrendingPrompt; onSelect: (p: TrendingPrompt) => void }) {
   const bucket = bucketMeta[p.trend_bucket];
   const reasons: string[] = [];
-  if (p.reasons.scan_delta > 0) reasons.push(`↑ ${p.reasons.scan_delta} more scans this week`);
-  if (p.reasons.citation_delta > 0) reasons.push(`↑ ${p.reasons.citation_delta} more citations`);
-  if (p.reasons.brands_ranking > 0) reasons.push(`${p.reasons.brands_ranking} competitors already rank`);
-  if (p.freshness_days <= 7) reasons.push(`Fresh — seen ${p.freshness_days}d ago`);
-  if (reasons.length === 0) reasons.push('Steady signal from live scans');
+  if (p.reasons.scan_delta > 0) reasons.push(`${p.reasons.scan_delta} more people asked this recently`);
+  if (p.reasons.citation_delta > 0) reasons.push(`${p.reasons.citation_delta} new mentions from AI`);
+  if (p.reasons.brands_ranking > 0) reasons.push(`${p.reasons.brands_ranking} rivals already show up here`);
+  if (p.freshness_days <= 7) reasons.push(`Seen ${p.freshness_days} day${p.freshness_days === 1 ? '' : 's'} ago`);
+  if (reasons.length === 0) reasons.push('Steady interest from real users');
 
   return (
     <Card className="bg-gray-900 border-gray-800 p-4 hover:border-yellow-400/40 transition-colors">
@@ -55,10 +55,10 @@ export function PromptCard({ p, onSelect }: { p: TrendingPrompt; onSelect: (p: T
             {p.industry_name && (
               <Badge variant="outline" className="border-gray-700 text-gray-400 text-[10px]">{p.industry_name}</Badge>
             )}
-            <span className="text-[10px] text-gray-500">Confidence {p.confidence_score}%</span>
+            <span className="text-[10px] text-gray-500">{p.confidence_score}% sure</span>
           </div>
           <div className="text-white text-sm font-medium leading-snug break-words">
-            {p.display_text ?? <span className="text-gray-500 italic">Prompt template #{p.prompt_template_hash.slice(0, 6)}</span>}
+            {p.display_text ?? <span className="text-gray-500 italic">Question #{p.prompt_template_hash.slice(0, 6)}</span>}
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -70,14 +70,14 @@ export function PromptCard({ p, onSelect }: { p: TrendingPrompt; onSelect: (p: T
 
       <div className="grid grid-cols-4 gap-2 mb-3">
         <Stat label="Growth" value={p.growth_pct >= 999 ? 'new' : `${p.growth_pct > 0 ? '+' : ''}${p.growth_pct}%`} tone={p.growth_pct > 0 ? 'up' : 'default'} />
-        <Stat label="Scans 7d" value={`${p.scans_7d}`} />
-        <Stat label="Competitors" value={`${p.competitors_answering}`} />
-        <Stat label="Citations" value={`${p.cites_7d}`} />
+        <Stat label="Asked this week" value={`${p.scans_7d}`} />
+        <Stat label="Rivals" value={`${p.competitors_answering}`} />
+        <Stat label="AI mentions" value={`${p.cites_7d}`} />
       </div>
 
       <div className="bg-black/40 border border-gray-800 rounded p-2 mb-3">
         <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1 flex items-center gap-1">
-          <Sparkles className="h-3 w-3 text-yellow-400" /> Why it's {p.trend_bucket}
+          <Sparkles className="h-3 w-3 text-yellow-400" /> Why we're flagging this
         </div>
         <ul className="text-xs text-gray-300 space-y-0.5">
           {reasons.map(r => <li key={r}>• {r}</li>)}
@@ -85,7 +85,7 @@ export function PromptCard({ p, onSelect }: { p: TrendingPrompt; onSelect: (p: T
       </div>
 
       <Button size="sm" onClick={() => onSelect(p)} className="w-full bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
-        See opportunity <ArrowRight className="ml-1 h-3 w-3" />
+        See how to win this <ArrowRight className="ml-1 h-3 w-3" />
       </Button>
     </Card>
   );

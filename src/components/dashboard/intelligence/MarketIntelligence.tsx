@@ -12,14 +12,14 @@ import { useAuth } from '@/hooks/useAuth';
 type ModuleKey = 'prompts' | 'first-mover' | 'topics' | 'industries' | 'competitors' | 'citations' | 'brands' | 'platforms';
 
 const MODULES: { key: ModuleKey; label: string; icon: any; active: boolean }[] = [
-  { key: 'prompts', label: 'Trending prompts', icon: Flame, active: true },
-  { key: 'first-mover', label: 'First mover', icon: Rocket, active: true },
-  { key: 'topics', label: 'Emerging topics', icon: Sparkles, active: true },
-  { key: 'industries', label: 'Industry pulse', icon: Building2, active: true },
-  { key: 'competitors', label: 'Competitors', icon: Swords, active: true },
-  { key: 'citations', label: 'Citations', icon: Layers, active: false },
+  { key: 'prompts', label: 'Hot questions', icon: Flame, active: true },
+  { key: 'first-mover', label: 'Get there first', icon: Rocket, active: true },
+  { key: 'topics', label: 'New topics', icon: Sparkles, active: true },
+  { key: 'industries', label: 'Your industry', icon: Building2, active: true },
+  { key: 'competitors', label: 'Top rivals', icon: Swords, active: true },
+  { key: 'citations', label: 'Sources', icon: Layers, active: false },
   { key: 'brands', label: 'Brands', icon: Globe, active: false },
-  { key: 'platforms', label: 'AI platforms', icon: Radio, active: false },
+  { key: 'platforms', label: 'AI tools', icon: Radio, active: false },
 ];
 
 interface Industry { id: string; name: string; slug: string; }
@@ -51,8 +51,8 @@ export function MarketIntelligence() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl text-yellow-400 font-bold" style={{ fontFamily: "'Press Start 2P', cursive" }}>AI Market Intelligence</h2>
-        <p className="text-sm text-gray-400 mt-2">The Bloomberg Terminal for AI Search — powered by proprietary first-party scan data.</p>
+        <h2 className="text-2xl text-yellow-400 font-bold" style={{ fontFamily: "'Press Start 2P', cursive" }}>What people are asking AI</h2>
+        <p className="text-sm text-gray-400 mt-2">Real questions people ask ChatGPT, Gemini, Claude and Perplexity in your space — updated as more brands get scanned.</p>
       </div>
 
       <IntelligenceStatsCard />
@@ -82,7 +82,7 @@ export function MarketIntelligence() {
       {/* Shared industry filter for most modules */}
       {(active === 'prompts' || active === 'first-mover' || active === 'topics' || active === 'competitors') && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500">Industry:</span>
+          <span className="text-xs text-gray-500">Your industry:</span>
           <Select value={industryFilter} onValueChange={setIndustryFilter}>
             <SelectTrigger className="w-56 h-8 bg-gray-900 border-gray-800 text-white text-xs">
               <SelectValue />
@@ -95,7 +95,7 @@ export function MarketIntelligence() {
           {userIndustryId && industryFilter !== userIndustryId && (
             <Button size="sm" variant="outline" className="h-8 text-xs border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10"
               onClick={() => setIndustryFilter(userIndustryId)}>
-              Show my industry
+              Just show my industry
             </Button>
           )}
         </div>
@@ -114,7 +114,7 @@ export function MarketIntelligence() {
 function ComingSoon() {
   return (
     <Card className="bg-gray-900 border-gray-800 p-8 text-center">
-      <div className="text-sm text-gray-400">This intelligence module is on the roadmap. New signal sources are being wired in.</div>
+      <div className="text-sm text-gray-400">Coming soon. We're getting more data ready to unlock this view.</div>
     </Card>
   );
 }
@@ -137,7 +137,7 @@ function TrendingModule({ industryFilter }: { industryFilter: string }) {
   }, [industryFilter]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-yellow-400" /></div>;
-  if (prompts.length === 0) return <EmptyIntel message="No trending prompts yet in this slice. The engine sharpens with every new scan." />;
+  if (prompts.length === 0) return <EmptyIntel message="No hot questions in this space yet. This gets richer as more brands get scanned." />;
 
   return (
     <>
@@ -172,11 +172,11 @@ function FirstMoverModule({ industryFilter }: { industryFilter: string }) {
       <div className="bg-orange-500/10 border border-orange-500/30 rounded p-3 text-xs text-orange-200 flex items-start gap-2">
         <Rocket className="h-4 w-4 mt-0.5 shrink-0" />
         <div>
-          <b>First-mover territory.</b> High growth, low competition, low citation coverage. Publish these before competitors notice.
+          <b>You could be first here.</b> These questions are getting popular fast, but no one has really claimed them yet. Publish content now and you win before competitors even notice.
         </div>
       </div>
       {prompts.length === 0
-        ? <EmptyIntel message="No first-mover opportunities in this slice right now — the bar is very low competition + high growth. Check back after the next scan wave." />
+        ? <EmptyIntel message="No first-place opportunities in this space right now. Check back after the next round of scans." />
         : (
           <div className="grid gap-3 md:grid-cols-2">
             {prompts.map(p => <PromptCard key={p.prompt_template_hash + (p.industry_id ?? '')} p={p} onSelect={(x) => { setSelected(x); setDrawerOpen(true); }} />)}
@@ -215,7 +215,7 @@ function TopicsModule({ industryFilter }: { industryFilter: string }) {
   }, [industryFilter]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-yellow-400" /></div>;
-  if (topics.length === 0) return <EmptyIntel message="Clustering runs after each intelligence refresh. Once new prompts arrive they'll be grouped into topics here." />;
+  if (topics.length === 0) return <EmptyIntel message="No new topics grouped yet. As more brands get scanned, related questions get grouped here." />;
 
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -232,12 +232,12 @@ function TopicsModule({ industryFilter }: { industryFilter: string }) {
           </div>
           <div className="text-xs text-gray-400 mb-3 line-clamp-2">{t.representative_prompt}</div>
           <div className="grid grid-cols-3 gap-1.5 text-xs">
-            <MiniStat label="Scans 14d" value={`${t.scans_14d}`} />
-            <MiniStat label="Prompts" value={`${t.prompts_in_cluster}`} />
-            <MiniStat label="Recency" value={`${t.recency_share_pct}%`} />
+            <MiniStat label="Recent scans" value={`${t.scans_14d}`} />
+            <MiniStat label="Questions" value={`${t.prompts_in_cluster}`} />
+            <MiniStat label="How fresh" value={`${t.recency_share_pct}%`} />
           </div>
           <div className="flex items-center justify-between mt-3 text-[10px] text-gray-500">
-            <span>{t.industry_name ?? 'Cross-industry'}</span>
+            <span>{t.industry_name ?? 'Any industry'}</span>
             <span>{t.intent ?? '—'}</span>
           </div>
         </Card>
@@ -269,7 +269,7 @@ function IndustriesModule() {
   }, []);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-yellow-400" /></div>;
-  if (rows.length === 0) return <EmptyIntel message="No industry data yet. Scans populate this in real time." />;
+  if (rows.length === 0) return <EmptyIntel message="No industry data yet. It fills in as scans come in." />;
 
   return (
     <div className="overflow-x-auto">
@@ -277,13 +277,13 @@ function IndustriesModule() {
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-800">
             <th className="py-2 pr-3">Industry</th>
-            <th className="py-2 pr-3 text-right">Scans 7d</th>
-            <th className="py-2 pr-3 text-right">Scans 30d</th>
-            <th className="py-2 pr-3 text-right">Prompts</th>
-            <th className="py-2 pr-3 text-right">Brands</th>
-            <th className="py-2 pr-3 text-right">Domains</th>
-            <th className="py-2 pr-3 text-right">Citations</th>
-            <th className="py-2 pr-3 text-right">Avg authority</th>
+            <th className="py-2 pr-3 text-right">Scans this week</th>
+            <th className="py-2 pr-3 text-right">Scans this month</th>
+            <th className="py-2 pr-3 text-right">Questions asked</th>
+            <th className="py-2 pr-3 text-right">Brands seen</th>
+            <th className="py-2 pr-3 text-right">Websites cited</th>
+            <th className="py-2 pr-3 text-right">Times cited</th>
+            <th className="py-2 pr-3 text-right">Website trust</th>
           </tr>
         </thead>
         <tbody>
@@ -329,7 +329,7 @@ function CompetitorsModule({ industryFilter }: { industryFilter: string }) {
   }, [industryFilter]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-yellow-400" /></div>;
-  if (rows.length === 0) return <EmptyIntel message="No competitor data in this slice yet." />;
+  if (rows.length === 0) return <EmptyIntel message="No rival data here yet." />;
 
   return (
     <div className="overflow-x-auto">
@@ -338,10 +338,10 @@ function CompetitorsModule({ industryFilter }: { industryFilter: string }) {
           <tr className="text-left text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-800">
             <th className="py-2 pr-3">Brand</th>
             <th className="py-2 pr-3">Industry</th>
-            <th className="py-2 pr-3 text-right">Prompts won 30d</th>
-            <th className="py-2 pr-3 text-right">Engines</th>
-            <th className="py-2 pr-3 text-right">Citations</th>
-            <th className="py-2 pr-3 text-right">Observations</th>
+            <th className="py-2 pr-3 text-right">Questions won (30d)</th>
+            <th className="py-2 pr-3 text-right">AI tools</th>
+            <th className="py-2 pr-3 text-right">Times cited</th>
+            <th className="py-2 pr-3 text-right">Times seen</th>
           </tr>
         </thead>
         <tbody>

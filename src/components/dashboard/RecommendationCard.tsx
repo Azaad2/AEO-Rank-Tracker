@@ -534,14 +534,14 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           </div>
 
-          {/* Why this matters */}
+          {/* Plain-English explanation */}
           {(rec.why_this_matters || rec.description) && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                Why this matters for your business
+                What this means in plain English
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
-                {rec.why_this_matters || rec.description}
+                {humanizeText(rec.why_this_matters || rec.description || '')}
               </p>
             </div>
           )}

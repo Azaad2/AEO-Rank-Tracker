@@ -115,49 +115,142 @@ function impactLabel(stars: number): string {
   return ['', 'Small boost', 'Nice boost', 'Strong boost', 'Big boost', 'Game changer'][stars];
 }
 
-/** Turn an action asset type into a friendly button label + why-it-helps blurb. */
-const ACTION_INFO: Record<string, { label: string; why: string }> = {
+/** Turn an action asset type into a friendly button label + what-it-does blurb. */
+const ACTION_INFO: Record<string, { label: string; why: string; how: string }> = {
   outreach: {
-    label: 'Build an outreach plan',
-    why: 'Get your brand featured on the same trusted websites competitors already appear on.',
+    label: 'Pitch your brand to trusted websites',
+    why: 'Get featured on the websites AI already trusts and quotes.',
+    how: "We'll draft a short email you can send to 5–10 relevant websites asking them to mention or link to you.",
   },
   guest_post: {
-    label: 'Plan guest articles',
-    why: 'Publish on popular websites that AI assistants already quote.',
+    label: 'Write a guest article for a popular site',
+    why: 'Publishing on sites AI already reads is the fastest way to get quoted.',
+    how: "We'll suggest topics and target sites that accept guest posts in your industry.",
   },
   comparison: {
-    label: 'Write a comparison article',
-    why: 'Win when people ask AI questions like "X vs Y" — where competitors currently show up instead of you.',
+    label: 'Write a "You vs. Competitor" article',
+    why: 'Wins searches like "best X" or "X vs Y" where AI currently picks your competitor.',
+    how: "We'll draft a fair, structured comparison page you can publish on your site.",
   },
   faq: {
-    label: 'Create an FAQ page',
-    why: 'AI assistants love simple question-and-answer pages and quote them more than anything else.',
+    label: 'Add an FAQ page to your site',
+    why: 'AI loves plain question-and-answer pages and quotes them more than any other format.',
+    how: "We'll generate 8–12 real questions people ask about your space, with short answers.",
   },
   landing_page: {
-    label: 'Build a landing page',
-    why: 'Give AI a clear page to point to when people ask about this topic.',
+    label: 'Build a page about this exact topic',
+    why: 'Gives AI a clear page to point to when someone asks about this.',
+    how: "We'll draft the page structure, headline, and copy for you to publish.",
   },
   pr: {
-    label: 'Launch a PR push',
-    why: 'Get fresh mentions on news and review websites AI trusts.',
+    label: 'Run a small PR / news push',
+    why: 'News and review sites are the sources AI trusts most.',
+    how: "We'll draft a press-style announcement and a list of relevant reporters to send it to.",
   },
   article: {
-    label: 'Write an article',
-    why: 'Longer, helpful articles are the #1 thing AI pulls answers from.',
+    label: 'Write a helpful blog article',
+    why: 'Long, useful articles are the #1 source AI pulls answers from.',
+    how: "We'll suggest a title, outline, and key sections based on what AI already rewards in your space.",
   },
   schema: {
-    label: 'Add page tags for AI',
-    why: 'Small hidden tags help AI understand your page and quote it correctly.',
+    label: 'Add hidden AI-friendly tags to your page',
+    why: 'Small technical tags help AI understand your page and quote it correctly.',
+    how: "We'll generate the exact code snippet — you paste it into your site's <head>.",
+  },
+  review: {
+    label: 'Get listed on a review site',
+    why: 'Review sites like G2, Capterra, and Trustpilot are heavily quoted by AI.',
+    how: "We'll show you which review sites your competitors are on that you're missing.",
+  },
+  reddit_thread: {
+    label: 'Start a Reddit discussion',
+    why: 'Reddit threads show up constantly in AI answers because AI treats them as real user opinions.',
+    how: "We'll suggest a subreddit and draft an honest post — not spam — that mentions your brand naturally.",
+  },
+  listicle: {
+    label: 'Get added to a "Top 10" list article',
+    why: 'When AI is asked "what are the best X", it usually reads these list articles first.',
+    how: "We'll find existing list articles in your space and draft an email asking to be added.",
+  },
+  video: {
+    label: 'Publish a short YouTube video',
+    why: 'AI increasingly pulls answers from YouTube transcripts.',
+    how: "We'll suggest a video topic and script outline you can film in under 10 minutes.",
+  },
+  podcast: {
+    label: 'Get on a podcast in your space',
+    why: 'Podcast transcripts get quoted by AI when people ask expert questions.',
+    how: "We'll suggest podcasts that match your niche and draft an intro pitch.",
+  },
+  case_study: {
+    label: 'Publish a customer case study',
+    why: 'Real results and numbers get quoted by AI as proof.',
+    how: "We'll give you a simple template — problem, solution, result — to fill in with a customer.",
+  },
+  directory: {
+    label: 'Add your brand to industry directories',
+    why: 'Directories are trusted lists AI checks when looking up brands.',
+    how: "We'll show you the top directories in your space and how to submit.",
+  },
+  press_release: {
+    label: 'Publish a press release',
+    why: 'Press releases spread your name across news sites AI trusts.',
+    how: "We'll draft a short release around a recent update, launch, or milestone.",
+  },
+  testimonial: {
+    label: 'Collect and publish customer testimonials',
+    why: 'Testimonials with real names and results boost the trust AI assigns to your brand.',
+    how: "We'll draft a short email you can send to 3–5 happy customers to collect quotes.",
+  },
+  tutorial: {
+    label: 'Write a step-by-step tutorial',
+    why: 'How-to content is one of the most-quoted formats in AI answers.',
+    how: "We'll draft a step-by-step guide around a common problem your customers have.",
+  },
+  guide: {
+    label: 'Write an in-depth guide',
+    why: 'Deep guides get quoted by AI as the authoritative source on a topic.',
+    how: "We'll draft an outline covering the questions AI actually gets asked about this.",
   },
 };
 
-function humanizeAsset(type: string): { label: string; why: string } {
-  return (
-    ACTION_INFO[type] ?? {
-      label: `Generate ${type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`,
-      why: 'Recommended content asset to close this gap.',
-    }
-  );
+function humanizeAsset(type: string): { label: string; why: string; how: string } {
+  if (ACTION_INFO[type]) return ACTION_INFO[type];
+  const nice = type.replace(/_/g, ' ').toLowerCase();
+  return {
+    label: `Create a ${nice}`,
+    why: `Publishing a ${nice} on this topic gives AI another trusted place to quote your brand from.`,
+    how: `We'll help you plan and draft the ${nice} step by step.`,
+  };
+}
+
+/** Rewrite jargon-y titles from the backend into plain English. */
+function humanizeTitle(title: string): string {
+  const rules: Array<[RegExp, string]> = [
+    [/diversify your trusted source mix/i, 'Get mentioned on more different websites'],
+    [/trusted source diversity/i, 'variety of websites talking about you'],
+    [/increase (your )?rss/i, 'Get AI to mention you more often'],
+    [/reduce (your )?cag/i, 'Close the gap with your top competitors'],
+    [/improve (your )?tsd/i, 'Get on more different websites'],
+    [/improve (your )?cis/i, 'Get mentioned on more trusted websites'],
+    [/improve (your )?coi/i, 'Grab untapped topics before competitors do'],
+  ];
+  let out = title;
+  for (const [rx, rep] of rules) out = out.replace(rx, rep);
+  return out;
+}
+
+/** Rewrite metric jargon inside description/why text. */
+function humanizeText(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\bRSS\b/g, 'AI mentions')
+    .replace(/\bCAG\b/g, 'gap vs competitors')
+    .replace(/\bTSD\b/g, 'website variety')
+    .replace(/\bCIS\b/g, 'mention quality')
+    .replace(/\bCOI\b/g, 'untapped opportunities')
+    .replace(/Recommendation Strength/gi, 'how often AI picks you')
+    .replace(/distinct trusted domains/gi, 'different trusted websites');
 }
 
 type CategoryTag = {
@@ -394,7 +487,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {/* Header: title + impact */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-lg leading-snug">{rec.title}</h3>
+              <h3 className="text-white font-semibold text-lg leading-snug">{humanizeTitle(rec.title)}</h3>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 {(() => {
                   const cat = categorize(rec, stars);
@@ -441,14 +534,14 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           </div>
 
-          {/* Why this matters */}
+          {/* Plain-English explanation */}
           {(rec.why_this_matters || rec.description) && (
             <div>
               <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                Why this matters for your business
+                What this means in plain English
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
-                {rec.why_this_matters || rec.description}
+                {humanizeText(rec.why_this_matters || rec.description || '')}
               </p>
             </div>
           )}
@@ -566,28 +659,46 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {/* Recommended actions */}
           {assetTypes.length > 0 && (
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-                What you should do
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                Ways to fix this — pick any one to start
               </div>
+              <p className="text-[11px] text-gray-500 mb-2">
+                You don't have to do all of them. Even one moves the needle.
+              </p>
               <div className="space-y-2">
                 {assetTypes.slice(0, 4).map((t) => {
                   const info = humanizeAsset(t);
                   return (
                     <div
                       key={t}
-                      className="flex items-start justify-between gap-3 rounded border border-gray-800 bg-black/30 p-2.5"
+                      className="rounded border border-gray-800 bg-black/30 p-3 space-y-2"
                     >
-                      <div className="min-w-0">
-                        <div className="text-sm text-white font-medium">{info.label}</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{info.why}</div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-white font-medium">{info.label}</div>
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            <span className="text-gray-500">Why it works: </span>
+                            {info.why}
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            <span className="text-gray-500">What happens when you click: </span>
+                            {info.how}
+                          </div>
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 shrink-0"
+                        onClick={() =>
+                          toast({
+                            title: info.label,
+                            description: info.how,
+                          })
+                        }
+                        className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 w-full sm:w-auto"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
-                        Let AI help
+                        Show me how
                       </Button>
                     </div>
                   );

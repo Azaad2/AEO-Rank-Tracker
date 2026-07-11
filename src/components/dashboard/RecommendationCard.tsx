@@ -487,7 +487,7 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {/* Header: title + impact */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-lg leading-snug">{rec.title}</h3>
+              <h3 className="text-white font-semibold text-lg leading-snug">{humanizeTitle(rec.title)}</h3>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 {(() => {
                   const cat = categorize(rec, stars);

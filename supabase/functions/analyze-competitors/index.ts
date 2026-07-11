@@ -34,31 +34,18 @@ serve(async (req) => {
         ? promptsWhereTheyRank.join('", "')
         : 'various AI queries';
 
-      const beatPrompt = `You are an AI visibility strategist. Analyze why the competitor "${competitor}" ranks in AI-generated answers and how "${yourDomain}" can outrank them.
+      const beatPrompt = `You are an AI visibility strategist. The user's brand is "${yourDomain}" and the competitor is "${competitor}".
+Competitor appears in AI responses for these queries: ["${prompts}"]
 
-The competitor "${competitor}" appears in AI responses for these specific queries: ["${prompts}"]
+Do NOT invent numbers or made-up stats — the UI already shows real citation evidence. Your job is only:
+1. A one-sentence plain-English summary of WHY this competitor beats ${yourDomain} for these queries, referencing the actual queries.
+2. 3-5 concrete next steps ${yourDomain} should take, each referencing the specific competitor or queries above.
 
-Provide a detailed, PERSONALIZED analysis. Do NOT give generic advice. Reference the specific competitor and queries above.
-
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON:
 {
-  "whyTheyRank": ["Specific reason 1 about ${competitor} and these queries...", "Specific reason 2...", "Specific reason 3..."],
-  "howToBeat": ["Specific actionable step 1 for ${yourDomain}...", "Step 2...", "Step 3...", "Step 4...", "Step 5..."],
-  "tools": [{"name": "Tool name", "link": "/tools/tool-slug"}]
-}
-
-For "tools", only suggest from these available tools:
-- Content Auditor (/tools/content-auditor)
-- FAQ Generator (/tools/ai-faq-generator)  
-- Schema Generator (/tools/schema-generator)
-- Blog Outline (/tools/ai-blog-outline)
-- Competitor Analyzer (/tools/competitor-analyzer)
-- AI Answer Generator (/tools/ai-answer-generator)
-- Keyword Analyzer (/tools/keyword-analyzer)
-- Description Generator (/tools/description-generator)
-- Title Generator (/tools/title-generator)
-
-Pick 3-4 most relevant tools for beating this specific competitor on these specific queries.`;
+  "summary": "One clear sentence...",
+  "howToBeat": ["Step 1 referencing ${competitor}...", "Step 2...", "Step 3..."]
+}`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',

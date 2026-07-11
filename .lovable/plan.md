@@ -1,63 +1,61 @@
-# Make Recommendations Visual & Instantly Understandable
+Replace the generic "Why they're winning" bullets on each competitor card with a real, evidence-backed panel built from the data we already store in `citations` and `scan_results`. No new intelligence — we surface what the scan engine already found.
 
-You're right — the current cards still lean on paragraphs of text. A non-technical business owner should **see the story in a chart** before they read a single word. This plan adds visual data storytelling to every card, without touching any backend calculation.
+## What the user will see (per competitor, e.g. hubspot.com)
 
-## What changes on each recommendation card
+**Header (unchanged)**: favicon, name, #N threat, "AI recommends 33× more often (33% vs 0%)".
 
-### 1. A hero visual at the top of every card
-Instead of leading with text, each card leads with a small chart that instantly shows the problem:
+**New: AI Evidence grid — 4 tiles, side-by-side with your numbers**
 
-- **"AI mentions you" cards** → horizontal bar chart: **You vs Top competitor vs Industry average** (values from `industry_benchmark` + `competitor_examples`)
-- **"Gap vs competitors" cards** → gap thermometer: colored bar showing where you sit between 0 and the leaders
-- **"Get on more websites" cards** → dot chart: each dot = a website mentioning you today, greyed dots = websites mentioning competitors that don't mention you
-- **Fallback (no peer data yet)** → a simple "projected gain" ring showing `+X% more AI visibility`
-
-All charts are pure SVG/divs (no chart library needed) — small, dark-theme, yellow accent.
-
-### 2. A one-sentence plain-English headline above the chart
-Auto-generated from the same data, e.g.:
-
-> "AI mentions **Notion** and **Airtable** 4× more than your brand for this topic."
-
-Not "TSD is below peer median."
-
-### 3. Trend arrow when we have previous-scan data
-If `evidence` contains prior values, show `↑ improving` / `↓ getting worse` / `→ flat` next to the number, with color.
-
-### 4. Compact "at-a-glance" strip replaces the current 3 badges
-One row, 4 tiles:
-
-```text
-[ Impact  ★★★★★ ] [ Effort  🟢 Easy ] [ Time  ~2 hrs ] [ Gain  +9% ]
+```
+Comparison pages   Review-site citations   Educational pages   Prompt coverage
+HubSpot   18       HubSpot   9              HubSpot   247       HubSpot   31%
+You        2       You       1              You        13       You        4%
 ```
 
-Same data, just laid out as scannable tiles instead of prose.
+Every number is a real count from `citations` for that competitor domain vs the user's domain, scoped to the user's scans.
 
-### 5. Rewrite remaining copy for a business owner
-- "Why this matters" → 1 sentence max, no metric codes
-- "What happens if you skip this" → 1 sentence, plain outcome
-- "What you get once it's done" → keep the 3 bullets (already good)
-- Remove the "We're still gathering enough industry data to compare you here" empty block when we have zero peer data — replace with the projected-gain ring so the card never looks empty
+**New: "Where they're cited" — trusted-source chips**
+Real logos/names of the top publisher/review domains that cite the competitor (G2, Capterra, Forbes, HubSpot Blog, …), pulled from `citations.domain` where `source_type` is review/publisher and `cites_brand` matches the competitor. Cap at 8, with a "+N more".
 
-### 6. Executive summary (AI Growth Brief) gets a mini visualization
-- Add a **health gauge** (semicircle 0–100) instead of just a number
-- Add a **stacked bar** showing Urgent / Quick wins / Bigger projects at a glance
+**New: "Topics they own" — cluster chips**
+Distinct `prompt` values grouped into topic tags (using the prompt words themselves — no LLM). Shown as "184 pages about CRM · Marketing Automation · Lead Generation", where the count is distinct URLs from citations and the tags are the top-N prompt keywords they win.
 
-## What does NOT change
-- No backend, edge function, DB, or calculation changes
-- `priority_score`, `projected_metric_delta`, `industry_benchmark`, `competitor_examples`, `evidence` all read exactly as today
-- No new dependencies — charts are hand-rolled SVG so bundle size stays flat
+**New: "Their top winning pages" list (collapsed by default, opens with "Show me how to beat them")**
+Real titles + URLs from `citations` where the competitor is cited, sorted by frequency. Each row shows: `title` · `asset_type` badge (Comparison / Alternative / Guide / Pricing / Review).
 
-## Files touched
-- `src/components/dashboard/RecommendationCard.tsx` — new visual header, tile strip, trend arrows, tightened copy
-- `src/components/dashboard/AIGrowthBrief.tsx` — add health gauge + stacked bar
-- `src/components/dashboard/recommendations/RecCharts.tsx` *(new)* — small reusable SVG chart primitives (BarCompare, GapMeter, DotGrid, GainRing, HealthGauge)
+**New: "You're missing" gap list + Generate buttons**
+Cross-reference the competitor's winning `asset_type` set with what the user has for the same prompts. For each missing asset_type render a one-line gap ("You don't have a **CRM Alternatives** page") plus a Generate button wired to the existing tool that produces that asset (Content Auditor, Blog Outline, FAQ Generator, Schema Generator, Title/Description Generator). No new tools — just deep links pre-filled with the topic string.
 
-## Result
-Open the page → within 5 seconds a user sees:
-1. A chart showing *why they're losing*
-2. A one-line sentence naming *who is beating them*
-3. Four tiles telling them *how big, how hard, how long, how much gain*
-4. Then, only if they want detail, the text sections below
+## What replaces what
 
-That's the "AI consultant, not database" feel you asked for.
+- Remove `defaultReasons()` in `CompetitorWatch.tsx` and the "Why they're winning" bullet list entirely.
+- Remove the hardcoded `whyTheyRank` array from `analyze-competitors` beat-strategy prompt. Keep the LLM call, but only for a short 1-sentence natural-language *summary* on top of the evidence — never for the numbers.
+- The old "action plan (do these in order)" list is replaced by the concrete gap list + Generate buttons above.
+
+## Where the numbers come from (no new tables, no new calculations)
+
+Query in `CompetitorWatch.fetchCompetitors` after the current scan_results load:
+
+- `citations` joined via `scan_result_id ∈ user's scan_result ids`
+- Filter `cites_brand ILIKE '%<competitor>%'` for competitor rows, and normalized user domain for user rows.
+- Aggregate per competitor:
+  - `comparisonPages` = count distinct `url` where `asset_type = 'comparison'` (fallback: url/title matches `/vs|alternative|comparison|competitors/i`)
+  - `reviewCitations` = count distinct `domain` where `source_type IN ('review','publisher')` or domain is in existing `TRUSTED_SOURCE_KEYWORDS`
+  - `educationalPages` = count distinct `url` where `asset_type IN ('guide','blog','educational','howto','faq')`
+  - `promptCoverage` = distinct prompts where competitor appears / total prompts (we already have this as `percentage`)
+  - `topCitingDomains` = top 8 `domain` by frequency (for the chips)
+  - `winningPages` = top 10 `{url,title,asset_type}` by frequency (for the collapsed list)
+  - `topics` = top 5 prompt keywords they win (naive TF on prompt strings)
+- Same aggregation once for the user's own brand → the "You" number in every tile.
+
+All of this runs client-side against Supabase; nothing changes in the recommendations engine, scan pipeline, or metrics cache.
+
+## Files to change
+
+- `src/components/dashboard/CompetitorWatch.tsx` — replace the `whyTheyRank` block with the Evidence grid, trusted-source chips, topics chips, winning-pages list, and gap+Generate section. Extend `fetchCompetitors` with the citation queries above. Drop `defaultReasons`.
+- `src/components/dashboard/competitor/CompetitorEvidence.tsx` (new) — small presentational component: `EvidenceTile`, `SourceChips`, `WinningPages`, `GapList`.
+- `supabase/functions/analyze-competitors/index.ts` — beat-strategy mode returns only `{summary, howToBeat}`; evidence is no longer LLM-generated. `whyTheyRank` field removed.
+
+## Empty-state rules (evidence-first)
+
+If a tile has zero real evidence, hide the tile — never show fabricated numbers. If the competitor has no citations at all in `citations` (only appeared in `gemini_competitors` arrays), show a single line "AI mentioned them but we haven't crawled their citations yet — re-run the scan for full evidence" and hide the Evidence grid. This preserves the "AI proved, not AI thinks" guarantee.

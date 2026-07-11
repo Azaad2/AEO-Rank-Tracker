@@ -6,19 +6,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Loader2,
-  Swords,
   ChevronDown,
   ChevronUp,
   Trophy,
   Clock,
   TrendingUp,
   Zap,
-  BookOpen,
-  Wrench,
   Sparkles,
   Globe,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  EvidenceGrid,
+  SourceChips,
+  WinningPagesList,
+  GapList,
+  type WinningPage,
+  type Gap,
+} from './competitor/CompetitorEvidence';
 
 interface CompetitorData {
   name: string;
@@ -27,13 +31,27 @@ interface CompetitorData {
   prompts: string[];
 }
 
-interface Strategy {
-  whyTheyRank: string[];
-  howToBeat: string[];
-  tools: { name: string; link: string }[];
+interface CitationRow {
+  scan_result_id: number;
+  url: string | null;
+  domain: string | null;
+  source_type: string | null;
+  cites_brand: string | null;
+  asset_type: string | null;
+  title: string | null;
 }
 
-// Domains that are publishers, review sites, communities, agencies — NOT direct competitors
+interface Evidence {
+  comparisonPages: number;
+  reviewCitations: number;
+  educationalPages: number;
+  referringDomains: number;
+  topCitingDomains: string[];
+  winningPages: WinningPage[];
+  gaps: Gap[];
+  hasAnyCitations: boolean;
+}
+
 const TRUSTED_SOURCE_KEYWORDS = [
   'g2', 'capterra', 'gartner', 'forrester', 'trustpilot', 'getapp', 'softwareadvice',
   'saasworthy', 'crozdesk', 'tekpon', 'producthunt', 'product-hunt',
@@ -43,54 +61,73 @@ const TRUSTED_SOURCE_KEYWORDS = [
   'youtube', 'vimeo', 'wikipedia', 'github', 'gitlab',
   'linkedin', 'twitter', 'x.com', 'facebook', 'instagram',
   'blog', 'news', 'times', 'journal', 'magazine', 'review',
-  'agency', 'digital.com', 'marketing.com',
 ];
 
 function isTrustedSource(name: string): boolean {
-  const n = name.toLowerCase();
+  const n = (name || '').toLowerCase();
   return TRUSTED_SOURCE_KEYWORDS.some((k) => n.includes(k));
 }
 
-function getDifficulty(percentage: number): { label: 'Easy' | 'Medium' | 'Hard'; color: string; time: string; impact: number } {
-  if (percentage >= 50) {
-    return { label: 'Hard', color: 'text-red-400 bg-red-500/10 border-red-500/30', time: '3+ months', impact: Math.round(percentage * 0.5) };
-  }
-  if (percentage >= 25) {
-    return { label: 'Medium', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', time: '1-2 months', impact: Math.round(percentage * 0.6) };
-  }
+function normalizeBrand(s: string | null | undefined): string {
+  if (!s) return '';
+  return s.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+}
+
+function isComparisonAsset(c: CitationRow): boolean {
+  if (c.asset_type === 'comparison_page' || c.asset_type === 'listicle') return true;
+  const hay = `${c.url ?? ''} ${c.title ?? ''}`.toLowerCase();
+  return /\b(vs|versus|alternative|alternatives|comparison|compare|best|top\s*\d)\b/.test(hay);
+}
+
+function isReviewAsset(c: CitationRow): boolean {
+  if (c.asset_type === 'review_page' || c.asset_type === 'directory_listing') return true;
+  if (c.source_type && ['review', 'directory', 'publisher'].includes(c.source_type.toLowerCase())) return true;
+  return isTrustedSource(c.domain ?? '');
+}
+
+function isEducationalAsset(c: CitationRow): boolean {
+  return c.asset_type === 'blog_article' || c.asset_type === 'documentation_page';
+}
+
+function getDifficulty(percentage: number) {
+  if (percentage >= 50) return { label: 'Hard', color: 'text-red-400 bg-red-500/10 border-red-500/30', time: '3+ months', impact: Math.round(percentage * 0.5) };
+  if (percentage >= 25) return { label: 'Medium', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', time: '1-2 months', impact: Math.round(percentage * 0.6) };
   return { label: 'Easy', color: 'text-green-400 bg-green-500/10 border-green-500/30', time: '2-4 weeks', impact: Math.round(percentage * 0.7) };
 }
 
 function getFaviconUrl(name: string): string {
-  // Best-effort favicon for known-domain-ish strings
   const cleaned = name.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
-  const looksLikeDomain = cleaned.includes('.');
-  const domain = looksLikeDomain ? cleaned : `${cleaned}.com`;
+  const domain = cleaned.includes('.') ? cleaned : `${cleaned}.com`;
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 }
 
-function defaultReasons(rank: number, percentage: number): string[] {
-  const pool = [
-    'Strong educational content that answers user questions directly',
-    'Better comparison and alternative pages targeting your keywords',
-    'More trusted citations from review sites and publishers',
-    'Higher topical authority — many pages on the same subject',
-    'Mentioned consistently across multiple AI models',
-    'Well-structured content with clear headings and schema',
-    'Long-form guides ranked by both Google and AI',
-    'Active community discussions (Reddit, forums) reinforcing the brand',
-  ];
-  const count = percentage >= 40 ? 5 : percentage >= 20 ? 4 : 3;
-  return pool.slice(rank % 3, (rank % 3) + count);
+const ASSET_TO_TOOL: Record<string, { path: string; label: string; gapLabel: (topic: string) => string }> = {
+  comparison_page: { path: '/tools/ai-blog-outline', label: 'Generate outline', gapLabel: (t) => `${t} Comparison` },
+  listicle: { path: '/tools/ai-blog-outline', label: 'Generate listicle', gapLabel: (t) => `Best ${t}` },
+  blog_article: { path: '/tools/ai-blog-outline', label: 'Generate guide', gapLabel: (t) => `${t} Guide` },
+  documentation_page: { path: '/tools/content-auditor', label: 'Audit content', gapLabel: (t) => `${t} Documentation` },
+  landing_page: { path: '/tools/description-generator', label: 'Generate copy', gapLabel: (t) => `${t} Landing Page` },
+  review_page: { path: '/tools/competitor-analyzer', label: 'See who to pitch', gapLabel: (t) => `${t} Reviews` },
+};
+
+function topicFromPrompts(prompts: string[]): string {
+  if (!prompts.length) return 'Your Category';
+  // Take shortest prompt as topic label, trim to 3 words
+  const p = [...prompts].sort((a, b) => a.length - b.length)[0];
+  const words = p.replace(/[?.,!]/g, '').split(/\s+/).filter((w) => w.length > 2);
+  const stop = new Set(['the', 'and', 'for', 'best', 'top', 'what', 'which', 'how', 'are', 'you', 'your', 'with']);
+  const kept = words.filter((w) => !stop.has(w.toLowerCase())).slice(0, 3);
+  return (kept.join(' ') || p).replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function CompetitorWatch() {
   const { user } = useAuth();
   const [allBrands, setAllBrands] = useState<CompetitorData[]>([]);
+  const [citations, setCitations] = useState<CitationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPrompts, setTotalPrompts] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [strategies, setStrategies] = useState<Record<string, Strategy>>({});
+  const [strategies, setStrategies] = useState<Record<string, { summary?: string; howToBeat: string[] }>>({});
   const [loadingStrategy, setLoadingStrategy] = useState<string | null>(null);
   const [userDomain, setUserDomain] = useState<string>('');
   const [userVisibility, setUserVisibility] = useState<number>(0);
@@ -121,7 +158,7 @@ export function CompetitorWatch() {
 
       const { data: results } = await supabase
         .from('scan_results')
-        .select('prompt, gemini_competitors, top_cited_domains')
+        .select('id, prompt, gemini_competitors, top_cited_domains')
         .in('scan_id', scanIds);
 
       if (!results) {
@@ -130,6 +167,22 @@ export function CompetitorWatch() {
       }
 
       setTotalPrompts(results.length);
+
+      const resultIds = results.map((r: any) => r.id);
+      let cits: CitationRow[] = [];
+      if (resultIds.length > 0) {
+        // Chunk to keep the IN() list under Supabase limits
+        const chunkSize = 200;
+        for (let i = 0; i < resultIds.length; i += chunkSize) {
+          const chunk = resultIds.slice(i, i + chunkSize);
+          const { data } = await supabase
+            .from('citations')
+            .select('scan_result_id,url,domain,source_type,cites_brand,asset_type,title')
+            .in('scan_result_id', chunk);
+          if (data) cits = cits.concat(data as any);
+        }
+      }
+      setCitations(cits);
 
       const map = new Map<string, { count: number; prompts: Set<string> }>();
       for (const r of results) {
@@ -174,6 +227,87 @@ export function CompetitorWatch() {
     return { competitors: comps.slice(0, 8), trustedSources: trusted.slice(0, 15) };
   }, [allBrands]);
 
+  // Pre-compute user's own evidence stats once
+  const userStats = useMemo(() => {
+    const u = normalizeBrand(userDomain);
+    if (!u) return { comparison: 0, review: 0, educational: 0, assets: new Set<string>() };
+    const own = citations.filter((c) => normalizeBrand(c.cites_brand).includes(u));
+    const cmp = new Set<string>();
+    const rev = new Set<string>();
+    const edu = new Set<string>();
+    const assets = new Set<string>();
+    for (const c of own) {
+      if (c.asset_type) assets.add(c.asset_type);
+      if (c.url && isComparisonAsset(c)) cmp.add(c.url);
+      if (c.domain && isReviewAsset(c)) rev.add(c.domain);
+      if (c.url && isEducationalAsset(c)) edu.add(c.url);
+    }
+    return { comparison: cmp.size, review: rev.size, educational: edu.size, assets };
+  }, [citations, userDomain]);
+
+  function buildEvidence(comp: CompetitorData): Evidence {
+    const n = normalizeBrand(comp.name);
+    const rows = citations.filter((c) => normalizeBrand(c.cites_brand).includes(n));
+
+    const cmpUrls = new Set<string>();
+    const revDomains = new Set<string>();
+    const eduUrls = new Set<string>();
+    const allDomains = new Map<string, number>();
+    const pageMap = new Map<string, WinningPage>();
+    const compAssets = new Set<string>();
+
+    for (const c of rows) {
+      if (c.asset_type) compAssets.add(c.asset_type);
+      if (c.url && isComparisonAsset(c)) cmpUrls.add(c.url);
+      if (c.domain && isReviewAsset(c)) revDomains.add(c.domain);
+      if (c.url && isEducationalAsset(c)) eduUrls.add(c.url);
+      if (c.domain) allDomains.set(c.domain, (allDomains.get(c.domain) ?? 0) + 1);
+      if (c.url) {
+        const p = pageMap.get(c.url) ?? { url: c.url, title: c.title, asset_type: c.asset_type, count: 0 };
+        p.count += 1;
+        if (!p.title && c.title) p.title = c.title;
+        if (!p.asset_type && c.asset_type) p.asset_type = c.asset_type;
+        pageMap.set(c.url, p);
+      }
+    }
+
+    const topCitingDomains = [...allDomains.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([d]) => d);
+
+    const winningPages = [...pageMap.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    // Gaps: assets they have but user doesn't
+    const topic = topicFromPrompts(comp.prompts);
+    const gaps: Gap[] = [];
+    for (const asset of compAssets) {
+      const tool = ASSET_TO_TOOL[asset];
+      if (!tool) continue;
+      if (userStats.assets.has(asset)) continue;
+      gaps.push({
+        label: tool.gapLabel(topic),
+        assetType: asset,
+        toolPath: tool.path,
+        toolLabel: tool.label,
+        topic,
+      });
+    }
+
+    return {
+      comparisonPages: cmpUrls.size,
+      reviewCitations: revDomains.size,
+      educationalPages: eduUrls.size,
+      referringDomains: allDomains.size,
+      topCitingDomains,
+      winningPages,
+      gaps: gaps.slice(0, 4),
+      hasAnyCitations: rows.length > 0,
+    };
+  }
+
   async function loadStrategy(name: string) {
     if (strategies[name]) {
       setExpanded(expanded === name ? null : name);
@@ -195,28 +329,18 @@ export function CompetitorWatch() {
       setStrategies((p) => ({
         ...p,
         [name]: {
-          whyTheyRank: data?.whyTheyRank?.length ? data.whyTheyRank : defaultReasons(0, comp?.percentage || 0),
+          summary: data?.summary,
           howToBeat: data?.howToBeat || [],
-          tools: data?.tools || [{ name: 'Content Auditor', link: '/tools/content-auditor' }],
         },
       }));
     } catch {
-      const comp = competitors.find((c) => c.name === name);
       setStrategies((p) => ({
         ...p,
         [name]: {
-          whyTheyRank: defaultReasons(0, comp?.percentage || 0),
           howToBeat: [
             'Publish a definitive guide targeting the queries they dominate',
-            'Add FAQ and HowTo schema so AI can extract answers cleanly',
             'Get listed on the top 3 review sites AI cites in your category',
-            'Build 5-10 supporting posts to establish topical authority',
-            'Add original data, screenshots, or benchmarks competitors lack',
-          ],
-          tools: [
-            { name: 'Content Auditor', link: '/tools/content-auditor' },
-            { name: 'FAQ Generator', link: '/tools/ai-faq-generator' },
-            { name: 'Schema Generator', link: '/tools/schema-generator' },
+            'Add FAQ and HowTo schema so AI can extract answers cleanly',
           ],
         },
       }));
@@ -261,7 +385,7 @@ export function CompetitorWatch() {
           Brands Beating You in AI
         </CardTitle>
         <p className="text-xs text-gray-400">
-          Real competitors AI recommends instead of {userDomain || 'your brand'} — based on {totalPrompts} prompts.
+          Real competitors AI recommends instead of {userDomain || 'your brand'} — with the exact citations we found across {totalPrompts} prompts and {citations.length} sources.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -276,21 +400,19 @@ export function CompetitorWatch() {
           const userVis = Math.max(userVisibility, 1);
           const multiplier = (comp.percentage / userVis).toFixed(1);
           const strat = strategies[comp.name];
-          const reasons = strat?.whyTheyRank || defaultReasons(i, comp.percentage);
           const isOpen = expanded === comp.name;
+          const ev = buildEvidence(comp);
 
           return (
             <div key={comp.name} className="rounded-xl bg-gray-800/50 border border-gray-700 overflow-hidden">
-              <div className="p-4">
-                {/* Header: logo + name + rank */}
+              <div className="p-4 space-y-4">
+                {/* Header */}
                 <div className="flex items-start gap-3">
                   <img
                     src={getFaviconUrl(comp.name)}
                     alt=""
                     className="w-10 h-10 rounded-lg bg-gray-700 flex-shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.visibility = 'hidden';
-                    }}
+                    onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -308,7 +430,7 @@ export function CompetitorWatch() {
                 </div>
 
                 {/* Meta chips */}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full border ${diff.color}`}>
                     <Zap className="h-3 w-3 inline mr-1" />
                     {diff.label} to beat
@@ -326,23 +448,48 @@ export function CompetitorWatch() {
                   </span>
                 </div>
 
-                {/* Why they're winning */}
-                <div className="mt-3">
-                  <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-1.5">Why they're winning</p>
-                  <ul className="space-y-1">
-                    {reasons.slice(0, isOpen ? 6 : 3).map((r, idx) => (
-                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
-                        <span className="text-green-400 mt-0.5">✓</span>
-                        <span>{r}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Evidence Grid */}
+                {ev.hasAnyCitations ? (
+                  <EvidenceGrid
+                    tiles={[
+                      {
+                        label: 'Comparison pages',
+                        competitor: ev.comparisonPages,
+                        you: userStats.comparison,
+                        hint: 'vs / alternatives / "best" pages',
+                      },
+                      {
+                        label: 'Review-site citations',
+                        competitor: ev.reviewCitations,
+                        you: userStats.review,
+                        hint: 'G2, Capterra, publishers…',
+                      },
+                      {
+                        label: 'Educational pages',
+                        competitor: ev.educationalPages,
+                        you: userStats.educational,
+                        hint: 'guides & documentation',
+                      },
+                      {
+                        label: 'Prompt coverage',
+                        competitor: `${comp.percentage}%`,
+                        you: `${userVisibility}%`,
+                        hint: `of ${totalPrompts} prompts`,
+                      },
+                    ]}
+                  />
+                ) : (
+                  <div className="rounded-lg bg-gray-900 border border-gray-700 p-3 text-xs text-gray-400">
+                    AI mentioned <span className="text-white font-semibold">{comp.name}</span> in{' '}
+                    {comp.prompts.length} of your prompts, but we haven't crawled their citing pages yet.
+                    Re-run the scan for full evidence.
+                  </div>
+                )}
 
                 {/* CTA */}
                 <Button
                   size="sm"
-                  className="mt-4 w-full bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
+                  className="w-full bg-yellow-400 text-black hover:bg-yellow-300 font-semibold"
                   onClick={() => loadStrategy(comp.name)}
                   disabled={loadingStrategy === comp.name}
                 >
@@ -357,17 +504,26 @@ export function CompetitorWatch() {
                 </Button>
               </div>
 
-              {/* Strategy panel */}
-              {isOpen && strat && (
-                <div className="border-t border-gray-700 bg-gray-900/60 p-4 space-y-4 animate-in slide-in-from-top-2">
+              {/* Expanded evidence */}
+              {isOpen && (
+                <div className="border-t border-gray-700 bg-gray-900/60 p-4 space-y-5 animate-in slide-in-from-top-2">
+                  {strat?.summary && (
+                    <p className="text-sm text-gray-200 leading-relaxed border-l-2 border-yellow-400 pl-3">
+                      {strat.summary}
+                    </p>
+                  )}
+
                   {comp.prompts.length > 0 && (
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-yellow-400 flex items-center gap-1.5 mb-2">
                         <Sparkles className="h-3 w-3" /> Prompts they dominate
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {comp.prompts.slice(0, 5).map((p, i) => (
-                          <span key={i} className="text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700">
+                        {comp.prompts.slice(0, 5).map((p, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700"
+                          >
                             "{p.length > 60 ? p.slice(0, 60) + '…' : p}"
                           </span>
                         ))}
@@ -375,50 +531,9 @@ export function CompetitorWatch() {
                     </div>
                   )}
 
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wide text-green-400 flex items-center gap-1.5 mb-2">
-                      <BookOpen className="h-3 w-3" /> Your action plan (do these in order)
-                    </p>
-                    <ol className="space-y-2">
-                      {strat.howToBeat.map((step, idx) => (
-                        <li key={idx} className="flex gap-2.5 text-sm text-gray-200">
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 text-black text-[10px] font-bold flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          <span className="leading-relaxed">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded bg-gray-800 border border-gray-700">
-                      <p className="text-[10px] uppercase text-gray-500">Estimated effort</p>
-                      <p className="text-sm text-white font-semibold mt-1">{diff.time}</p>
-                    </div>
-                    <div className="p-3 rounded bg-gray-800 border border-green-500/30">
-                      <p className="text-[10px] uppercase text-gray-500">Expected visibility gain</p>
-                      <p className="text-sm text-green-400 font-semibold mt-1">+{diff.impact}%</p>
-                    </div>
-                  </div>
-
-                  {strat.tools.length > 0 && (
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-blue-400 flex items-center gap-1.5 mb-2">
-                        <Wrench className="h-3 w-3" /> Tools to help you execute
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {strat.tools.map((t) => (
-                          <Link key={t.link} to={t.link}>
-                            <Button size="sm" variant="outline" className="text-xs h-7 border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-white">
-                              <Wrench className="h-3 w-3 mr-1" />
-                              {t.name}
-                            </Button>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <SourceChips domains={ev.topCitingDomains} />
+                  <WinningPagesList pages={ev.winningPages} />
+                  <GapList gaps={ev.gaps} />
                 </div>
               )}
             </div>

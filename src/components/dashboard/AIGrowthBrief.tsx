@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, AlertTriangle, Zap, TrendingUp, Clock, ArrowRight } from 'lucide-react';
+import { HealthGauge, StackedBreakdown } from './recommendations/RecCharts';
 import type { RecommendationRow } from './RecommendationCard';
 
 interface Props {
@@ -52,47 +53,49 @@ export function AIGrowthBrief({ recs }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-center">
+          <div className="flex flex-col items-center">
+            <HealthGauge value={health} />
+            <div className="text-[10px] uppercase tracking-wide text-gray-500 mt-1">
               Overall health
             </div>
-            <div className={`text-3xl font-bold ${healthColor}`}>
-              {health}
-              <span className="text-sm text-gray-500 font-normal"> / 100</span>
-            </div>
           </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Urgent
+          <div className="space-y-3">
+            <StackedBreakdown
+              urgent={critical}
+              quick={quickWins}
+              bigger={Math.max(0, recs.length - critical - quickWins)}
+            />
+            <div className="grid grid-cols-3 gap-3 pt-1">
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> Urgent
+                </div>
+                <div className="text-2xl font-bold text-red-400">{critical}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
+                  <Zap className="h-3 w-3" /> Quick wins
+                </div>
+                <div className="text-2xl font-bold text-green-400">{quickWins}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" /> Possible gain
+                </div>
+                <div className="text-2xl font-bold text-yellow-400">
+                  +{Math.round(totalGain)}
+                  <span className="text-xs text-gray-500 font-normal">%</span>
+                </div>
+              </div>
             </div>
-            <div className="text-3xl font-bold text-red-400">{critical}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <Zap className="h-3 w-3" /> Quick wins
-            </div>
-            <div className="text-3xl font-bold text-green-400">{quickWins}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> Possible gain
-            </div>
-            <div className="text-3xl font-bold text-yellow-400">
-              +{Math.round(totalGain)}
-              <span className="text-sm text-gray-500 font-normal">%</span>
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Time needed
-            </div>
-            <div className="text-3xl font-bold text-white">
-              {hoursLo}–{hoursHi}
-              <span className="text-sm text-gray-500 font-normal"> hrs</span>
+            <div className="text-[11px] text-gray-500 flex items-center gap-1">
+              <Clock className="h-3 w-3" /> About {hoursLo}–{hoursHi} hours of work total
+              <span className={`ml-auto font-semibold ${healthColor}`}>Health {health}/100</span>
             </div>
           </div>
         </div>
+
 
         {first && (
           <div className="rounded-md border border-yellow-500/30 bg-black/40 p-3 flex items-start gap-3">

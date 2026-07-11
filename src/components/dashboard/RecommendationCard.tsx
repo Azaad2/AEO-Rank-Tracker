@@ -32,6 +32,12 @@ import {
   Circle,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import {
+  BarCompare,
+  GapMeter,
+  DotGrid,
+  GainRing,
+} from './recommendations/RecCharts';
 
 
 export interface RecommendationRow {

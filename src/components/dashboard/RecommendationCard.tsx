@@ -552,52 +552,68 @@ export function RecommendationCard({ rec, onChanged }: Props) {
             </div>
           )}
 
-          {/* Your status vs industry — visual comparison */}
-          {sample >= 2 && (peerMedian > 0 || userValue > 0) ? (
-            <div className="rounded-md border border-gray-800 bg-black/40 p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-[11px] uppercase tracking-wide text-gray-400">
-                  You vs. others in your industry
+          {/* Visual hero — the story in one glance */}
+          {(() => {
+            const m = (rec.target_metric || '').toUpperCase();
+            const topComp = competitors[0];
+            const topVal = topComp ? Number(topComp.value ?? topComp.count ?? 0) : 0;
+            const topName = topComp?.brand || topComp?.name;
+            const hasPeer = sample >= 2 && (peerMedian > 0 || userValue > 0);
+
+            if (!hasPeer) {
+              return (
+                <div className="rounded-md border border-yellow-500/20 bg-black/40 p-4">
+                  <GainRing pct={projected || 5} />
                 </div>
-                <span className="text-[11px] text-gray-500">from {sample} similar brands</span>
+              );
+            }
+
+            let chart: JSX.Element;
+            let title = 'You vs. others in your industry';
+            if (m === 'TSD' || m === 'CIS') {
+              chart = <DotGrid filled={userValue} total={Math.max(peerMedian, userValue)} />;
+              title = 'Websites talking about you';
+            } else if (m === 'CAG') {
+              chart = (
+                <GapMeter
+                  you={userValue}
+                  leader={topVal > 0 ? topVal : peerMedian}
+                  unit={unit}
+                />
+              );
+              title = 'How far behind the leaders you are';
+            } else {
+              chart = (
+                <BarCompare
+                  you={userValue}
+                  peer={peerMedian}
+                  top={topVal > 0 ? topVal : null}
+                  topLabel={topName}
+                  unit={unit}
+                />
+              );
+            }
+
+            return (
+              <div className="rounded-md border border-gray-800 bg-black/40 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-400">
+                    {title}
+                  </div>
+                  <span className="text-[11px] text-gray-500">
+                    based on {sample} similar brands
+                  </span>
+                </div>
+                {chart}
+                {gap > 0 && m !== 'CAG' && (
+                  <div className="text-[11px] text-red-300">
+                    You're behind by <span className="font-semibold">{gap}</span> {unit}.
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-400">You</span>
-                    <span className="text-white font-medium">{userValue}</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-gray-500 transition-all"
-                      style={{ width: `${Math.max(4, (userValue / max) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-yellow-400/80">Typical brand in your space</span>
-                    <span className="text-yellow-400 font-medium">{peerMedian}</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-800 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-400 transition-all"
-                      style={{ width: `${Math.max(4, (peerMedian / max) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              {gap > 0 && (
-                <div className="text-[11px] text-red-300">
-                  You're behind by <span className="font-semibold">{gap}</span> {unit}.
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-md border border-gray-800 bg-black/30 p-3 text-xs text-gray-400">
-              We're still gathering enough industry data to compare you here.
-            </div>
-          )}
+            );
+          })()}
+
 
           {/* If you ignore this */}
           <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 flex gap-2">

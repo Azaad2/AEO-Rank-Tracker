@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, AlertTriangle, Zap, TrendingUp, Clock, ArrowRight } from 'lucide-react';
+import { HealthGauge, StackedBreakdown } from './recommendations/RecCharts';
 import type { RecommendationRow } from './RecommendationCard';
 
 interface Props {

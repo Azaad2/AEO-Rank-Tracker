@@ -659,28 +659,46 @@ export function RecommendationCard({ rec, onChanged }: Props) {
           {/* Recommended actions */}
           {assetTypes.length > 0 && (
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-                What you should do
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                Ways to fix this — pick any one to start
               </div>
+              <p className="text-[11px] text-gray-500 mb-2">
+                You don't have to do all of them. Even one moves the needle.
+              </p>
               <div className="space-y-2">
                 {assetTypes.slice(0, 4).map((t) => {
                   const info = humanizeAsset(t);
                   return (
                     <div
                       key={t}
-                      className="flex items-start justify-between gap-3 rounded border border-gray-800 bg-black/30 p-2.5"
+                      className="rounded border border-gray-800 bg-black/30 p-3 space-y-2"
                     >
-                      <div className="min-w-0">
-                        <div className="text-sm text-white font-medium">{info.label}</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{info.why}</div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-white font-medium">{info.label}</div>
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            <span className="text-gray-500">Why it works: </span>
+                            {info.why}
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            <span className="text-gray-500">What happens when you click: </span>
+                            {info.how}
+                          </div>
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 shrink-0"
+                        onClick={() =>
+                          toast({
+                            title: info.label,
+                            description: info.how,
+                          })
+                        }
+                        className="border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 w-full sm:w-auto"
                       >
                         <Sparkles className="h-3 w-3 mr-1" />
-                        Let AI help
+                        Show me how
                       </Button>
                     </div>
                   );

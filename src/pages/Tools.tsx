@@ -252,7 +252,49 @@ const Tools = () => {
             </div>
           </div>
         ))}
+
+        {/* Related guides — cross-links tools ↔ blog to strengthen topic clusters */}
+        <div className="mt-12 pt-10 border-t border-gray-800">
+          <h2 className="text-2xl font-bold mb-2 text-white">Related Guides</h2>
+          <p className="text-gray-400 mb-6 text-sm">In-depth playbooks for every tool above.</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { slug: "best-online-llm-rank-tracker", label: "Best LLM Rank Trackers 2026" },
+              { slug: "chatgpt-mention-tracking-guide", label: "ChatGPT Mention Tracking Guide" },
+              { slug: "claude-rank-tracker-guide", label: "Claude Rank Tracker Guide" },
+              { slug: "perplexity-rank-tracker-guide", label: "Perplexity Rank Tracker Guide" },
+              { slug: "copilot-seo-tracking-guide", label: "Copilot SEO Tracking Guide" },
+              { slug: "ai-overviews-tracking-guide", label: "AI Overviews Tracking Guide" },
+              { slug: "ai-citation-tracking-guide", label: "AI Citation Tracking Guide" },
+              { slug: "ai-brand-monitoring", label: "AI Brand Monitoring Guide" },
+              { slug: "competitor-ai-analysis", label: "Competitor AI Analysis" },
+              { slug: "llm-readiness-optimization", label: "LLM Readiness Optimization" },
+              { slug: "geo-optimization-guide", label: "GEO Optimization Guide" },
+              { slug: "content-audit-ai-visibility", label: "Content Audit for AI Visibility" },
+              { slug: "schema-markup-generator", label: "Schema Markup Guide" },
+              { slug: "meta-tag-optimization", label: "Meta Tag Optimization" },
+              { slug: "ai-keyword-research", label: "AI Keyword Research" },
+              { slug: "serp-preview-tool", label: "SERP Preview Tool Guide" },
+              { slug: "seo-title-generator", label: "SEO Title Generator Guide" },
+              { slug: "meta-description-generator", label: "Meta Description Generator" },
+              { slug: "ai-prompt-generator-guide", label: "AI Prompt Generator Guide" },
+              { slug: "ai-answer-optimization", label: "AI Answer Optimization" },
+              { slug: "ai-blog-outline-generator", label: "AI Blog Outline Guide" },
+              { slug: "ai-faq-generator-guide", label: "AI FAQ Generator Guide" },
+              { slug: "ai-email-generator-guide", label: "AI Email Generator Guide" },
+            ].map((g) => (
+              <Link
+                key={g.slug}
+                to={`/blog/${g.slug}`}
+                className="text-sm text-gray-300 hover:text-yellow-400 transition-colors py-1"
+              >
+                → {g.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </main>
+
 
       {/* CTA Section */}
       <section className="border-t border-gray-800 bg-gray-900 py-16">

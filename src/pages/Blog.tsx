@@ -354,6 +354,38 @@ const Blog = () => {
         </div>
       </section>
 
+      {/* Popular guides strip — internal links to boost indexing of key posts */}
+      <section className="py-8 bg-black border-b border-gray-800">
+        <div className="container mx-auto px-4">
+          <h2 className="text-sm uppercase tracking-wider text-yellow-400 font-semibold mb-4">Popular Guides</h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { slug: "best-online-llm-rank-tracker", label: "Best LLM Rank Trackers 2026" },
+              { slug: "ai-brand-monitoring", label: "AI Brand Monitoring" },
+              { slug: "how-to-check-ai-search-visibility", label: "Check AI Search Visibility" },
+              { slug: "ai-overviews-tracking-guide", label: "AI Overviews Tracking" },
+              { slug: "llm-rank-tracking-guide", label: "LLM Rank Tracking" },
+              { slug: "chatgpt-mention-tracking-guide", label: "ChatGPT Mention Tracking" },
+              { slug: "claude-rank-tracker-guide", label: "Claude Rank Tracking" },
+              { slug: "perplexity-rank-tracker-guide", label: "Perplexity Rank Tracking" },
+              { slug: "copilot-seo-tracking-guide", label: "Copilot SEO Tracking" },
+              { slug: "geo-optimization-guide", label: "GEO Optimization" },
+              { slug: "what-is-answer-engine-optimization-aeo-guide", label: "What is AEO?" },
+              { slug: "ai-citation-tracking-guide", label: "AI Citation Tracking" },
+            ].map((g) => (
+              <Link
+                key={g.slug}
+                to={`/blog/${g.slug}`}
+                className="px-3 py-1.5 text-xs rounded-full bg-gray-900 text-gray-300 border border-gray-800 hover:border-yellow-400 hover:text-yellow-400 transition-colors"
+              >
+                {g.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
       {/* Category Filters */}
       <section className="py-6 border-b border-gray-800 bg-black sticky top-14 z-40">
         <div className="container mx-auto px-4">

@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
     innerHtml = tip.html;
     snippet = tip.snippet;
   } catch (e) {
-    await admin.from('newsletter_log').insert({ send_date: today, subject: topic, status: 'failed', error: `AI generation: ${(e as Error).message}` });
+    await admin.from('newsletter_log').insert({ send_date: today, subject: topic.feature, status: 'failed', error: `AI generation: ${(e as Error).message}` });
     return new Response(JSON.stringify({ error: 'AI generation failed', detail: (e as Error).message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 

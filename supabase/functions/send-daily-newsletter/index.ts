@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
 
   await admin.from('newsletter_log').insert({ send_date: today, subject, body_snippet: snippet, broadcast_id: broadcastId, status: 'sent' });
 
-  return new Response(JSON.stringify({ sent: true, broadcast_id: broadcastId, subject, topic }), {
+  return new Response(JSON.stringify({ sent: true, broadcast_id: broadcastId, subject, feature: topic.feature }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

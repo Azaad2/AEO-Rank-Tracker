@@ -8,42 +8,49 @@ const corsHeaders = {
 const RESEND_API = 'https://api.resend.com';
 const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
+// Product features & metrics inside AI Mention You — each email explains
+// ONE feature/metric, what it measures, and how users act on it to fix
+// their AI visibility. No generic GEO tips.
 const TOPICS = [
-  'schema markup for AI answer engines',
-  'optimizing FAQ pages for ChatGPT citations',
-  'tracking brand mentions in Perplexity',
-  'building topical authority for AI search',
-  'why Google AI Overviews ignore your brand',
-  'getting cited by Claude and Copilot',
-  'competitor benchmarking in AI search',
-  'GEO vs SEO: where to invest in 2026',
-  'using Reddit threads to win AI citations',
-  'structured data that AI crawlers actually read',
-  'long-tail prompt research for AI visibility',
-  'content gaps that hurt AI rankings',
-  'fixing AI hallucinations about your brand',
-  'listicle placements that drive AI mentions',
-  'review pages and AI recommendation engines',
-  'how AI ranks SaaS tools today',
-  'monitoring AI answer drift weekly',
-  'turning support docs into AI training data',
-  'press mentions and AI authority signals',
-  'comparison pages that AI loves to cite',
-  'why your homepage is invisible to LLMs',
-  'using llms.txt to guide AI crawlers',
-  'directory listings that boost AI visibility',
-  'AI prompt patterns customers actually use',
-  'category page optimization for AI search',
-  'speed wins: AI crawl budget hygiene',
-  'social proof signals AI engines weigh',
-  'forum threads as AI citation goldmines',
-  'measuring share-of-voice in AI answers',
-  'first-mover advantage in AI search verticals',
+  { feature: 'AI Visibility Score', what: 'Composite 0–100 score weighted Gemini 60%, Perplexity 20%, Search 20%.', fix: 'How to raise the score by targeting the lowest-weighted engine first.' },
+  { feature: 'Prompt Diagnostics', what: 'Per-prompt breakdown of who AI cites and why you were skipped.', fix: 'How to read the evidence panel and generate the missing asset (comparison, FAQ, review).' },
+  { feature: 'Citation Intelligence', what: 'Which trusted domains AI pulls from to answer prompts in your category.', fix: 'How to prioritise the 3 highest-authority domains to get listed on this month.' },
+  { feature: 'Industry Benchmark', what: 'Your visibility vs. the 34% category average and top competitors.', fix: 'How to use the gap number to pick your next content bet.' },
+  { feature: 'Recommendation Intelligence', what: 'Ranked actions by projected visibility lift.', fix: 'How to sequence the top 3 recommendations for the fastest score jump.' },
+  { feature: 'Competitor Watch', what: 'Which competitors AI mentions instead of you, per prompt.', fix: 'How to reverse-engineer their citation sources and beat them.' },
+  { feature: 'Action Plan', what: 'Auto-generated optimisation tasks tied to scan findings.', fix: 'How to work the plan top-down and mark wins.' },
+  { feature: 'Auto-Fix (Content & Schema)', what: 'One-click generation of FAQ schema, comparison pages, and meta.', fix: 'How to deploy an auto-fix asset in under 10 minutes.' },
+  { feature: 'Ranking Opportunities', what: 'Prompts where you nearly ranked and can win with small edits.', fix: 'How to pick the highest-intent near-miss prompts first.' },
+  { feature: 'Scan History & Score Trend', what: 'Weekly movement of your visibility score.', fix: 'How to spot AI answer drift before it costs traffic.' },
+  { feature: 'Saved Domains & Daily Monitoring', what: 'Automated 2AM UTC scans of every saved domain.', fix: 'How to set alerts so you catch drops within 24 hours.' },
+  { feature: 'AI Assistant', what: 'Chat that answers "why am I invisible for X prompt?" using your scan data.', fix: 'How to ask it to draft the exact content asset you are missing.' },
+  { feature: 'Suggested Prompts', what: 'AI-generated prompts your buyers actually type into ChatGPT/Perplexity.', fix: 'How to add 5 new tracked prompts a week to widen coverage.' },
+  { feature: 'LLM Readiness Score', what: 'How ingestible your site is to LLM crawlers.', fix: 'How to fix the 3 crawlability blockers most sites fail on.' },
+  { feature: 'llms.txt Generator', what: 'The file that guides AI crawlers to your best content.', fix: 'How to ship a working llms.txt in 5 minutes.' },
+  { feature: 'Schema Generator', what: 'JSON-LD builder for FAQ, Product, Organization schemas.', fix: 'How to pick the ONE schema type that unlocks AI citations for your category.' },
+  { feature: 'FAQ Generator', what: 'Extracts real buyer questions and formats them for AI ingestion.', fix: 'How to place FAQ blocks so AI actually cites them.' },
+  { feature: 'Comparison Page Builder', what: 'Head-to-head pages AI loves to cite in "X vs Y" prompts.', fix: 'How to structure a comparison so Perplexity picks it up.' },
+  { feature: 'Content Auditor', what: 'Scores existing pages for AI ingestibility.', fix: 'How to rewrite the lowest-scoring page for a 20+ point lift.' },
+  { feature: 'Keyword Analyzer (AI intent)', what: 'Maps keywords to AI prompt patterns.', fix: 'How to shift a keyword page into an AI-answerable format.' },
+  { feature: 'Brand Monitor', what: 'Tracks mentions & hallucinations about your brand across LLMs.', fix: 'How to correct a hallucinated fact at the source.' },
+  { feature: 'ChatGPT / Claude / Copilot / Perplexity Rank Trackers', what: 'Per-engine visibility position over time.', fix: 'How to read the per-engine tabs and pick which engine to fight for first.' },
+  { feature: 'AI Overviews Tracker', what: 'Whether Google AI Overviews cites you for target queries.', fix: 'How to earn an AI Overview citation with structured answers.' },
+  { feature: 'Meta Optimizer', what: 'Rewrites title/description for AI-search click-through.', fix: 'How to A/B test one meta rewrite a week.' },
+  { feature: 'SERP Previewer', what: 'Shows how your snippet renders in AI-augmented SERPs.', fix: 'How to compress your answer into the AI snippet window.' },
+  { feature: 'Trusted Sources panel', what: 'Ranked list of domains AI trusts in your niche.', fix: 'How to earn a listing on the top-3 trusted domains.' },
+  { feature: 'Biggest Opportunity card', what: 'The single action with the highest projected score lift.', fix: 'How to ship the Biggest Opportunity this week.' },
+  { feature: 'Credit Usage & Scan Limits', what: 'How scans and prompts are metered per tier.', fix: 'How to prioritise which domains to scan when credits are tight.' },
+  { feature: 'CSV Export & Premium PDF Report', what: 'Shareable evidence pack for stakeholders.', fix: 'How to use the PDF to justify next month\'s content budget.' },
+  { feature: 'Onboarding Checklist', what: 'Guided path from first scan to first fix.', fix: 'How to finish onboarding in under 30 minutes and see your first score gain.' },
 ];
 
-async function generateTip(topic: string, apiKey: string): Promise<{ subject: string; html: string; snippet: string }> {
-  const sys = `You are a senior AI search optimization strategist for SaaS founders and agencies. Write a punchy daily newsletter tip (150-220 words) about AI search visibility (GEO). Tone: confident, practical, no fluff, no emojis. Return STRICT JSON: {"subject": "<email subject line, max 60 chars, curiosity-driven, no clickbait>", "body_html": "<inner HTML: 1 short opening line, 2-3 short paragraphs in <p>, optionally one <ul> with 2-3 <li>. No <html>, <body>, or inline styles.>"}`;
-  const user = `Today's topic: ${topic}. Write the tip. End with a 1-sentence actionable next step.`;
+async function generateTip(topic: { feature: string; what: string; fix: string }, apiKey: string): Promise<{ subject: string; html: string; snippet: string }> {
+  const sys = `You are the product educator for AI Mention You, a tool that helps SaaS founders and agencies get cited by ChatGPT, Perplexity, Claude, Copilot and Google AI Overviews. Write a daily product email (150-220 words) that teaches ONE feature/metric of the product and shows exactly how it helps the user FIX their AI visibility. Tone: confident, practical, product-specific, no fluff, no emojis. Never invent features. Return STRICT JSON: {"subject": "<max 60 chars, feature-first, e.g. 'How your AI Visibility Score really works'>", "body_html": "<inner HTML: 1 opening line naming the feature, 1-2 short <p> explaining WHAT the metric measures, 1 <p> or <ul> with 2-3 <li> showing HOW to act on it inside the dashboard, closing line with the one next step. No <html>, <body>, no inline styles.>"}`;
+  const user = `Today's feature: ${topic.feature}
+What it measures: ${topic.what}
+How users fix visibility with it: ${topic.fix}
+
+Write the email. Reference the feature by its exact name. End with a 1-sentence next step that tells the user which tab/page to open in AI Mention You.`;
 
   const res = await fetch(AI_GATEWAY, {
     method: 'POST',

@@ -160,6 +160,10 @@ function Favicon({ domain, size = 16 }: { domain: string; size?: number }) {
 
 // ------------- Component -------------
 
+const SEARCH_SOURCES = ['Google', 'Reddit', 'G2', 'Capterra', 'TrustRadius', 'AI search results'];
+type EnrichCounts = { pages: number; reviewSites: number; comparisonPages: number; citations: number };
+type EnrichProgress = { steps: string[]; active: boolean; counts?: EnrichCounts };
+
 export function PromptDiagnosticsTab() {
   const { user } = useAuth();
   const [results, setResults] = useState<ResultRow[]>([]);
@@ -167,7 +171,7 @@ export function PromptDiagnosticsTab() {
   const [domain, setDomain] = useState<string>('');
   const [brand, setBrand] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
+  const [enrichProgress, setEnrichProgress] = useState<Record<number, EnrichProgress>>({});
 
   useEffect(() => {
     (async () => {
@@ -213,14 +217,25 @@ export function PromptDiagnosticsTab() {
       // Auto-enrich prompts with no evidence yet — throttled sequentially
       const missing = rows.filter(r => !(grouped[r.id] && grouped[r.id].length > 0));
       for (const r of missing.slice(0, 8)) {
-        setEnriching(prev => ({ ...prev, [r.id]: true }));
+        setEnrichProgress(prev => ({ ...prev, [r.id]: { steps: [], active: true } }));
+        // Tick sources every 500ms while the call is in flight
+        let stepIdx = 0;
+        const tick = setInterval(() => {
+          stepIdx = Math.min(stepIdx + 1, SEARCH_SOURCES.length);
+          setEnrichProgress(prev => {
+            const cur = prev[r.id];
+            if (!cur || !cur.active) return prev;
+            return { ...prev, [r.id]: { ...cur, steps: SEARCH_SOURCES.slice(0, stepIdx) } };
+          });
+          if (stepIdx >= SEARCH_SOURCES.length) clearInterval(tick);
+        }, 500);
         try {
           const { data } = await supabase.functions.invoke('enrich-prompt-evidence', {
             body: { scan_result_id: r.id, prompt: r.prompt, brand: brandName },
           });
           const fresh = (data?.citations || []) as any[];
           if (fresh.length) {
-            const rows: CitationRow[] = fresh.map((c: any) => ({
+            const newRows: CitationRow[] = fresh.map((c: any) => ({
               scan_result_id: r.id,
               engine: 'search',
               url: c.url,
@@ -230,12 +245,28 @@ export function PromptDiagnosticsTab() {
               cites_brand: c.cites_brand ?? null,
               position: c.position ?? null,
             }));
-            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...rows] }));
+            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...newRows] }));
           }
+          const uniqUrls = new Set(fresh.map((c: any) => c.url));
+          const reviewSites = new Set(
+            fresh.filter((c: any) => c.source_type === 'review_site').map((c: any) => c.domain)
+          );
+          const comparisonPages = fresh.filter((c: any) => c.asset_type === 'comparison_page').length;
+          const counts: EnrichCounts = {
+            pages: uniqUrls.size,
+            reviewSites: reviewSites.size,
+            comparisonPages,
+            citations: fresh.length,
+          };
+          clearInterval(tick);
+          setEnrichProgress(prev => ({
+            ...prev,
+            [r.id]: { steps: SEARCH_SOURCES, active: false, counts },
+          }));
         } catch (e) {
           console.error('enrich failed', e);
-        } finally {
-          setEnriching(prev => ({ ...prev, [r.id]: false }));
+          clearInterval(tick);
+          setEnrichProgress(prev => ({ ...prev, [r.id]: { steps: SEARCH_SOURCES, active: false } }));
         }
       }
     })();
@@ -322,7 +353,7 @@ export function PromptDiagnosticsTab() {
               row={r}
               citations={citationsByResult[r.id] || []}
               brand={brand}
-              enriching={!!enriching[r.id]}
+              progress={enrichProgress[r.id]}
             />
           ))}
 
@@ -372,14 +403,15 @@ function PromptCard({
   row,
   citations,
   brand,
-  enriching = false,
+  progress,
 }: {
   index: number;
   row: ResultRow;
   citations: CitationRow[];
   brand: string;
-  enriching?: boolean;
+  progress?: EnrichProgress;
 }) {
+  const enriching = !!progress?.active;
 
   const { pct } = computeVisibility(row);
   const health = healthFor(pct);
@@ -475,12 +507,21 @@ function PromptCard({
               </Badge>
               {enriching && (
                 <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/40 border text-[10px] flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Discovering live evidence…
+                  <Loader2 className="h-3 w-3 animate-spin" /> Searching…
+                </Badge>
+              )}
+              {!enriching && progress?.counts && (
+                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 border text-[10px]">
+                  ✓ Live evidence loaded
                 </Badge>
               )}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Prompt #{index + 1}</div>
             <div className="text-white text-base md:text-lg font-semibold leading-snug">{row.prompt}</div>
+
+            {progress && (progress.active || progress.counts) && (
+              <LiveSearchPanel progress={progress} />
+            )}
 
             {/* Section 1: What happened */}
             <div className="mt-3 rounded-lg border border-gray-800 bg-black/40 p-3">
@@ -721,6 +762,66 @@ function EvidenceBlock({ title, items }: { title: string; items: string[] }) {
           <li key={i} className="truncate">• {it}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function LiveSearchPanel({ progress }: { progress: EnrichProgress }) {
+  const { steps, active, counts } = progress;
+  const done = new Set(steps);
+  return (
+    <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        {active ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-300" />
+            <span className="text-xs font-semibold text-blue-200">Searching the web for live evidence…</span>
+          </>
+        ) : (
+          <>
+            <span className="text-emerald-400 text-sm">✓</span>
+            <span className="text-xs font-semibold text-emerald-200">Search complete</span>
+          </>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+        {SEARCH_SOURCES.map((src) => {
+          const isDone = done.has(src);
+          const isNext = active && !isDone && steps.length < SEARCH_SOURCES.length && SEARCH_SOURCES[steps.length] === src;
+          return (
+            <div key={src} className="flex items-center gap-1.5">
+              {isDone ? (
+                <span className="text-emerald-400">✓</span>
+              ) : isNext ? (
+                <Loader2 className="h-3 w-3 animate-spin text-blue-300" />
+              ) : (
+                <span className="text-gray-600">○</span>
+              )}
+              <span className={isDone ? 'text-gray-200' : 'text-gray-500'}>{src}</span>
+            </div>
+          );
+        })}
+      </div>
+      {counts && (
+        <div className="mt-3 pt-3 border-t border-blue-500/20">
+          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Found</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <FoundStat value={counts.pages} label="pages" />
+            <FoundStat value={counts.reviewSites} label="review sites" />
+            <FoundStat value={counts.comparisonPages} label="comparison pages" />
+            <FoundStat value={counts.citations} label="citations" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FoundStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="rounded-md bg-black/40 border border-gray-800 px-2 py-1.5">
+      <div className="text-base font-bold text-white leading-tight">{value}</div>
+      <div className="text-[10px] text-gray-400">{label}</div>
     </div>
   );
 }

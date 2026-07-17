@@ -96,18 +96,21 @@ function Kpi({
   label,
   value,
   delta,
+  deltaSuffix,
   spark,
   color,
   suffix,
 }: {
   label: string;
   value: string;
-  delta: number;
+  delta: number | null;
+  deltaSuffix?: string;
   spark: number[];
   color: string;
   suffix?: string;
 }) {
-  const positive = delta >= 0;
+  const positive = (delta ?? 0) >= 0;
+  const hasSpark = spark.some((v) => v > 0);
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900/70 p-4 flex flex-col justify-between min-h-[180px]">
       <div className="flex items-center justify-between">
@@ -121,14 +124,18 @@ function Kpi({
           {value}
           {suffix && <span className="text-2xl text-gray-500 ml-1">{suffix}</span>}
         </div>
-        <div className={`mt-2 text-xs inline-flex items-center gap-1 ${deltaColor(delta)}`}>
-          {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {positive ? '+' : ''}
-          {delta}
-          {label.includes('GAP') ? '' : label.includes('PROMPTS') ? '' : '%'} vs last 7 days
-        </div>
+        {delta === null ? (
+          <div className="mt-2 text-xs text-gray-500">No prior scan to compare</div>
+        ) : (
+          <div className={`mt-2 text-xs inline-flex items-center gap-1 ${deltaColor(delta)}`}>
+            {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {positive ? '+' : ''}
+            {delta}
+            {deltaSuffix ?? ''} vs previous
+          </div>
+        )}
       </div>
-      <Spark data={spark} color={color} />
+      {hasSpark ? <Spark data={spark} color={color} /> : <div className="h-14" />}
     </div>
   );
 }

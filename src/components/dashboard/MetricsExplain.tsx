@@ -39,8 +39,8 @@ const fmtDate = (d: Date) =>
 const fmtRange = (a: Date, b: Date) =>
   `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-type Range = '7D' | '30D' | '90D';
-const rangeDays = (r: Range) => (r === '7D' ? 7 : r === '30D' ? 30 : 90);
+type Range = '7D' | '30D' | '90D' | 'ALL';
+const rangeDays = (r: Range) => (r === '7D' ? 7 : r === '30D' ? 30 : r === '90D' ? 90 : 3650);
 
 function pct(n: number) {
   return `${Math.round(n)}%`;
@@ -96,18 +96,21 @@ function Kpi({
   label,
   value,
   delta,
+  deltaSuffix,
   spark,
   color,
   suffix,
 }: {
   label: string;
   value: string;
-  delta: number;
+  delta: number | null;
+  deltaSuffix?: string;
   spark: number[];
   color: string;
   suffix?: string;
 }) {
-  const positive = delta >= 0;
+  const positive = (delta ?? 0) >= 0;
+  const hasSpark = spark.some((v) => v > 0);
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900/70 p-4 flex flex-col justify-between min-h-[180px]">
       <div className="flex items-center justify-between">
@@ -121,14 +124,18 @@ function Kpi({
           {value}
           {suffix && <span className="text-2xl text-gray-500 ml-1">{suffix}</span>}
         </div>
-        <div className={`mt-2 text-xs inline-flex items-center gap-1 ${deltaColor(delta)}`}>
-          {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-          {positive ? '+' : ''}
-          {delta}
-          {label.includes('GAP') ? '' : label.includes('PROMPTS') ? '' : '%'} vs last 7 days
-        </div>
+        {delta === null ? (
+          <div className="mt-2 text-xs text-gray-500">No prior scan to compare</div>
+        ) : (
+          <div className={`mt-2 text-xs inline-flex items-center gap-1 ${deltaColor(delta)}`}>
+            {positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {positive ? '+' : ''}
+            {delta}
+            {deltaSuffix ?? ''} vs previous
+          </div>
+        )}
       </div>
-      <Spark data={spark} color={color} />
+      {hasSpark ? <Spark data={spark} color={color} /> : <div className="h-14" />}
     </div>
   );
 }
@@ -138,49 +145,113 @@ export function MetricsExplain() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>('7D');
   const [scanIds, setScanIds] = useState<string[]>([]);
-  const [scansByDay, setScansByDay] = useState<Record<string, string[]>>({});
+  const [prevScanIds, setPrevScanIds] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<any | null>(null); // latest
   const [prevMetrics, setPrevMetrics] = useState<any | null>(null);
   const [citations, setCitations] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [prevResults, setPrevResults] = useState<any[]>([]);
+  const [prevCitations, setPrevCitations] = useState<any[]>([]);
   const [dailyScore, setDailyScore] = useState<{ date: string; score: number }[]>([]);
   const [refreshedAt, setRefreshedAt] = useState<Date>(new Date());
+  const [totalUserScans, setTotalUserScans] = useState<number>(0);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  const [effectiveRangeStart, setEffectiveRangeStart] = useState<Date>(new Date());
+  const [effectiveRangeEnd, setEffectiveRangeEnd] = useState<Date>(new Date());
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
+    setFallbackNotice(null);
     const days = rangeDays(range);
-    const since = new Date(Date.now() - days * 86400_000).toISOString();
+    const now = Date.now();
+    const since = new Date(now - days * 86400_000).toISOString();
 
-    const { data: scans } = await supabase
+    // Count all scans for the user (drives the empty state)
+    const { count: totalCount } = await supabase
+      .from('scans')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    setTotalUserScans(totalCount ?? 0);
+
+    let { data: scans } = await supabase
       .from('scans')
       .select('id, created_at, score')
       .eq('user_id', user.id)
       .gte('created_at', since)
       .order('created_at', { ascending: false });
 
+    let currentStart = new Date(now - days * 86400_000);
+    let currentEnd = new Date(now);
+    let usedFallback = false;
+
+    // Fallback: no scans in the selected window — show the most recent scan instead
+    if ((!scans || scans.length === 0) && (totalCount ?? 0) > 0 && range !== 'ALL') {
+      const { data: latest } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (latest && latest.length) {
+        scans = latest;
+        const d = new Date(latest[0].created_at);
+        currentStart = d;
+        currentEnd = d;
+        usedFallback = true;
+        setFallbackNotice(
+          `No scans in the last ${days} days — showing your latest scan from ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`
+        );
+      }
+    }
+
+    setEffectiveRangeStart(currentStart);
+    setEffectiveRangeEnd(currentEnd);
+
     const ids = (scans ?? []).map((s: any) => s.id);
     setScanIds(ids);
 
-    // group by day
-    const byDay: Record<string, string[]> = {};
+    // Load the previous equivalent window (or the scan just before the fallback) for real deltas
+    let prevScans: any[] = [];
+    if (usedFallback) {
+      const { data: p } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .lt('created_at', currentStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+      prevScans = p ?? [];
+    } else if (ids.length) {
+      const prevSince = new Date(now - 2 * days * 86400_000).toISOString();
+      const { data: p } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .gte('created_at', prevSince)
+        .lt('created_at', since)
+        .order('created_at', { ascending: false });
+      prevScans = p ?? [];
+    }
+    const prevIds = prevScans.map((s) => s.id);
+    setPrevScanIds(prevIds);
+
+    // group by day for the sparkline / line chart
     const scoreByDay: Record<string, number[]> = {};
     (scans ?? []).forEach((s: any) => {
       const d = new Date(s.created_at).toISOString().slice(0, 10);
-      byDay[d] = byDay[d] || [];
-      byDay[d].push(s.id);
       if (s.score != null) {
         scoreByDay[d] = scoreByDay[d] || [];
         scoreByDay[d].push(Number(s.score));
       }
     });
-    setScansByDay(byDay);
 
-    // build daily series (fill gaps)
+    const seriesDays = usedFallback ? 7 : days;
+    const anchor = usedFallback ? currentEnd.getTime() : now;
     const series: { date: string; score: number }[] = [];
     let lastScore = 0;
-    for (let i = days - 1; i >= 0; i--) {
-      const dt = new Date(Date.now() - i * 86400_000);
+    for (let i = seriesDays - 1; i >= 0; i--) {
+      const dt = new Date(anchor - i * 86400_000);
       const key = dt.toISOString().slice(0, 10);
       const arr = scoreByDay[key];
       if (arr && arr.length) {
@@ -195,21 +266,20 @@ export function MetricsExplain() {
       setPrevMetrics(null);
       setCitations([]);
       setResults([]);
+      setPrevResults([]);
+      setPrevCitations([]);
       setLoading(false);
+      setRefreshedAt(new Date());
       return;
     }
 
-    const [{ data: mLatest }, { data: cits }, { data: srs }] = await Promise.all([
+    const [{ data: mLatest }, { data: srs }] = await Promise.all([
       supabase
         .from('proprietary_metrics_cache')
         .select('*')
         .in('scan_id', ids)
         .order('computed_at', { ascending: false })
-        .limit(2),
-      supabase
-        .from('citations')
-        .select('scan_result_id, engine, domain, source_type, cites_brand')
-        .in('scan_result_id', []),
+        .limit(1),
       supabase
         .from('scan_results')
         .select(
@@ -219,13 +289,11 @@ export function MetricsExplain() {
     ]);
 
     setMetrics(mLatest?.[0] ?? null);
-    setPrevMetrics(mLatest?.[1] ?? null);
     const resultRows = srs ?? [];
     setResults(resultRows);
 
     if (resultRows.length) {
       const rIds = resultRows.map((r: any) => r.id);
-      // chunk if needed
       const { data: c2 } = await supabase
         .from('citations')
         .select('scan_result_id, engine, domain, source_type, asset_type, cites_brand')
@@ -233,6 +301,40 @@ export function MetricsExplain() {
       setCitations(c2 ?? []);
     } else {
       setCitations([]);
+    }
+
+    // Previous-window data for real deltas
+    if (prevIds.length) {
+      const [{ data: pm }, { data: pr }] = await Promise.all([
+        supabase
+          .from('proprietary_metrics_cache')
+          .select('*')
+          .in('scan_id', prevIds)
+          .order('computed_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('scan_results')
+          .select(
+            'id, mentioned, gemini_mentioned, chatgpt_mentioned, perplexity_mentioned, claude_mentioned'
+          )
+          .in('scan_id', prevIds),
+      ]);
+      setPrevMetrics(pm?.[0] ?? null);
+      const pRows = pr ?? [];
+      setPrevResults(pRows);
+      if (pRows.length) {
+        const { data: pc } = await supabase
+          .from('citations')
+          .select('scan_result_id, cites_brand')
+          .in('scan_result_id', pRows.map((r: any) => r.id));
+        setPrevCitations(pc ?? []);
+      } else {
+        setPrevCitations([]);
+      }
+    } else {
+      setPrevMetrics(null);
+      setPrevResults([]);
+      setPrevCitations([]);
     }
 
     setRefreshedAt(new Date());
@@ -384,26 +486,47 @@ export function MetricsExplain() {
     };
   }, [metrics, citations, results]);
 
-  // spark data: rebuild small series per KPI from dailyScore + citations scaling
+  // Compute real deltas from previous window
+  const deltas = useMemo(() => {
+    const prevTotalPrompts = prevResults.length;
+    const prevMentioned = prevResults.filter(
+      (r: any) =>
+        r.mentioned ||
+        r.gemini_mentioned ||
+        r.chatgpt_mentioned ||
+        r.perplexity_mentioned ||
+        r.claude_mentioned
+    ).length;
+    const prevVisibility = prevTotalPrompts ? Math.round((prevMentioned / prevTotalPrompts) * 100) : null;
+    const prevTotalMentions = prevCitations.filter((c: any) => c.cites_brand).length;
+    const prevCitationGrowth = prevCitations.length;
+    const prevGap = prevMetrics ? Number(prevMetrics?.coi?.overall ?? prevMetrics?.coi?.gap ?? 0) || 0 : null;
+
+    const has = prevScanIds.length > 0;
+    return {
+      visibility: has && prevVisibility !== null ? derived.visibility - prevVisibility : null,
+      mentions: has ? derived.totalMentions - prevTotalMentions : null,
+      citations: has ? derived.citationGrowth - prevCitationGrowth : null,
+      gap: has && prevGap !== null ? Number((derived.gap - prevGap).toFixed(2)) : null,
+      prompts: has ? derived.totalPrompts - prevTotalPrompts : null,
+    };
+  }, [derived, prevResults, prevCitations, prevMetrics, prevScanIds]);
+
+  // spark data: use only real series
   const sparks = useMemo(() => {
     const base = dailyScore.map((d) => d.score);
-    const len = base.length || 7;
-    const noise = (seed: number) =>
-      Array.from({ length: len }, (_, i) => {
-        const t = i / Math.max(1, len - 1);
-        return Math.round((seed * 0.4 + seed * 0.6 * t + Math.sin(i + seed) * 3));
-      });
+    const empty = Array(7).fill(0);
     return {
-      visibility: base.length ? base : noise(30),
-      mentions: noise(derived.totalMentions || 60),
-      citations: noise(derived.citationGrowth || 40),
-      gap: noise(Math.max(10, Math.round(derived.gap * 100) || 30)),
-      prompts: noise(derived.totalPrompts || 20),
+      visibility: base.length && base.some((v) => v > 0) ? base : empty,
+      mentions: empty,
+      citations: empty,
+      gap: empty,
+      prompts: empty,
     };
-  }, [dailyScore, derived]);
+  }, [dailyScore]);
 
-  const rangeStart = new Date(Date.now() - rangeDays(range) * 86400_000);
-  const rangeEnd = new Date();
+  const rangeStart = effectiveRangeStart;
+  const rangeEnd = effectiveRangeEnd;
 
   const exportCsv = () => {
     const rows = [
@@ -432,6 +555,39 @@ export function MetricsExplain() {
     );
   }
 
+  // True empty state — user has never scanned
+  if (totalUserScans === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-3xl font-bold text-white">Metrics</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Track your AI visibility performance across all key metrics
+          </p>
+        </div>
+        <Card className="bg-gray-900/70 border-gray-800">
+          <CardContent className="p-10 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-yellow-400/10 flex items-center justify-center mb-4">
+              <Activity className="h-6 w-6 text-yellow-400" />
+            </div>
+            <div className="text-xl font-semibold text-white">No scan data yet</div>
+            <p className="text-sm text-gray-400 mt-2 max-w-md mx-auto">
+              Run your first scan to see your AI visibility metrics, mentions, and
+              competitor gaps here.
+            </p>
+            <Button
+              onClick={() => window.dispatchEvent(new CustomEvent('dashboard:goto', { detail: 'quick-scan' }))}
+              className="mt-5 bg-yellow-400 text-black hover:bg-yellow-300"
+            >
+              Run your first scan
+              <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -456,13 +612,23 @@ export function MetricsExplain() {
         </div>
       </div>
 
+      {fallbackNotice && (
+        <div className="rounded-md border border-yellow-400/30 bg-yellow-400/5 px-3 py-2 text-xs text-yellow-200 flex items-center gap-2">
+          <Info className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
+          <span>{fallbackNotice}</span>
+          <button onClick={() => setRange('ALL')} className="ml-auto text-yellow-400 hover:text-yellow-300 underline">
+            View all-time
+          </button>
+        </div>
+      )}
+
       {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <Kpi label="AI VISIBILITY SCORE" value={pct(derived.visibility)} delta={8} spark={sparks.visibility} color="#facc15" />
-        <Kpi label="TOTAL MENTIONS" value={String(derived.totalMentions)} delta={18} spark={sparks.mentions} color="#a855f7" />
-        <Kpi label="CITATION GROWTH" value={String(derived.citationGrowth)} delta={22} spark={sparks.citations} color="#3b82f6" />
-        <Kpi label="COMPETITOR GAP INDEX" value={derived.gap.toFixed(2)} delta={-0.12} spark={sparks.gap} color="#22c55e" />
-        <Kpi label="PROMPTS TRACKED" value={String(derived.totalPrompts)} delta={4} spark={sparks.prompts} color="#a855f7" />
+        <Kpi label="AI VISIBILITY SCORE" value={pct(derived.visibility)} delta={deltas.visibility} deltaSuffix="%" spark={sparks.visibility} color="#facc15" />
+        <Kpi label="TOTAL MENTIONS" value={String(derived.totalMentions)} delta={deltas.mentions} spark={sparks.mentions} color="#a855f7" />
+        <Kpi label="CITATION GROWTH" value={String(derived.citationGrowth)} delta={deltas.citations} spark={sparks.citations} color="#3b82f6" />
+        <Kpi label="COMPETITOR GAP INDEX" value={derived.gap.toFixed(2)} delta={deltas.gap} spark={sparks.gap} color="#22c55e" />
+        <Kpi label="PROMPTS TRACKED" value={String(derived.totalPrompts)} delta={deltas.prompts} spark={sparks.prompts} color="#a855f7" />
       </div>
 
       {/* Score over time + Platform donut */}
@@ -475,7 +641,7 @@ export function MetricsExplain() {
                 <Info className="h-3.5 w-3.5 text-gray-500" />
               </div>
               <div className="inline-flex rounded-md border border-gray-800 bg-gray-900 overflow-hidden">
-                {(['7D', '30D', '90D'] as Range[]).map((r) => (
+                {(['7D', '30D', '90D', 'ALL'] as Range[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRange(r)}

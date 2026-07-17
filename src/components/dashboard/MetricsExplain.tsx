@@ -145,49 +145,113 @@ export function MetricsExplain() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>('7D');
   const [scanIds, setScanIds] = useState<string[]>([]);
-  const [scansByDay, setScansByDay] = useState<Record<string, string[]>>({});
+  const [prevScanIds, setPrevScanIds] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<any | null>(null); // latest
   const [prevMetrics, setPrevMetrics] = useState<any | null>(null);
   const [citations, setCitations] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [prevResults, setPrevResults] = useState<any[]>([]);
+  const [prevCitations, setPrevCitations] = useState<any[]>([]);
   const [dailyScore, setDailyScore] = useState<{ date: string; score: number }[]>([]);
   const [refreshedAt, setRefreshedAt] = useState<Date>(new Date());
+  const [totalUserScans, setTotalUserScans] = useState<number>(0);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  const [effectiveRangeStart, setEffectiveRangeStart] = useState<Date>(new Date());
+  const [effectiveRangeEnd, setEffectiveRangeEnd] = useState<Date>(new Date());
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
+    setFallbackNotice(null);
     const days = rangeDays(range);
-    const since = new Date(Date.now() - days * 86400_000).toISOString();
+    const now = Date.now();
+    const since = new Date(now - days * 86400_000).toISOString();
 
-    const { data: scans } = await supabase
+    // Count all scans for the user (drives the empty state)
+    const { count: totalCount } = await supabase
+      .from('scans')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    setTotalUserScans(totalCount ?? 0);
+
+    let { data: scans } = await supabase
       .from('scans')
       .select('id, created_at, score')
       .eq('user_id', user.id)
       .gte('created_at', since)
       .order('created_at', { ascending: false });
 
+    let currentStart = new Date(now - days * 86400_000);
+    let currentEnd = new Date(now);
+    let usedFallback = false;
+
+    // Fallback: no scans in the selected window — show the most recent scan instead
+    if ((!scans || scans.length === 0) && (totalCount ?? 0) > 0 && range !== 'ALL') {
+      const { data: latest } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (latest && latest.length) {
+        scans = latest;
+        const d = new Date(latest[0].created_at);
+        currentStart = d;
+        currentEnd = d;
+        usedFallback = true;
+        setFallbackNotice(
+          `No scans in the last ${days} days — showing your latest scan from ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`
+        );
+      }
+    }
+
+    setEffectiveRangeStart(currentStart);
+    setEffectiveRangeEnd(currentEnd);
+
     const ids = (scans ?? []).map((s: any) => s.id);
     setScanIds(ids);
 
-    // group by day
-    const byDay: Record<string, string[]> = {};
+    // Load the previous equivalent window (or the scan just before the fallback) for real deltas
+    let prevScans: any[] = [];
+    if (usedFallback) {
+      const { data: p } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .lt('created_at', currentStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+      prevScans = p ?? [];
+    } else if (ids.length) {
+      const prevSince = new Date(now - 2 * days * 86400_000).toISOString();
+      const { data: p } = await supabase
+        .from('scans')
+        .select('id, created_at, score')
+        .eq('user_id', user.id)
+        .gte('created_at', prevSince)
+        .lt('created_at', since)
+        .order('created_at', { ascending: false });
+      prevScans = p ?? [];
+    }
+    const prevIds = prevScans.map((s) => s.id);
+    setPrevScanIds(prevIds);
+
+    // group by day for the sparkline / line chart
     const scoreByDay: Record<string, number[]> = {};
     (scans ?? []).forEach((s: any) => {
       const d = new Date(s.created_at).toISOString().slice(0, 10);
-      byDay[d] = byDay[d] || [];
-      byDay[d].push(s.id);
       if (s.score != null) {
         scoreByDay[d] = scoreByDay[d] || [];
         scoreByDay[d].push(Number(s.score));
       }
     });
-    setScansByDay(byDay);
 
-    // build daily series (fill gaps)
+    const seriesDays = usedFallback ? 7 : days;
+    const anchor = usedFallback ? currentEnd.getTime() : now;
     const series: { date: string; score: number }[] = [];
     let lastScore = 0;
-    for (let i = days - 1; i >= 0; i--) {
-      const dt = new Date(Date.now() - i * 86400_000);
+    for (let i = seriesDays - 1; i >= 0; i--) {
+      const dt = new Date(anchor - i * 86400_000);
       const key = dt.toISOString().slice(0, 10);
       const arr = scoreByDay[key];
       if (arr && arr.length) {
@@ -202,21 +266,20 @@ export function MetricsExplain() {
       setPrevMetrics(null);
       setCitations([]);
       setResults([]);
+      setPrevResults([]);
+      setPrevCitations([]);
       setLoading(false);
+      setRefreshedAt(new Date());
       return;
     }
 
-    const [{ data: mLatest }, { data: cits }, { data: srs }] = await Promise.all([
+    const [{ data: mLatest }, { data: srs }] = await Promise.all([
       supabase
         .from('proprietary_metrics_cache')
         .select('*')
         .in('scan_id', ids)
         .order('computed_at', { ascending: false })
-        .limit(2),
-      supabase
-        .from('citations')
-        .select('scan_result_id, engine, domain, source_type, cites_brand')
-        .in('scan_result_id', []),
+        .limit(1),
       supabase
         .from('scan_results')
         .select(
@@ -226,13 +289,11 @@ export function MetricsExplain() {
     ]);
 
     setMetrics(mLatest?.[0] ?? null);
-    setPrevMetrics(mLatest?.[1] ?? null);
     const resultRows = srs ?? [];
     setResults(resultRows);
 
     if (resultRows.length) {
       const rIds = resultRows.map((r: any) => r.id);
-      // chunk if needed
       const { data: c2 } = await supabase
         .from('citations')
         .select('scan_result_id, engine, domain, source_type, asset_type, cites_brand')
@@ -240,6 +301,40 @@ export function MetricsExplain() {
       setCitations(c2 ?? []);
     } else {
       setCitations([]);
+    }
+
+    // Previous-window data for real deltas
+    if (prevIds.length) {
+      const [{ data: pm }, { data: pr }] = await Promise.all([
+        supabase
+          .from('proprietary_metrics_cache')
+          .select('*')
+          .in('scan_id', prevIds)
+          .order('computed_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('scan_results')
+          .select(
+            'id, mentioned, gemini_mentioned, chatgpt_mentioned, perplexity_mentioned, claude_mentioned'
+          )
+          .in('scan_id', prevIds),
+      ]);
+      setPrevMetrics(pm?.[0] ?? null);
+      const pRows = pr ?? [];
+      setPrevResults(pRows);
+      if (pRows.length) {
+        const { data: pc } = await supabase
+          .from('citations')
+          .select('scan_result_id, cites_brand')
+          .in('scan_result_id', pRows.map((r: any) => r.id));
+        setPrevCitations(pc ?? []);
+      } else {
+        setPrevCitations([]);
+      }
+    } else {
+      setPrevMetrics(null);
+      setPrevResults([]);
+      setPrevCitations([]);
     }
 
     setRefreshedAt(new Date());

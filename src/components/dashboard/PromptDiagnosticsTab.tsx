@@ -217,14 +217,25 @@ export function PromptDiagnosticsTab() {
       // Auto-enrich prompts with no evidence yet — throttled sequentially
       const missing = rows.filter(r => !(grouped[r.id] && grouped[r.id].length > 0));
       for (const r of missing.slice(0, 8)) {
-        setEnriching(prev => ({ ...prev, [r.id]: true }));
+        setEnrichProgress(prev => ({ ...prev, [r.id]: { steps: [], active: true } }));
+        // Tick sources every 500ms while the call is in flight
+        let stepIdx = 0;
+        const tick = setInterval(() => {
+          stepIdx = Math.min(stepIdx + 1, SEARCH_SOURCES.length);
+          setEnrichProgress(prev => {
+            const cur = prev[r.id];
+            if (!cur || !cur.active) return prev;
+            return { ...prev, [r.id]: { ...cur, steps: SEARCH_SOURCES.slice(0, stepIdx) } };
+          });
+          if (stepIdx >= SEARCH_SOURCES.length) clearInterval(tick);
+        }, 500);
         try {
           const { data } = await supabase.functions.invoke('enrich-prompt-evidence', {
             body: { scan_result_id: r.id, prompt: r.prompt, brand: brandName },
           });
           const fresh = (data?.citations || []) as any[];
           if (fresh.length) {
-            const rows: CitationRow[] = fresh.map((c: any) => ({
+            const newRows: CitationRow[] = fresh.map((c: any) => ({
               scan_result_id: r.id,
               engine: 'search',
               url: c.url,
@@ -234,12 +245,28 @@ export function PromptDiagnosticsTab() {
               cites_brand: c.cites_brand ?? null,
               position: c.position ?? null,
             }));
-            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...rows] }));
+            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...newRows] }));
           }
+          const uniqUrls = new Set(fresh.map((c: any) => c.url));
+          const reviewSites = new Set(
+            fresh.filter((c: any) => c.source_type === 'review_site').map((c: any) => c.domain)
+          );
+          const comparisonPages = fresh.filter((c: any) => c.asset_type === 'comparison_page').length;
+          const counts: EnrichCounts = {
+            pages: uniqUrls.size,
+            reviewSites: reviewSites.size,
+            comparisonPages,
+            citations: fresh.length,
+          };
+          clearInterval(tick);
+          setEnrichProgress(prev => ({
+            ...prev,
+            [r.id]: { steps: SEARCH_SOURCES, active: false, counts },
+          }));
         } catch (e) {
           console.error('enrich failed', e);
-        } finally {
-          setEnriching(prev => ({ ...prev, [r.id]: false }));
+          clearInterval(tick);
+          setEnrichProgress(prev => ({ ...prev, [r.id]: { steps: SEARCH_SOURCES, active: false } }));
         }
       }
     })();

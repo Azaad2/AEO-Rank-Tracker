@@ -160,6 +160,10 @@ function Favicon({ domain, size = 16 }: { domain: string; size?: number }) {
 
 // ------------- Component -------------
 
+const SEARCH_SOURCES = ['Google', 'Reddit', 'G2', 'Capterra', 'TrustRadius', 'AI search results'];
+type EnrichCounts = { pages: number; reviewSites: number; comparisonPages: number; citations: number };
+type EnrichProgress = { steps: string[]; active: boolean; counts?: EnrichCounts };
+
 export function PromptDiagnosticsTab() {
   const { user } = useAuth();
   const [results, setResults] = useState<ResultRow[]>([]);

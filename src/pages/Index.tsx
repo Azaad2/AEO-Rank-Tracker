@@ -570,18 +570,55 @@ const Index = () => {
                 Recommendation Intelligence reveals the asset gaps and citation patterns winning your industry across ChatGPT, Gemini, and Perplexity — in under 60 seconds.
               </p>
 
-              <div className="pt-2">
-                <Button
-                  onClick={scrollToScan}
-                  size="lg"
-                  className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black"
-                >
-                  {ctaText}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+              <div className="pt-2 max-w-xl mx-auto">
+                <div className="flex flex-col sm:flex-row gap-2 p-2 bg-gray-900/80 border border-yellow-400/40 rounded-xl shadow-[0_0_30px_rgba(250,204,21,0.15)]">
+                  <Input
+                    type="text"
+                    placeholder="yourdomain.com"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !isScanning) { setShowEmailModal(true); handleScan(); } }}
+                    disabled={isScanning}
+                    className="flex-1 bg-black/60 border-gray-700 text-white placeholder:text-gray-500 h-12 text-base"
+                  />
+                  <Button
+                    onClick={() => { trackEvent('cta_click', { cta_location: 'hero_inline', cta_text: 'Scan Now' }); trackCtaConversion('cta_click'); trackHeadlineConversion('cta_click'); setShowEmailModal(true); handleScan(); }}
+                    disabled={isScanning || !domain.trim()}
+                    size="lg"
+                    className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black h-12 px-6"
+                  >
+                    {isScanning ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Scanning...</>) : (<>Scan Now<ArrowRight className="ml-2 h-4 w-4" /></>)}
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-400 mt-3">
-                  The average brand misses 7 of the top 10 citation patterns in its industry.
+                  Free · No credit card · The average brand misses 7 of the top 10 citation patterns in its industry.
                 </p>
+
+                {isScanning && (
+                  <div className="mt-6 p-5 rounded-xl bg-gray-900/80 border border-yellow-400/30 text-left space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 text-yellow-400 animate-spin" />
+                      <span className="text-sm font-semibold text-white">Generating report for {domain || 'your domain'}…</span>
+                    </div>
+                    <p className="text-[11px] text-gray-400">Querying AI assistants and analyzing citation patterns in real time.</p>
+                    <div className="space-y-2 pt-1">
+                      {[
+                        { name: 'ChatGPT', step: 'Extracting cited brands & sources' },
+                        { name: 'Gemini', step: 'Mapping recommendation patterns' },
+                        { name: 'Perplexity', step: 'Collecting citation URLs' },
+                        { name: 'Claude', step: 'Analyzing competitor mentions' },
+                      ].map((e, i) => (
+                        <div key={e.name} className="flex items-center gap-3 text-xs">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 border border-gray-700 text-yellow-300 font-medium min-w-[110px]">
+                            <Sparkles className="h-3 w-3" />{e.name}
+                          </span>
+                          <span className="text-gray-400 flex-1">{e.step}</span>
+                          <Loader2 className="h-3 w-3 text-yellow-400 animate-spin" style={{ animationDelay: `${i * 150}ms` }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* AI engine trust row */}

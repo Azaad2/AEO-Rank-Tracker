@@ -555,6 +555,39 @@ export function MetricsExplain() {
     );
   }
 
+  // True empty state — user has never scanned
+  if (totalUserScans === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-3xl font-bold text-white">Metrics</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Track your AI visibility performance across all key metrics
+          </p>
+        </div>
+        <Card className="bg-gray-900/70 border-gray-800">
+          <CardContent className="p-10 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-yellow-400/10 flex items-center justify-center mb-4">
+              <Activity className="h-6 w-6 text-yellow-400" />
+            </div>
+            <div className="text-xl font-semibold text-white">No scan data yet</div>
+            <p className="text-sm text-gray-400 mt-2 max-w-md mx-auto">
+              Run your first scan to see your AI visibility metrics, mentions, and
+              competitor gaps here.
+            </p>
+            <Button
+              onClick={() => window.dispatchEvent(new CustomEvent('dashboard:goto', { detail: 'quick-scan' }))}
+              className="mt-5 bg-yellow-400 text-black hover:bg-yellow-300"
+            >
+              Run your first scan
+              <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -579,13 +612,23 @@ export function MetricsExplain() {
         </div>
       </div>
 
+      {fallbackNotice && (
+        <div className="rounded-md border border-yellow-400/30 bg-yellow-400/5 px-3 py-2 text-xs text-yellow-200 flex items-center gap-2">
+          <Info className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
+          <span>{fallbackNotice}</span>
+          <button onClick={() => setRange('ALL')} className="ml-auto text-yellow-400 hover:text-yellow-300 underline">
+            View all-time
+          </button>
+        </div>
+      )}
+
       {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <Kpi label="AI VISIBILITY SCORE" value={pct(derived.visibility)} delta={8} spark={sparks.visibility} color="#facc15" />
-        <Kpi label="TOTAL MENTIONS" value={String(derived.totalMentions)} delta={18} spark={sparks.mentions} color="#a855f7" />
-        <Kpi label="CITATION GROWTH" value={String(derived.citationGrowth)} delta={22} spark={sparks.citations} color="#3b82f6" />
-        <Kpi label="COMPETITOR GAP INDEX" value={derived.gap.toFixed(2)} delta={-0.12} spark={sparks.gap} color="#22c55e" />
-        <Kpi label="PROMPTS TRACKED" value={String(derived.totalPrompts)} delta={4} spark={sparks.prompts} color="#a855f7" />
+        <Kpi label="AI VISIBILITY SCORE" value={pct(derived.visibility)} delta={deltas.visibility} deltaSuffix="%" spark={sparks.visibility} color="#facc15" />
+        <Kpi label="TOTAL MENTIONS" value={String(derived.totalMentions)} delta={deltas.mentions} spark={sparks.mentions} color="#a855f7" />
+        <Kpi label="CITATION GROWTH" value={String(derived.citationGrowth)} delta={deltas.citations} spark={sparks.citations} color="#3b82f6" />
+        <Kpi label="COMPETITOR GAP INDEX" value={derived.gap.toFixed(2)} delta={deltas.gap} spark={sparks.gap} color="#22c55e" />
+        <Kpi label="PROMPTS TRACKED" value={String(derived.totalPrompts)} delta={deltas.prompts} spark={sparks.prompts} color="#a855f7" />
       </div>
 
       {/* Score over time + Platform donut */}

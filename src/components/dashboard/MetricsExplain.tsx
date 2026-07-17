@@ -154,12 +154,12 @@ export function MetricsExplain() {
 
     const { data: scans } = await supabase
       .from('scans')
-      .select('id, created_at, visibility_score')
+      .select('id, created_at, score')
       .eq('user_id', user.id)
       .gte('created_at', since)
       .order('created_at', { ascending: false });
 
-    const ids = (scans ?? []).map((s) => s.id);
+    const ids = (scans ?? []).map((s: any) => s.id);
     setScanIds(ids);
 
     // group by day
@@ -169,9 +169,9 @@ export function MetricsExplain() {
       const d = new Date(s.created_at).toISOString().slice(0, 10);
       byDay[d] = byDay[d] || [];
       byDay[d].push(s.id);
-      if (s.visibility_score != null) {
+      if (s.score != null) {
         scoreByDay[d] = scoreByDay[d] || [];
-        scoreByDay[d].push(Number(s.visibility_score));
+        scoreByDay[d].push(Number(s.score));
       }
     });
     setScansByDay(byDay);

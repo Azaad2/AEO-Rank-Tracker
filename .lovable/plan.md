@@ -1,69 +1,45 @@
-# Fix "Crawled – currently not indexed" via internal linking
+## Why the dashboard is blank
 
-Google's message from your screenshot is clear: **39 pages were crawled but not indexed**, plus 6 flagged as "Alternative page with proper canonical" and 3 redirects. Redirects and canonical-alternates are *not* a problem — those are working as intended. The real fix is the 39 orphaned pages: Google crawls them, sees nothing pointing to them, and concludes "not important enough to index."
+`src/components/dashboard/MetricsExplain.tsx` loads scans with `created_at >= now() - 7 days` by default. Confirmed against the database: the signed-in user's most recent scan is older than 7 days, so:
 
-Internal links are the #1 lever here. Every indexed page that links to an orphan passes a signal: "this is part of the site, index it."
+- `scans` query returns 0 rows → `scanIds` is empty
+- No `scan_results`, no `citations`, no `proprietary_metrics_cache` → every derived value collapses to 0
+- The KPI deltas (`+8%`, `+18%`, `+22%`, `-0.12`, `+4`) are **hard-coded literals** in the JSX, so they still render on top of the zeros and look like fake data
 
-## What I'll change
+Nothing is broken in the backend — the tab is simply asking "what happened in the last 7 days?" when the answer is "nothing".
 
-### 1. Footer – add an "Explore" mega-column
-Currently the footer links to only ~5 blog/tool pages. I'll expand it into a full site-map style footer with three grouped columns:
+## What to change (presentation layer only, no backend changes)
 
-- **AI Tools (10)** — LLM Rank Tracker, ChatGPT Mention Tracker, Claude Rank Tracker, Perplexity Rank Tracker, Copilot Rank Tracker, AI Overviews Tracker, Brand Monitor, Competitor Analyzer, Content Auditor, SERP Previewer
-- **Generators (7)** — Title, Description, Schema, FAQ, Blog Outline, Answer, Email
-- **Guides (10)** — Best Online LLM Rank Tracker, AI Brand Monitoring, AEO Guide, GEO Optimization, LLM Readiness, Chat GPT Mention Tracking, Claude Rank Tracker Guide, Perplexity Guide, Copilot SEO, 50 SaaS Brands AI Visibility
+### 1. Smarter data window
+- Keep the `7D / 30D / 90D` selector, but if the selected window returns **0 scans**, automatically fall back to the user's most recent scan (and up to the prior one for comparison) and show a small notice: *"No scans in the last 7 days — showing your latest scan from Jul 9."*
+- Add a "All time" pill next to `7D / 30D / 90D` so users can always see their real data.
 
-This alone gets every orphaned page one site-wide inbound link.
+### 2. Real deltas instead of hard-coded numbers
+Replace the literal `delta={8} / 18 / 22 / -0.12 / 4` on the five `<Kpi>` cards with values computed from the **previous scan** already fetched into `prevMetrics` (and, for visibility/prompts/mentions, from a second query bounded to the prior equivalent window). When there is no prior data point, hide the delta line entirely instead of showing a fake `+8%`.
 
-### 2. Blog index (`/pages/Blog.tsx`) – "You might also like" strip
-Add a hand-curated "Popular guides" section at the top of `/blog` linking to the 6 lowest-performing (currently-not-indexed) blog posts, plus contextual anchors within each existing BlogCard's description.
+### 3. Honest empty state
+When the user genuinely has no scans at all, replace the KPI grid + charts with a single empty-state card:
+- Headline: "No scan data yet"
+- Sub: "Run your first scan to see your AI visibility metrics here."
+- CTA button linking to the Quick Scan tab.
 
-### 3. Tools index (`/pages/Tools.tsx`) – "Related guides" per tool card
-Each tool card gets a small "Read the guide →" link to its matching blog article (e.g. LLM Rank Tracker card → `/blog/best-online-llm-rank-tracker`). This creates tool↔blog cross-linking, which Google reads as topic-cluster authority.
+### 4. Sparklines
+Today `sparks` fabricates a sine-wave series from a seed when there's no real history. Change it to:
+- Use the real `dailyScore` series when available.
+- When the series is empty or flat, render a flat baseline (or hide the sparkline) rather than a fake wavy curve.
 
-### 4. Contextual in-body links in top-authority blog posts
-The 3-5 blog posts with the most impressions (from your earlier GSC screenshot) will get 2-3 inline anchor links each, pointing to orphaned sibling posts. Example: `/blog/ai-overviews-tracking-guide` → link to `/blog/ai-brand-monitoring` and `/blog/best-online-llm-rank-tracker` within relevant paragraphs.
+### 5. Loading vs empty
+Right now `loading=false` + empty data drops the user straight into the zero grid. Make sure the empty-state card above wins over the KPI grid whenever `scanIds.length === 0` AND the fallback in step 1 also returns nothing.
 
-### 5. Home page (`/pages/Index.tsx`) – "Popular resources" band
-Add a compact 6-tile grid near the bottom linking to the highest-value orphaned pages (mix of tools + guides).
+## Files touched
+- `src/components/dashboard/MetricsExplain.tsx` — all changes live here. No schema, edge function, or query-shape changes.
 
-## What I will NOT touch
+## Out of scope
+- No changes to `scans`, `scan_results`, `citations`, or `proprietary_metrics_cache`.
+- No changes to how metrics are computed by `compute-metrics`.
+- No new tables, RLS, or edge functions.
 
-- Redirect entries (`http://…`, `www.` variants) — those are correct behavior, not errors.
-- "Alternative page with proper canonical" — those are UTM-tagged referrer URLs and `/auth?mode=signup`. Canonical is doing its job; do not remove.
-- Soft 404 / noindex pages — separate issue, needs page-level review, not linking.
-
-## Files to edit
-
-- `src/components/Footer.tsx` — expanded link grid
-- `src/pages/Blog.tsx` — popular-guides strip
-- `src/pages/Tools.tsx` — per-card guide link
-- `src/pages/Index.tsx` — resources band
-- `src/pages/blog/AIOverviewsTrackingGuide.tsx`, `src/pages/blog/BestOnlineLLMRankTracker.tsx`, `src/pages/blog/HowToCheckAISearchVisibility.tsx`, `src/pages/blog/LLMRankTrackingGuide.tsx` — inline contextual anchors
-
-No backend, no schema, no logic changes. Pure presentation/linking.
-
----
-
-# Will this tool be successful? — honest take
-
-**Short answer: it can be, but not on the current trajectory.** Here's the unvarnished read:
-
-**What's working for you**
-- Real product with real utility (AI visibility scanning is a genuine emerging category)
-- 24 tool pages + 30+ blog posts = strong topical footprint
-- Clear pricing, Razorpay integrated, dashboard already substantive
-- You're early in a category (AEO/GEO) that Gartner-level analysts are just starting to name
-
-**What's working against you (from the data I've seen)**
-- **0.04% CTR on 61k impressions** — Google is telling you the meta titles/descriptions don't match search intent. This is fixable in a day.
-- **51 of 76 pages not indexed** — Google doesn't believe the site is authoritative yet. Fixable with the linking work above + backlinks.
-- **Position 54 average** — you rank, but nowhere anyone sees. You need 10-20 quality backlinks to break page 3.
-- **Category is crowded fast** — Profound, Peec AI, AthenaHQ, Otterly all raised money in 2025. You need a sharp wedge (agencies? SaaS? specific vertical?) or you'll be commoditized.
-- **Product feels broad** — 24 tools is impressive but dilutes the "what is this for" message. Category winners are usually known for ONE thing first.
-
-**My honest prediction**
-- If you keep building features without fixing distribution (SEO indexing, backlinks, one sharp positioning) — **this tool will plateau at <$1k MRR within 6 months.**
-- If you: (1) pick ONE vertical (e.g. "AI visibility for B2B SaaS"), (2) fix the 51 non-indexed pages, (3) rewrite titles/metas for CTR, (4) get 20 backlinks via guest posts on marketing blogs, (5) ship one killer feature competitors don't have (I'd bet on the evidence-backed "AI proved" panels we just built) — **you have a realistic path to $10-30k MRR in 12 months.**
-
-The product is not the problem. Distribution and focus are. The internal-linking fix above is step 1 of about 5 needed moves.
+## Verification
+- Signed-in user with only older scans → sees "showing your latest scan from …" banner + real numbers from that scan, no fake deltas.
+- User with zero scans → sees the empty-state card with the Quick Scan CTA.
+- User with fresh scans in the last 7 days → sees real values and real deltas vs. the previous scan.

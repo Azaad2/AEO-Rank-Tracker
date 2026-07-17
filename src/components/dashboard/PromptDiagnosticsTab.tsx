@@ -507,12 +507,21 @@ function PromptCard({
               </Badge>
               {enriching && (
                 <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/40 border text-[10px] flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Discovering live evidence…
+                  <Loader2 className="h-3 w-3 animate-spin" /> Searching…
+                </Badge>
+              )}
+              {!enriching && progress?.counts && (
+                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/40 border text-[10px]">
+                  ✓ Live evidence loaded
                 </Badge>
               )}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Prompt #{index + 1}</div>
             <div className="text-white text-base md:text-lg font-semibold leading-snug">{row.prompt}</div>
+
+            {progress && (progress.active || progress.counts) && (
+              <LiveSearchPanel progress={progress} />
+            )}
 
             {/* Section 1: What happened */}
             <div className="mt-3 rounded-lg border border-gray-800 bg-black/40 p-3">

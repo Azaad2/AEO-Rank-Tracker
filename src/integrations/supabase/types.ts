@@ -1192,6 +1192,42 @@ export type Database = {
           },
         ]
       }
+      prompt_evidence_cache: {
+        Row: {
+          citations: Json
+          competitors: Json
+          created_at: string
+          id: string
+          prompt: string
+          prompt_hash: string
+          sources: Json
+          updated_at: string
+          winner: string | null
+        }
+        Insert: {
+          citations?: Json
+          competitors?: Json
+          created_at?: string
+          id?: string
+          prompt: string
+          prompt_hash: string
+          sources?: Json
+          updated_at?: string
+          winner?: string | null
+        }
+        Update: {
+          citations?: Json
+          competitors?: Json
+          created_at?: string
+          id?: string
+          prompt?: string
+          prompt_hash?: string
+          sources?: Json
+          updated_at?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
       prompt_hash_display: {
         Row: {
           display_text: string

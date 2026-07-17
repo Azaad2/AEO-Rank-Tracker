@@ -167,6 +167,7 @@ export function PromptDiagnosticsTab() {
   const [domain, setDomain] = useState<string>('');
   const [brand, setBrand] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -184,7 +185,8 @@ export function PromptDiagnosticsTab() {
         return;
       }
       setDomain(latest.project_domain);
-      setBrand(String(latest.project_domain).replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0]);
+      const brandName = String(latest.project_domain).replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
+      setBrand(brandName);
 
       const { data: rs } = await supabase
         .from('scan_results')
@@ -194,21 +196,51 @@ export function PromptDiagnosticsTab() {
       const rows = (rs || []) as ResultRow[];
       setResults(rows);
 
+      let grouped: Record<number, CitationRow[]> = {};
       if (rows.length) {
         const ids = rows.map(r => r.id);
         const { data: cits } = await supabase
           .from('citations')
           .select('scan_result_id, engine, url, domain, asset_type, title, cites_brand, position')
           .in('scan_result_id', ids);
-        const grouped: Record<number, CitationRow[]> = {};
         for (const c of (cits || []) as CitationRow[]) {
           (grouped[c.scan_result_id] ||= []).push(c);
         }
         setCitationsByResult(grouped);
       }
       setLoading(false);
+
+      // Auto-enrich prompts with no evidence yet — throttled sequentially
+      const missing = rows.filter(r => !(grouped[r.id] && grouped[r.id].length > 0));
+      for (const r of missing.slice(0, 8)) {
+        setEnriching(prev => ({ ...prev, [r.id]: true }));
+        try {
+          const { data } = await supabase.functions.invoke('enrich-prompt-evidence', {
+            body: { scan_result_id: r.id, prompt: r.prompt, brand: brandName },
+          });
+          const fresh = (data?.citations || []) as any[];
+          if (fresh.length) {
+            const rows: CitationRow[] = fresh.map((c: any) => ({
+              scan_result_id: r.id,
+              engine: 'search',
+              url: c.url,
+              domain: c.domain,
+              asset_type: c.asset_type ?? null,
+              title: c.title ?? null,
+              cites_brand: c.cites_brand ?? null,
+              position: c.position ?? null,
+            }));
+            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...rows] }));
+          }
+        } catch (e) {
+          console.error('enrich failed', e);
+        } finally {
+          setEnriching(prev => ({ ...prev, [r.id]: false }));
+        }
+      }
     })();
   }, [user]);
+
 
   // ----- Summary -----
   const summary = useMemo(() => {
@@ -290,8 +322,10 @@ export function PromptDiagnosticsTab() {
               row={r}
               citations={citationsByResult[r.id] || []}
               brand={brand}
+              enriching={!!enriching[r.id]}
             />
           ))}
+
         </div>
       </div>
     </TooltipProvider>
@@ -338,12 +372,15 @@ function PromptCard({
   row,
   citations,
   brand,
+  enriching = false,
 }: {
   index: number;
   row: ResultRow;
   citations: CitationRow[];
   brand: string;
+  enriching?: boolean;
 }) {
+
   const { pct } = computeVisibility(row);
   const health = healthFor(pct);
 
@@ -436,6 +473,11 @@ function PromptCard({
               <Badge variant="outline" className="border-gray-700 text-gray-400 text-[10px]">
                 AI confidence {confidence}%
               </Badge>
+              {enriching && (
+                <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/40 border text-[10px] flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Discovering live evidence…
+                </Badge>
+              )}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Prompt #{index + 1}</div>
             <div className="text-white text-base md:text-lg font-semibold leading-snug">{row.prompt}</div>

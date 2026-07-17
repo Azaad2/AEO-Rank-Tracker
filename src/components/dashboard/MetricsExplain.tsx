@@ -39,8 +39,8 @@ const fmtDate = (d: Date) =>
 const fmtRange = (a: Date, b: Date) =>
   `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-type Range = '7D' | '30D' | '90D';
-const rangeDays = (r: Range) => (r === '7D' ? 7 : r === '30D' ? 30 : 90);
+type Range = '7D' | '30D' | '90D' | 'ALL';
+const rangeDays = (r: Range) => (r === '7D' ? 7 : r === '30D' ? 30 : r === '90D' ? 90 : 3650);
 
 function pct(n: number) {
   return `${Math.round(n)}%`;

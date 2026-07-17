@@ -641,7 +641,7 @@ export function MetricsExplain() {
                 <Info className="h-3.5 w-3.5 text-gray-500" />
               </div>
               <div className="inline-flex rounded-md border border-gray-800 bg-gray-900 overflow-hidden">
-                {(['7D', '30D', '90D'] as Range[]).map((r) => (
+                {(['7D', '30D', '90D', 'ALL'] as Range[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRange(r)}

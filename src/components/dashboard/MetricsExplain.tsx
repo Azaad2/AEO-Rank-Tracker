@@ -486,26 +486,47 @@ export function MetricsExplain() {
     };
   }, [metrics, citations, results]);
 
-  // spark data: rebuild small series per KPI from dailyScore + citations scaling
+  // Compute real deltas from previous window
+  const deltas = useMemo(() => {
+    const prevTotalPrompts = prevResults.length;
+    const prevMentioned = prevResults.filter(
+      (r: any) =>
+        r.mentioned ||
+        r.gemini_mentioned ||
+        r.chatgpt_mentioned ||
+        r.perplexity_mentioned ||
+        r.claude_mentioned
+    ).length;
+    const prevVisibility = prevTotalPrompts ? Math.round((prevMentioned / prevTotalPrompts) * 100) : null;
+    const prevTotalMentions = prevCitations.filter((c: any) => c.cites_brand).length;
+    const prevCitationGrowth = prevCitations.length;
+    const prevGap = prevMetrics ? Number(prevMetrics?.coi?.overall ?? prevMetrics?.coi?.gap ?? 0) || 0 : null;
+
+    const has = prevScanIds.length > 0;
+    return {
+      visibility: has && prevVisibility !== null ? derived.visibility - prevVisibility : null,
+      mentions: has ? derived.totalMentions - prevTotalMentions : null,
+      citations: has ? derived.citationGrowth - prevCitationGrowth : null,
+      gap: has && prevGap !== null ? Number((derived.gap - prevGap).toFixed(2)) : null,
+      prompts: has ? derived.totalPrompts - prevTotalPrompts : null,
+    };
+  }, [derived, prevResults, prevCitations, prevMetrics, prevScanIds]);
+
+  // spark data: use only real series
   const sparks = useMemo(() => {
     const base = dailyScore.map((d) => d.score);
-    const len = base.length || 7;
-    const noise = (seed: number) =>
-      Array.from({ length: len }, (_, i) => {
-        const t = i / Math.max(1, len - 1);
-        return Math.round((seed * 0.4 + seed * 0.6 * t + Math.sin(i + seed) * 3));
-      });
+    const empty = Array(7).fill(0);
     return {
-      visibility: base.length ? base : noise(30),
-      mentions: noise(derived.totalMentions || 60),
-      citations: noise(derived.citationGrowth || 40),
-      gap: noise(Math.max(10, Math.round(derived.gap * 100) || 30)),
-      prompts: noise(derived.totalPrompts || 20),
+      visibility: base.length && base.some((v) => v > 0) ? base : empty,
+      mentions: empty,
+      citations: empty,
+      gap: empty,
+      prompts: empty,
     };
-  }, [dailyScore, derived]);
+  }, [dailyScore]);
 
-  const rangeStart = new Date(Date.now() - rangeDays(range) * 86400_000);
-  const rangeEnd = new Date();
+  const rangeStart = effectiveRangeStart;
+  const rangeEnd = effectiveRangeEnd;
 
   const exportCsv = () => {
     const rows = [

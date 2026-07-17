@@ -353,7 +353,7 @@ export function PromptDiagnosticsTab() {
               row={r}
               citations={citationsByResult[r.id] || []}
               brand={brand}
-              enriching={!!enriching[r.id]}
+              progress={enrichProgress[r.id]}
             />
           ))}
 

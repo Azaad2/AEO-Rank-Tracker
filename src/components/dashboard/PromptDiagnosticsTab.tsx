@@ -765,3 +765,63 @@ function EvidenceBlock({ title, items }: { title: string; items: string[] }) {
     </div>
   );
 }
+
+function LiveSearchPanel({ progress }: { progress: EnrichProgress }) {
+  const { steps, active, counts } = progress;
+  const done = new Set(steps);
+  return (
+    <div className="mt-3 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        {active ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-300" />
+            <span className="text-xs font-semibold text-blue-200">Searching the web for live evidence…</span>
+          </>
+        ) : (
+          <>
+            <span className="text-emerald-400 text-sm">✓</span>
+            <span className="text-xs font-semibold text-emerald-200">Search complete</span>
+          </>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-[11px]">
+        {SEARCH_SOURCES.map((src) => {
+          const isDone = done.has(src);
+          const isNext = active && !isDone && steps.length < SEARCH_SOURCES.length && SEARCH_SOURCES[steps.length] === src;
+          return (
+            <div key={src} className="flex items-center gap-1.5">
+              {isDone ? (
+                <span className="text-emerald-400">✓</span>
+              ) : isNext ? (
+                <Loader2 className="h-3 w-3 animate-spin text-blue-300" />
+              ) : (
+                <span className="text-gray-600">○</span>
+              )}
+              <span className={isDone ? 'text-gray-200' : 'text-gray-500'}>{src}</span>
+            </div>
+          );
+        })}
+      </div>
+      {counts && (
+        <div className="mt-3 pt-3 border-t border-blue-500/20">
+          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Found</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <FoundStat value={counts.pages} label="pages" />
+            <FoundStat value={counts.reviewSites} label="review sites" />
+            <FoundStat value={counts.comparisonPages} label="comparison pages" />
+            <FoundStat value={counts.citations} label="citations" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FoundStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="rounded-md bg-black/40 border border-gray-800 px-2 py-1.5">
+      <div className="text-base font-bold text-white leading-tight">{value}</div>
+      <div className="text-[10px] text-gray-400">{label}</div>
+    </div>
+  );
+}

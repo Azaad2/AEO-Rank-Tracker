@@ -473,6 +473,11 @@ function PromptCard({
               <Badge variant="outline" className="border-gray-700 text-gray-400 text-[10px]">
                 AI confidence {confidence}%
               </Badge>
+              {enriching && (
+                <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/40 border text-[10px] flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Discovering live evidence…
+                </Badge>
+              )}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Prompt #{index + 1}</div>
             <div className="text-white text-base md:text-lg font-semibold leading-snug">{row.prompt}</div>

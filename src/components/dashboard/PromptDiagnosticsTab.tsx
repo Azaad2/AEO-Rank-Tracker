@@ -167,6 +167,7 @@ export function PromptDiagnosticsTab() {
   const [domain, setDomain] = useState<string>('');
   const [brand, setBrand] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -184,7 +185,8 @@ export function PromptDiagnosticsTab() {
         return;
       }
       setDomain(latest.project_domain);
-      setBrand(String(latest.project_domain).replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0]);
+      const brandName = String(latest.project_domain).replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
+      setBrand(brandName);
 
       const { data: rs } = await supabase
         .from('scan_results')
@@ -194,21 +196,51 @@ export function PromptDiagnosticsTab() {
       const rows = (rs || []) as ResultRow[];
       setResults(rows);
 
+      let grouped: Record<number, CitationRow[]> = {};
       if (rows.length) {
         const ids = rows.map(r => r.id);
         const { data: cits } = await supabase
           .from('citations')
           .select('scan_result_id, engine, url, domain, asset_type, title, cites_brand, position')
           .in('scan_result_id', ids);
-        const grouped: Record<number, CitationRow[]> = {};
         for (const c of (cits || []) as CitationRow[]) {
           (grouped[c.scan_result_id] ||= []).push(c);
         }
         setCitationsByResult(grouped);
       }
       setLoading(false);
+
+      // Auto-enrich prompts with no evidence yet — throttled sequentially
+      const missing = rows.filter(r => !(grouped[r.id] && grouped[r.id].length > 0));
+      for (const r of missing.slice(0, 8)) {
+        setEnriching(prev => ({ ...prev, [r.id]: true }));
+        try {
+          const { data } = await supabase.functions.invoke('enrich-prompt-evidence', {
+            body: { scan_result_id: r.id, prompt: r.prompt, brand: brandName },
+          });
+          const fresh = (data?.citations || []) as any[];
+          if (fresh.length) {
+            const rows: CitationRow[] = fresh.map((c: any) => ({
+              scan_result_id: r.id,
+              engine: 'search',
+              url: c.url,
+              domain: c.domain,
+              asset_type: c.asset_type ?? null,
+              title: c.title ?? null,
+              cites_brand: c.cites_brand ?? null,
+              position: c.position ?? null,
+            }));
+            setCitationsByResult(prev => ({ ...prev, [r.id]: [...(prev[r.id] || []), ...rows] }));
+          }
+        } catch (e) {
+          console.error('enrich failed', e);
+        } finally {
+          setEnriching(prev => ({ ...prev, [r.id]: false }));
+        }
+      }
     })();
   }, [user]);
+
 
   // ----- Summary -----
   const summary = useMemo(() => {

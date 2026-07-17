@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.send-daily-newsletter]
 verify_jwt = false
+
+[functions.enrich-prompt-evidence]
+verify_jwt = false

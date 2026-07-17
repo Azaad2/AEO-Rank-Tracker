@@ -403,14 +403,15 @@ function PromptCard({
   row,
   citations,
   brand,
-  enriching = false,
+  progress,
 }: {
   index: number;
   row: ResultRow;
   citations: CitationRow[];
   brand: string;
-  enriching?: boolean;
+  progress?: EnrichProgress;
 }) {
+  const enriching = !!progress?.active;
 
   const { pct } = computeVisibility(row);
   const health = healthFor(pct);

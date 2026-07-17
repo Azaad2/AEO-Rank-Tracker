@@ -167,7 +167,7 @@ export function PromptDiagnosticsTab() {
   const [domain, setDomain] = useState<string>('');
   const [brand, setBrand] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [enriching, setEnriching] = useState<Record<number, boolean>>({});
+  const [enrichProgress, setEnrichProgress] = useState<Record<number, EnrichProgress>>({});
 
   useEffect(() => {
     (async () => {

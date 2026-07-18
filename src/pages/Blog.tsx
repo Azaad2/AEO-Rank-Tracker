@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "How AI Decides What Brands to Recommend",
+    description: "A plain-English look at how ChatGPT, Gemini, Claude, and Perplexity actually choose which brands to name — and why some companies keep winning the recommendation while others stay invisible.",
+    slug: "how-ai-decides-what-brands-to-recommend",
+    category: "AI Visibility",
+    readTime: "11 min",
+    publishDate: "July 18, 2026",
+    featured: true,
+  },
+  {
     title: "How to Improve Brand Visibility in AI Search Engines (2026 Playbook)",
     description: "The proven 5-strategy playbook to improve brand visibility in AI search engines — ChatGPT, Gemini, Perplexity, and AI Overviews. Free scan, schema templates, 90-day roadmap.",
     slug: "how-to-improve-brand-visibility-in-ai-search-engines",

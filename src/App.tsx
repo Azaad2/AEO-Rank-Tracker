@@ -127,6 +127,7 @@ const App = () => (
             <Route path="/blog/llm-readiness-optimization" element={<LLMReadinessOptimization />} />
             <Route path="/blog/ai-prompt-generator-guide" element={<AIPromptGeneratorGuide />} />
             <Route path="/blog/ai-answer-optimization" element={<AIAnswerOptimization />} />
+            <Route path="/blog/how-ai-decides-what-brands-to-recommend" element={<HowAIDecidesWhatBrandsToRecommend />} />
             <Route path="/blog/ai-email-generator-guide" element={<AIEmailGeneratorGuide />} />
             <Route path="/blog/ai-blog-outline-generator" element={<AIBlogOutlineGenerator />} />
             <Route path="/blog/ai-faq-generator-guide" element={<AIFAQGeneratorGuide />} />

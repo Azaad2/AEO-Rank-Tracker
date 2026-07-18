@@ -58,6 +58,7 @@ import AIBrandMonitoring from "./pages/blog/AIBrandMonitoring";
 import LLMReadinessOptimization from "./pages/blog/LLMReadinessOptimization";
 import AIPromptGeneratorGuide from "./pages/blog/AIPromptGeneratorGuide";
 import AIAnswerOptimization from "./pages/blog/AIAnswerOptimization";
+import HowAIDecidesWhatBrandsToRecommend from "./pages/blog/HowAIDecidesWhatBrandsToRecommend";
 import AIEmailGeneratorGuide from "./pages/blog/AIEmailGeneratorGuide";
 import AIBlogOutlineGenerator from "./pages/blog/AIBlogOutlineGenerator";
 import AIFAQGeneratorGuide from "./pages/blog/AIFAQGeneratorGuide";

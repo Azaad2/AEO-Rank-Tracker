@@ -360,9 +360,12 @@ const Index = () => {
       } else {
         toast({
           title: "Scan complete",
-          description: `AI Visibility Score: ${data.score}`,
+          description: user || isUnlocked
+            ? `AI Visibility Score: ${data.score}`
+            : "Enter your email to see your results.",
         });
       }
+
     } catch (error) {
       console.error('Scan error:', error);
 

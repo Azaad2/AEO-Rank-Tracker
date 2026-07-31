@@ -27,7 +27,9 @@ export function EmailCaptureModal({
   score,
 }: EmailCaptureModalProps) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState(() => generatePassword());
+  const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
@@ -37,6 +39,13 @@ export function EmailCaptureModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,11 +62,12 @@ export function EmailCaptureModal({
     if (password.length < 6) {
       toast({
         title: "Password too short",
-        description: "Use at least 6 characters so you can log back in later.",
+        description: "Use at least 6 characters, or keep the suggested one.",
         variant: "destructive",
       });
       return;
     }
+
 
     setIsSubmitting(true);
     const cleanEmail = email.trim().toLowerCase();

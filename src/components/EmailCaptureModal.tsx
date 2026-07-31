@@ -7,7 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
-import { Loader2, Lock, FileText, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, FileText, CheckCircle2, RefreshCw, Copy, Check } from "lucide-react";
+
+// Google-style suggested password: readable alphanumeric, easy to store
+function generatePassword() {
+  const chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint32Array(16);
+  crypto.getRandomValues(bytes);
+  const raw = Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
+}
+
 
 interface EmailCaptureModalProps {
   open: boolean;
@@ -27,7 +37,9 @@ export function EmailCaptureModal({
   score,
 }: EmailCaptureModalProps) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState(() => generatePassword());
+  const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
@@ -37,6 +49,13 @@ export function EmailCaptureModal({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,11 +72,12 @@ export function EmailCaptureModal({
     if (password.length < 6) {
       toast({
         title: "Password too short",
-        description: "Use at least 6 characters so you can log back in later.",
+        description: "Use at least 6 characters, or keep the suggested one.",
         variant: "destructive",
       });
       return;
     }
+
 
     setIsSubmitting(true);
     const cleanEmail = email.trim().toLowerCase();
@@ -187,18 +207,52 @@ export function EmailCaptureModal({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="capture-password">Create a password</Label>
-              <Input
-                id="capture-password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isSubmitting}
-                autoComplete="new-password"
-              />
-            </div>
+            {!showPassword ? (
+              <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm">
+                    <p className="font-medium">We'll create a secure password for you</p>
+                    <p className="font-mono text-xs text-muted-foreground mt-1">{password}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setPassword(generatePassword())} aria-label="Suggest a new password">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={copyPassword} aria-label="Copy password">
+                      {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => setShowPassword(true)}
+                >
+                  Set my own password instead
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="capture-password">Choose a password</Label>
+                <Input
+                  id="capture-password"
+                  type="text"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => { setPassword(generatePassword()); setShowPassword(false); }}
+                >
+                  Use a suggested password
+                </button>
+              </div>
+            )}
+
 
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (

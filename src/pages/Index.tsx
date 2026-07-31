@@ -315,6 +315,11 @@ const Index = () => {
           try { localStorage.setItem('pendingScanId', data.scanId); } catch {}
         }
       }
+      // Results are gated: ask for email before revealing anything
+      if (!user && !isUnlocked) {
+        setShowEmailModal(true);
+      }
+
       // Scroll to results + track results_viewed
       setTimeout(() => {
         document.getElementById('scan-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -355,9 +360,12 @@ const Index = () => {
       } else {
         toast({
           title: "Scan complete",
-          description: `AI Visibility Score: ${data.score}`,
+          description: user || isUnlocked
+            ? `AI Visibility Score: ${data.score}`
+            : "Enter your email to see your results.",
         });
       }
+
     } catch (error) {
       console.error('Scan error:', error);
 
@@ -577,12 +585,12 @@ const Index = () => {
                     placeholder="yourdomain.com"
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !isScanning) { setShowEmailModal(true); handleScan(); } }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !isScanning) { handleScan(); } }}
                     disabled={isScanning}
                     className="flex-1 bg-black/60 border-gray-700 text-white placeholder:text-gray-500 h-12 text-base"
                   />
                   <Button
-                    onClick={() => { trackEvent('cta_click', { cta_location: 'hero_inline', cta_text: 'Scan Now' }); trackCtaConversion('cta_click'); trackHeadlineConversion('cta_click'); setShowEmailModal(true); handleScan(); }}
+                    onClick={() => { trackEvent('cta_click', { cta_location: 'hero_inline', cta_text: 'Scan Now' }); trackCtaConversion('cta_click'); trackHeadlineConversion('cta_click'); handleScan(); }}
                     disabled={isScanning || !domain.trim()}
                     size="lg"
                     className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black h-12 px-6"
@@ -1016,8 +1024,35 @@ const Index = () => {
         )}
 
 
+        {/* Gate: results require an email (account) */}
+        {scanData && !user && !isUnlocked && (
+          <div id="scan-results" className="scroll-mt-24">
+            <Card className="bg-gradient-to-br from-yellow-400/10 via-black to-black border-yellow-400/40">
+              <CardContent className="p-6 md:p-8 space-y-4 text-center">
+                <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">
+                  Your AI visibility report for {scanData.project} is ready
+                </h2>
+                <p className="text-gray-300 max-w-xl mx-auto">
+                  Enter your email to open it. No password to remember — we create your account instantly.
+                </p>
+                <Button
+                  size="lg"
+                  onClick={openEmailModal}
+                  className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold"
+                >
+                  Show my results
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <p className="text-xs text-gray-500">Free forever plan. No card required.</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Unified post-scan Recommendation Intelligence preview */}
-        {scanData && (() => {
+        {scanData && (user || isUnlocked) && (() => {
+
           const totalPrompts = scanData.results.length;
           const mentionedCount = scanData.results.filter(
             (r) => r.mentioned || r.geminiMentioned || r.perplexityMentioned

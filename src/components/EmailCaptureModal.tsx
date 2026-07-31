@@ -7,7 +7,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
-import { Loader2, Lock, FileText, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, FileText, CheckCircle2, RefreshCw, Copy, Check } from "lucide-react";
+
+// Google-style suggested password: readable alphanumeric, easy to store
+function generatePassword() {
+  const chars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint32Array(16);
+  crypto.getRandomValues(bytes);
+  const raw = Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
+}
+
 
 interface EmailCaptureModalProps {
   open: boolean;

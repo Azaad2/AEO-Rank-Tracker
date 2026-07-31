@@ -148,7 +148,7 @@ export function EmailCaptureModal({
             Unlock Your Full Report
           </DialogTitle>
           <DialogDescription className="text-base pt-2">
-            Enter your email to view the complete AI visibility analysis for <span className="font-medium text-foreground">{domain}</span>
+            Create your free account to open the full AI visibility analysis for <span className="font-medium text-foreground">{domain}</span> in your dashboard
           </DialogDescription>
         </DialogHeader>
 
@@ -187,16 +187,30 @@ export function EmailCaptureModal({
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="capture-password">Create a password</Label>
+              <Input
+                id="capture-password"
+                type="password"
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                autoComplete="new-password"
+              />
+            </div>
+
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Unlocking...
+                  Setting up your dashboard...
                 </>
               ) : (
                 "Unlock Full Results"
               )}
             </Button>
+
 
             <p className="text-xs text-center text-muted-foreground">
               No spam. We'll only email you about improving your AI visibility.

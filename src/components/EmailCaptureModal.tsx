@@ -207,18 +207,52 @@ export function EmailCaptureModal({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="capture-password">Create a password</Label>
-              <Input
-                id="capture-password"
-                type="password"
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isSubmitting}
-                autoComplete="new-password"
-              />
-            </div>
+            {!showPassword ? (
+              <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm">
+                    <p className="font-medium">We'll create a secure password for you</p>
+                    <p className="font-mono text-xs text-muted-foreground mt-1">{password}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setPassword(generatePassword())} aria-label="Suggest a new password">
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" onClick={copyPassword} aria-label="Copy password">
+                      {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => setShowPassword(true)}
+                >
+                  Set my own password instead
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="capture-password">Choose a password</Label>
+                <Input
+                  id="capture-password"
+                  type="text"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => { setPassword(generatePassword()); setShowPassword(false); }}
+                >
+                  Use a suggested password
+                </button>
+              </div>
+            )}
+
 
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (

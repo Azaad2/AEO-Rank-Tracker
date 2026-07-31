@@ -315,6 +315,11 @@ const Index = () => {
           try { localStorage.setItem('pendingScanId', data.scanId); } catch {}
         }
       }
+      // Results are gated: ask for email before revealing anything
+      if (!user && !isUnlocked) {
+        setShowEmailModal(true);
+      }
+
       // Scroll to results + track results_viewed
       setTimeout(() => {
         document.getElementById('scan-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

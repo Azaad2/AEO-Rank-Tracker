@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +27,16 @@ export function EmailCaptureModal({
   score,
 }: EmailCaptureModalProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
+  const navigate = useNavigate();
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,16 +50,25 @@ export function EmailCaptureModal({
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Use at least 6 characters so you can log back in later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
+    const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // Save email to customers table
-      const { error } = await supabase.from("customers").insert({
-        email: email.trim().toLowerCase(),
+      // Save email to customers table (non-blocking on duplicates)
+      const { error: customerError } = await supabase.from("customers").insert({
+        email: cleanEmail,
         scan_id: scanId || null,
       });
-
-      if (error) throw error;
+      if (customerError) console.error("customer insert failed:", customerError);
 
       // Track email capture
       trackEvent("email_captured", {
@@ -64,11 +77,36 @@ export function EmailCaptureModal({
         scan_id: scanId,
       });
 
+      // Create the account (profile is created automatically) and sign in
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      });
+
+      if (signUpError) {
+        // Existing account — try signing them in with the given password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (signInError) {
+          toast({
+            title: "You already have an account",
+            description: "Please log in with your existing password to continue.",
+            variant: "destructive",
+          });
+          onOpenChange(false);
+          navigate("/auth");
+          return;
+        }
+      }
+
       // Fire-and-forget scan complete email — don't block UX if it fails
       supabase.functions
         .invoke("send-scan-complete", {
           body: {
-            email: email.trim().toLowerCase(),
+            email: cleanEmail,
             domain,
             score,
             scanId: scanId || null,
@@ -76,13 +114,18 @@ export function EmailCaptureModal({
         })
         .catch((err) => console.error("send-scan-complete invoke failed:", err));
 
+      if (scanId) {
+        try { localStorage.setItem("pendingScanId", scanId); } catch {}
+      }
+
       toast({
-        title: "Access unlocked!",
-        description: "Check your inbox — we sent your scan summary too.",
+        title: "You're in!",
+        description: "Your account is ready — taking you to your dashboard.",
       });
 
-      onSuccess(email);
+      onSuccess(cleanEmail);
       onOpenChange(false);
+      navigate("/dashboard");
     } catch (error) {
       console.error("Email capture error:", error);
       toast({
@@ -95,6 +138,7 @@ export function EmailCaptureModal({
     }
   };
 
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -104,7 +148,7 @@ export function EmailCaptureModal({
             Unlock Your Full Report
           </DialogTitle>
           <DialogDescription className="text-base pt-2">
-            Enter your email to view the complete AI visibility analysis for <span className="font-medium text-foreground">{domain}</span>
+            Create your free account to open the full AI visibility analysis for <span className="font-medium text-foreground">{domain}</span> in your dashboard
           </DialogDescription>
         </DialogHeader>
 
@@ -143,16 +187,30 @@ export function EmailCaptureModal({
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="capture-password">Create a password</Label>
+              <Input
+                id="capture-password"
+                type="password"
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                autoComplete="new-password"
+              />
+            </div>
+
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Unlocking...
+                  Setting up your dashboard...
                 </>
               ) : (
                 "Unlock Full Results"
               )}
             </Button>
+
 
             <p className="text-xs text-center text-muted-foreground">
               No spam. We'll only email you about improving your AI visibility.

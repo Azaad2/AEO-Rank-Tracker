@@ -50,16 +50,25 @@ export function EmailCaptureModal({
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Use at least 6 characters so you can log back in later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
+    const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // Save email to customers table
-      const { error } = await supabase.from("customers").insert({
-        email: email.trim().toLowerCase(),
+      // Save email to customers table (non-blocking on duplicates)
+      const { error: customerError } = await supabase.from("customers").insert({
+        email: cleanEmail,
         scan_id: scanId || null,
       });
-
-      if (error) throw error;
+      if (customerError) console.error("customer insert failed:", customerError);
 
       // Track email capture
       trackEvent("email_captured", {
@@ -68,11 +77,36 @@ export function EmailCaptureModal({
         scan_id: scanId,
       });
 
+      // Create the account (profile is created automatically) and sign in
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      });
+
+      if (signUpError) {
+        // Existing account — try signing them in with the given password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (signInError) {
+          toast({
+            title: "You already have an account",
+            description: "Please log in with your existing password to continue.",
+            variant: "destructive",
+          });
+          onOpenChange(false);
+          navigate("/auth");
+          return;
+        }
+      }
+
       // Fire-and-forget scan complete email — don't block UX if it fails
       supabase.functions
         .invoke("send-scan-complete", {
           body: {
-            email: email.trim().toLowerCase(),
+            email: cleanEmail,
             domain,
             score,
             scanId: scanId || null,
@@ -80,13 +114,18 @@ export function EmailCaptureModal({
         })
         .catch((err) => console.error("send-scan-complete invoke failed:", err));
 
+      if (scanId) {
+        try { localStorage.setItem("pendingScanId", scanId); } catch {}
+      }
+
       toast({
-        title: "Access unlocked!",
-        description: "Check your inbox — we sent your scan summary too.",
+        title: "You're in!",
+        description: "Your account is ready — taking you to your dashboard.",
       });
 
-      onSuccess(email);
+      onSuccess(cleanEmail);
       onOpenChange(false);
+      navigate("/dashboard");
     } catch (error) {
       console.error("Email capture error:", error);
       toast({
@@ -98,6 +137,7 @@ export function EmailCaptureModal({
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -226,10 +226,7 @@ async function analyzeWithGemini(
   targetDomain: string
 ): Promise<GeminiAnalysis | null> {
   const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
-  if (!GOOGLE_AI_API_KEY) {
-    console.log('⚠️ Google AI API key not configured - skipping Gemini analysis');
-    return null;
-  }
+
 
   const brandName = domainToName(targetDomain);
 

@@ -1016,8 +1016,35 @@ const Index = () => {
         )}
 
 
+        {/* Gate: results require an email (account) */}
+        {scanData && !user && !isUnlocked && (
+          <div id="scan-results" className="scroll-mt-24">
+            <Card className="bg-gradient-to-br from-yellow-400/10 via-black to-black border-yellow-400/40">
+              <CardContent className="p-6 md:p-8 space-y-4 text-center">
+                <Lock className="h-8 w-8 text-yellow-400 mx-auto" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">
+                  Your AI visibility report for {scanData.project} is ready
+                </h2>
+                <p className="text-gray-300 max-w-xl mx-auto">
+                  Enter your email to open it. No password to remember — we create your account instantly.
+                </p>
+                <Button
+                  size="lg"
+                  onClick={openEmailModal}
+                  className="bg-yellow-400 text-black hover:bg-yellow-500 font-bold"
+                >
+                  Show my results
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <p className="text-xs text-gray-500">Free forever plan. No card required.</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Unified post-scan Recommendation Intelligence preview */}
-        {scanData && (() => {
+        {scanData && (user || isUnlocked) && (() => {
+
           const totalPrompts = scanData.results.length;
           const mentionedCount = scanData.results.filter(
             (r) => r.mentioned || r.geminiMentioned || r.perplexityMentioned

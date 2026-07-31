@@ -585,12 +585,12 @@ const Index = () => {
                     placeholder="yourdomain.com"
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !isScanning) { setShowEmailModal(true); handleScan(); } }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !isScanning) { handleScan(); } }}
                     disabled={isScanning}
                     className="flex-1 bg-black/60 border-gray-700 text-white placeholder:text-gray-500 h-12 text-base"
                   />
                   <Button
-                    onClick={() => { trackEvent('cta_click', { cta_location: 'hero_inline', cta_text: 'Scan Now' }); trackCtaConversion('cta_click'); trackHeadlineConversion('cta_click'); setShowEmailModal(true); handleScan(); }}
+                    onClick={() => { trackEvent('cta_click', { cta_location: 'hero_inline', cta_text: 'Scan Now' }); trackCtaConversion('cta_click'); trackHeadlineConversion('cta_click'); handleScan(); }}
                     disabled={isScanning || !domain.trim()}
                     size="lg"
                     className="font-semibold bg-yellow-400 hover:bg-yellow-500 text-black h-12 px-6"

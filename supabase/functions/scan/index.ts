@@ -1197,7 +1197,18 @@ serve(async (req) => {
       perplexity_cited: row.perplexityCited,
       perplexity_response: row.perplexityResponse,
       perplexity_competitors: row.perplexityCompetitors,
+      // ChatGPT columns (null when the engine did not run for this tier)
+      chatgpt_mentioned: enginesToRun.includes('chatgpt') ? row.chatgptMentioned : null,
+      chatgpt_cited: enginesToRun.includes('chatgpt') ? row.chatgptCited : null,
+      chatgpt_response: enginesToRun.includes('chatgpt') ? row.chatgptResponse : null,
+      chatgpt_competitors: enginesToRun.includes('chatgpt') ? row.chatgptCompetitors : null,
+      // Claude columns
+      claude_mentioned: enginesToRun.includes('claude') ? row.claudeMentioned : null,
+      claude_cited: enginesToRun.includes('claude') ? row.claudeCited : null,
+      claude_response: enginesToRun.includes('claude') ? row.claudeResponse : null,
+      claude_competitors: enginesToRun.includes('claude') ? row.claudeCompetitors : null,
     }));
+
 
     const { data: insertedResults, error: resultsError } = await supabase
       .from('scan_results')

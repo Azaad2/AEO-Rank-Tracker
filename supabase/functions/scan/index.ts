@@ -630,35 +630,45 @@ function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   };
 }
 
-// Score calculation - now combines all three sources
-function scoreFromRow(row: RowResult): number {
-  // Google Search + OpenAI analysis (25% weight)
-  const searchMentioned = row.mentioned ? 1 : 0;
-  const searchCited = row.cited ? 1 : 0;
-  const rankBonus = row.citationRank && row.citationRank <= 3
-    ? (4 - row.citationRank) / 3
-    : 0;
-  const searchScore = (searchMentioned + 0.7 * searchCited + 0.3 * rankBonus) / 2;
-
-  // Direct Gemini analysis (40% weight)
-  const geminiMentioned = row.geminiMentioned ? 1 : 0;
-  const geminiCited = row.geminiCited ? 0.5 : 0;
-  const geminiScore = (geminiMentioned + geminiCited) / 1.5;
-
-  // Perplexity analysis (35% weight - real-time search grounded)
-  const perplexityMentioned = row.perplexityMentioned ? 1 : 0;
-  const perplexityCited = row.perplexityCited ? 0.5 : 0;
-  const perplexityScore = (perplexityMentioned + perplexityCited) / 1.5;
-
-  // Combined score
-  return Math.round(((searchScore * 0.25) + (geminiScore * 0.40) + (perplexityScore * 0.35)) * 100);
+// Per-engine sub-score: mention counts full, a real citation adds 50%
+function engineScore(mentioned: boolean, cited: boolean): number {
+  return ((mentioned ? 1 : 0) + (cited ? 0.5 : 0)) / 1.5;
 }
 
-function aggregateScore(rows: RowResult[]): number {
+// Score calculation across the engines that actually ran for this scan
+function scoreFromRow(
+  row: RowResult,
+  engines: ScanEngine[],
+  weights: Record<ScanEngine, number>
+): number {
+  const parts: Array<{ score: number; weight: number }> = [];
+
+  for (const engine of engines) {
+    const weight = weights[engine] ?? DEFAULT_WEIGHTS[engine];
+    if (engine === 'gemini') parts.push({ score: engineScore(row.geminiMentioned, row.geminiCited), weight });
+    if (engine === 'perplexity') parts.push({ score: engineScore(row.perplexityMentioned, row.perplexityCited), weight });
+    if (engine === 'chatgpt') parts.push({ score: engineScore(row.chatgptMentioned, row.chatgptCited), weight });
+    if (engine === 'claude') parts.push({ score: engineScore(row.claudeMentioned, row.claudeCited), weight });
+  }
+
+  const totalWeight = parts.reduce((acc, p) => acc + p.weight, 0);
+  if (totalWeight === 0) return 0;
+
+  // Re-normalise so a 2-engine (free) scan is still 0-100 and comparable
+  const weighted = parts.reduce((acc, p) => acc + p.score * p.weight, 0) / totalWeight;
+  return Math.round(weighted * 100);
+}
+
+function aggregateScore(
+  rows: RowResult[],
+  engines: ScanEngine[],
+  weights: Record<ScanEngine, number>
+): number {
   if (rows.length === 0) return 0;
-  const sum = rows.reduce((acc, row) => acc + scoreFromRow(row), 0);
+  const sum = rows.reduce((acc, row) => acc + scoreFromRow(row, engines, weights), 0);
   return Math.round(sum / rows.length);
 }
+
 
 // ============================================================
 // Citation intelligence pipeline (Phase 1 / Chunk #1)

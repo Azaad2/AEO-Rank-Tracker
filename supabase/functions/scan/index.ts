@@ -936,7 +936,10 @@ serve(async (req) => {
       );
     }
 
-    // === Subscription limit enforcement ===
+    // === Subscription limit enforcement + tier resolution ===
+    let isPaid = isAdmin;
+    let planId = userId ? 'free' : 'guest';
+
     if (userId && !isAdmin) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -952,6 +955,9 @@ serve(async (req) => {
         .maybeSingle();
 
       if (sub) {
+        planId = sub.plan_id ?? 'free';
+        isPaid = !!sub.plan_id && sub.plan_id !== 'free';
+
         const { data: plan } = await adminClient
           .from('plans')
           .select('scans_limit, prompts_limit')
@@ -975,6 +981,28 @@ serve(async (req) => {
       }
     }
 
+    // Free/guest scans run 2 engines; paid scans run all 4
+    const enginesToRun: ScanEngine[] = isPaid ? ALL_ENGINES : FREE_ENGINES;
+    const lockedEngines: ScanEngine[] = ALL_ENGINES.filter(e => !enginesToRun.includes(e));
+    console.log(`🎛️ Plan "${planId}" → engines: ${enginesToRun.join(', ')}`);
+
+    // Load tunable engine weights (falls back to defaults)
+    const weights: Record<ScanEngine, number> = { ...DEFAULT_WEIGHTS };
+    try {
+      const weightClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      const { data: weightRows } = await weightClient.from('engine_weights').select('engine, weight');
+      for (const w of weightRows ?? []) {
+        if ((ALL_ENGINES as string[]).includes(w.engine) && typeof w.weight === 'number' && w.weight > 0) {
+          weights[w.engine as ScanEngine] = Number(w.weight);
+        }
+      }
+    } catch (wErr) {
+      console.warn('engine_weights lookup failed, using defaults:', wErr);
+    }
+
     const rows: RowResult[] = [];
     let llmUsedCount = 0;
     let geminiUsedCount = 0;
@@ -982,12 +1010,15 @@ serve(async (req) => {
 
     // Process all prompts in parallel for speed
     const promptPromises = prompts.map(async (prompt) => {
-      // Run Serper search, Gemini analysis, and Perplexity analysis in parallel
-      const [searchResults, geminiAnalysis, perplexityAnalysis] = await Promise.all([
-        fetchSearchResults(prompt, market),
-        analyzeWithGemini(prompt, targetDomain),
-        analyzeWithPerplexity(prompt, targetDomain),
-      ]);
+      // Run search + every unlocked answer engine in parallel
+      const [searchResults, geminiAnalysis, perplexityAnalysis, chatgptAnalysis, claudeAnalysis] =
+        await Promise.all([
+          fetchSearchResults(prompt, market),
+          enginesToRun.includes('gemini') ? analyzeWithGemini(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('perplexity') ? analyzeWithPerplexity(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('chatgpt') ? analyzeWithChatGPT(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('claude') ? analyzeWithClaude(prompt, targetDomain) : Promise.resolve(null),
+        ]);
 
       // OpenAI analysis depends on search results, run after
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
@@ -1019,10 +1050,20 @@ serve(async (req) => {
         perplexityResponse: perplexityAnalysis?.response || '',
         perplexityCompetitors: perplexityAnalysis?.competitors || [],
         perplexityCitationsRaw: perplexityAnalysis?.citations || [],
+        chatgptMentioned: chatgptAnalysis?.brandMentioned || false,
+        chatgptCited: chatgptAnalysis?.brandCited || false,
+        chatgptResponse: chatgptAnalysis?.response || '',
+        chatgptCompetitors: chatgptAnalysis?.competitors || [],
+        claudeMentioned: claudeAnalysis?.brandMentioned || false,
+        claudeCited: claudeAnalysis?.brandCited || false,
+        claudeResponse: claudeAnalysis?.response || '',
+        claudeCompetitors: claudeAnalysis?.competitors || [],
         searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
         perplexityUsed: !!perplexityAnalysis,
+        chatgptUsed: !!chatgptAnalysis,
+        claudeUsed: !!claudeAnalysis,
         llmError: llmResult.error,
       };
     });
@@ -1032,10 +1073,14 @@ serve(async (req) => {
 
     // Aggregate results
     let perplexityUsedCount = 0;
+    let chatgptUsedCount = 0;
+    let claudeUsedCount = 0;
     for (const result of promptResults) {
       if (result.llmUsed) llmUsedCount++;
       if (result.geminiUsed) geminiUsedCount++;
       if (result.perplexityUsed) perplexityUsedCount++;
+      if (result.chatgptUsed) chatgptUsedCount++;
+      if (result.claudeUsed) claudeUsedCount++;
       if (result.llmError && !llmErrors.includes(result.llmError)) {
         llmErrors.push(result.llmError);
       }
@@ -1055,9 +1100,18 @@ serve(async (req) => {
         perplexityResponse: result.perplexityResponse,
         perplexityCompetitors: result.perplexityCompetitors,
         perplexityCitationsRaw: result.perplexityCitationsRaw,
+        chatgptMentioned: result.chatgptMentioned,
+        chatgptCited: result.chatgptCited,
+        chatgptResponse: result.chatgptResponse,
+        chatgptCompetitors: result.chatgptCompetitors,
+        claudeMentioned: result.claudeMentioned,
+        claudeCited: result.claudeCited,
+        claudeResponse: result.claudeResponse,
+        claudeCompetitors: result.claudeCompetitors,
         searchCitationsRaw: result.searchCitationsRaw,
       });
     }
+
 
     console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity`);
     if (llmErrors.length > 0) {

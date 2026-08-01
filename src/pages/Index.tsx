@@ -49,6 +49,16 @@ interface ScanResult {
   perplexityCited?: boolean;
   perplexityResponse?: string;
   perplexityCompetitors?: string[];
+  // ChatGPT (Pro)
+  chatgptMentioned?: boolean | null;
+  chatgptCited?: boolean | null;
+  chatgptResponse?: string | null;
+  chatgptCompetitors?: string[] | null;
+  // Claude (Pro)
+  claudeMentioned?: boolean | null;
+  claudeCited?: boolean | null;
+  claudeResponse?: string | null;
+  claudeCompetitors?: string[] | null;
 }
 
 interface ScanResponse {
@@ -56,6 +66,9 @@ interface ScanResponse {
   promptsCount: number;
   score: number;
   results: ScanResult[];
+  scanId?: string;
+  engines?: { ran: string[]; locked: string[]; plan?: string; isPaid?: boolean };
+
   classification?: {
     industry_id: string | null;
     industry_slug: string | null;

@@ -57,44 +57,50 @@ interface ScanResultsModalProps {
 
 const calculateAIVisibility = (results: ScanResult[]) => {
   const total = results.length;
+  const empty = { mentions: 0, citations: 0, overall: 0 };
   if (total === 0) return {
-    gemini: { mentions: 0, citations: 0, overall: 0 },
-    search: { mentions: 0, citations: 0, overall: 0 },
-    perplexity: { mentions: 0, citations: 0, overall: 0 },
+    gemini: empty,
+    search: empty,
+    perplexity: empty,
+    chatgpt: empty,
+    claude: empty,
     combined: 0
   };
-  
-  const geminiMentions = results.filter(r => r.geminiMentioned).length;
-  const geminiCitations = results.filter(r => r.geminiCited).length;
-  const geminiVisibility = Math.round(((geminiMentions + geminiCitations) / (total * 2)) * 100);
-  
-  const searchMentions = results.filter(r => r.mentioned).length;
-  const searchCitations = results.filter(r => r.cited).length;
-  const searchVisibility = Math.round(((searchMentions + searchCitations) / (total * 2)) * 100);
 
-  const perplexityMentions = results.filter(r => r.perplexityMentioned).length;
-  const perplexityCitations = results.filter(r => r.perplexityCited).length;
-  const perplexityVisibility = Math.round(((perplexityMentions + perplexityCitations) / (total * 2)) * 100);
-  
-  return {
-    gemini: {
-      mentions: Math.round((geminiMentions / total) * 100),
-      citations: Math.round((geminiCitations / total) * 100),
-      overall: geminiVisibility
-    },
-    search: {
-      mentions: Math.round((searchMentions / total) * 100),
-      citations: Math.round((searchCitations / total) * 100),
-      overall: searchVisibility
-    },
-    perplexity: {
-      mentions: Math.round((perplexityMentions / total) * 100),
-      citations: Math.round((perplexityCitations / total) * 100),
-      overall: perplexityVisibility
-    },
-    combined: Math.round((geminiVisibility * 0.40) + (searchVisibility * 0.25) + (perplexityVisibility * 0.35))
+  const engine = (
+    mentionedOf: (r: ScanResult) => boolean | null | undefined,
+    citedOf: (r: ScanResult) => boolean | null | undefined,
+  ) => {
+    const mentions = results.filter(r => mentionedOf(r) === true).length;
+    const citations = results.filter(r => citedOf(r) === true).length;
+    return {
+      mentions: Math.round((mentions / total) * 100),
+      citations: Math.round((citations / total) * 100),
+      overall: Math.round(((mentions + citations) / (total * 2)) * 100),
+    };
   };
+
+  const gemini = engine(r => r.geminiMentioned, r => r.geminiCited);
+  const search = engine(r => r.mentioned, r => r.cited);
+  const perplexity = engine(r => r.perplexityMentioned, r => r.perplexityCited);
+  const chatgpt = engine(r => r.chatgptMentioned, r => r.chatgptCited);
+  const claude = engine(r => r.claudeMentioned, r => r.claudeCited);
+
+  // Only count engines that actually returned an answer, then re-normalise
+  const parts: Array<{ value: number; weight: number }> = [
+    { value: gemini.overall, weight: results.some(r => r.geminiResponse) ? 0.30 : 0 },
+    { value: perplexity.overall, weight: results.some(r => r.perplexityResponse) ? 0.30 : 0 },
+    { value: chatgpt.overall, weight: results.some(r => r.chatgptResponse) ? 0.25 : 0 },
+    { value: claude.overall, weight: results.some(r => r.claudeResponse) ? 0.15 : 0 },
+  ];
+  const totalWeight = parts.reduce((a, p) => a + p.weight, 0);
+  const combined = totalWeight > 0
+    ? Math.round(parts.reduce((a, p) => a + p.value * p.weight, 0) / totalWeight)
+    : search.overall;
+
+  return { gemini, search, perplexity, chatgpt, claude, combined };
 };
+
 
 const getScoreColor = (score: number) => {
   if (score >= 70) return "text-green-500";

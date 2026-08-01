@@ -645,11 +645,14 @@ function scoreFromRow(
 
   for (const engine of engines) {
     const weight = weights[engine] ?? DEFAULT_WEIGHTS[engine];
-    if (engine === 'gemini') parts.push({ score: engineScore(row.geminiMentioned, row.geminiCited), weight });
-    if (engine === 'perplexity') parts.push({ score: engineScore(row.perplexityMentioned, row.perplexityCited), weight });
-    if (engine === 'chatgpt') parts.push({ score: engineScore(row.chatgptMentioned, row.chatgptCited), weight });
-    if (engine === 'claude') parts.push({ score: engineScore(row.claudeMentioned, row.claudeCited), weight });
+    // Skip engines that returned nothing (API failure/no credits) so a dead
+    // engine can never drag the score down — the rest are re-normalised below.
+    if (engine === 'gemini' && row.geminiResponse) parts.push({ score: engineScore(row.geminiMentioned, row.geminiCited), weight });
+    if (engine === 'perplexity' && row.perplexityResponse) parts.push({ score: engineScore(row.perplexityMentioned, row.perplexityCited), weight });
+    if (engine === 'chatgpt' && row.chatgptResponse) parts.push({ score: engineScore(row.chatgptMentioned, row.chatgptCited), weight });
+    if (engine === 'claude' && row.claudeResponse) parts.push({ score: engineScore(row.claudeMentioned, row.claudeCited), weight });
   }
+
 
   const totalWeight = parts.reduce((acc, p) => acc + p.weight, 0);
   if (totalWeight === 0) return 0;

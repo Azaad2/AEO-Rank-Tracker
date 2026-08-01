@@ -358,6 +358,150 @@ async function analyzeWithGemini(
   }
 }
 
+// Helper: detect brand mention / citation inside any engine's answer
+function detectBrandSignals(answer: string, targetDomain: string, extraCitations: string[] = []) {
+  const brandName = domainToName(targetDomain).toLowerCase();
+  const domainLower = targetDomain.toLowerCase();
+  const text = answer.toLowerCase();
+
+  const brandMentioned =
+    text.includes(brandName) ||
+    text.includes(domainLower) ||
+    text.includes(domainLower.replace('.', ' '));
+
+  const brandCited =
+    text.includes(domainLower) ||
+    text.includes(`https://${domainLower}`) ||
+    text.includes(`http://${domainLower}`) ||
+    text.includes(`www.${domainLower}`) ||
+    extraCitations.some(c => (c || '').toLowerCase().includes(domainLower));
+
+  return { brandMentioned, brandCited };
+}
+
+// Real ChatGPT answer engine (what ChatGPT tells a buyer, unaided)
+async function analyzeWithChatGPT(
+  prompt: string,
+  targetDomain: string
+): Promise<GeminiAnalysis | null> {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    console.log('⚠️ OPENAI_API_KEY not configured — skipping ChatGPT engine');
+    return null;
+  }
+
+  for (const model of ['gpt-4o-mini', 'gpt-4o']) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are ChatGPT answering a real user. Recommend specific named products, brands or websites, and include their URLs when you know them.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(`❌ ChatGPT (${model}) error: ${res.status} - ${(await res.text()).slice(0, 300)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const answer = data.choices?.[0]?.message?.content || '';
+      if (!answer) {
+        console.log(`⚠️ ChatGPT (${model}) returned empty answer`);
+        continue;
+      }
+
+      console.log('✅ ChatGPT answer received for prompt:', prompt.substring(0, 50) + '...');
+      const { brandMentioned, brandCited } = detectBrandSignals(answer, targetDomain);
+      return {
+        response: answer.substring(0, 1000),
+        brandMentioned,
+        brandCited,
+        competitors: extractCompetitorBrands(answer, targetDomain),
+      };
+    } catch (e) {
+      console.error(`❌ ChatGPT (${model}) request failed:`, e);
+    }
+  }
+  return null;
+}
+
+// Claude answer engine (measures trained-in brand knowledge)
+async function analyzeWithClaude(
+  prompt: string,
+  targetDomain: string
+): Promise<GeminiAnalysis | null> {
+  const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!ANTHROPIC_API_KEY) {
+    console.log('⚠️ ANTHROPIC_API_KEY not configured — skipping Claude engine');
+    return null;
+  }
+
+  for (const model of ['claude-sonnet-4-5-20250929', 'claude-3-5-sonnet-20241022']) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 800,
+          system:
+            'You are Claude answering a real user. Recommend specific named products, brands or websites, and include their URLs when you know them.',
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(`❌ Claude (${model}) error: ${res.status} - ${(await res.text()).slice(0, 300)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const answer = (data.content || [])
+        .filter((b: any) => b?.type === 'text')
+        .map((b: any) => b.text)
+        .join('\n')
+        .trim();
+
+      if (!answer) {
+        console.log(`⚠️ Claude (${model}) returned empty answer`);
+        continue;
+      }
+
+      console.log('✅ Claude answer received for prompt:', prompt.substring(0, 50) + '...');
+      const { brandMentioned, brandCited } = detectBrandSignals(answer, targetDomain);
+      return {
+        response: answer.substring(0, 1000),
+        brandMentioned,
+        brandCited,
+        competitors: extractCompetitorBrands(answer, targetDomain),
+      };
+    } catch (e) {
+      console.error(`❌ Claude (${model}) request failed:`, e);
+    }
+  }
+  return null;
+}
+
+
 // Helper: Extract competitor brands from AI response
 function extractCompetitorBrands(response: string, targetDomain: string): string[] {
   const competitors: string[] = [];

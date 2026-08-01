@@ -60,8 +60,33 @@ interface RowResult {
   perplexityResponse: string;
   perplexityCompetitors: string[];
   perplexityCitationsRaw: string[];
+  // ChatGPT (real answer engine)
+  chatgptMentioned: boolean;
+  chatgptCited: boolean;
+  chatgptResponse: string;
+  chatgptCompetitors: string[];
+  // Claude
+  claudeMentioned: boolean;
+  claudeCited: boolean;
+  claudeResponse: string;
+  claudeCompetitors: string[];
   searchCitationsRaw: Array<{ url: string }>;
 }
+
+// Engines that can run in a scan
+type ScanEngine = 'gemini' | 'perplexity' | 'chatgpt' | 'claude';
+
+const FREE_ENGINES: ScanEngine[] = ['gemini', 'perplexity'];
+const ALL_ENGINES: ScanEngine[] = ['gemini', 'perplexity', 'chatgpt', 'claude'];
+
+// Default weights (overridable via public.engine_weights)
+const DEFAULT_WEIGHTS: Record<ScanEngine, number> = {
+  gemini: 0.30,
+  perplexity: 0.30,
+  chatgpt: 0.25,
+  claude: 0.15,
+};
+
 
 // Helper: normalize domain
 function normalizeDomain(domain: string): string {

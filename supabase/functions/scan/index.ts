@@ -1200,16 +1200,17 @@ serve(async (req) => {
       perplexity_cited: row.perplexityCited,
       perplexity_response: row.perplexityResponse,
       perplexity_competitors: row.perplexityCompetitors,
-      // ChatGPT columns (null when the engine did not run for this tier)
-      chatgpt_mentioned: enginesToRun.includes('chatgpt') ? row.chatgptMentioned : null,
-      chatgpt_cited: enginesToRun.includes('chatgpt') ? row.chatgptCited : null,
-      chatgpt_response: enginesToRun.includes('chatgpt') ? row.chatgptResponse : null,
-      chatgpt_competitors: enginesToRun.includes('chatgpt') ? row.chatgptCompetitors : null,
+      // ChatGPT columns (null when the engine is locked or returned nothing)
+      chatgpt_mentioned: row.chatgptResponse ? row.chatgptMentioned : null,
+      chatgpt_cited: row.chatgptResponse ? row.chatgptCited : null,
+      chatgpt_response: row.chatgptResponse || null,
+      chatgpt_competitors: row.chatgptResponse ? row.chatgptCompetitors : null,
       // Claude columns
-      claude_mentioned: enginesToRun.includes('claude') ? row.claudeMentioned : null,
-      claude_cited: enginesToRun.includes('claude') ? row.claudeCited : null,
-      claude_response: enginesToRun.includes('claude') ? row.claudeResponse : null,
-      claude_competitors: enginesToRun.includes('claude') ? row.claudeCompetitors : null,
+      claude_mentioned: row.claudeResponse ? row.claudeMentioned : null,
+      claude_cited: row.claudeResponse ? row.claudeCited : null,
+      claude_response: row.claudeResponse || null,
+      claude_competitors: row.claudeResponse ? row.claudeCompetitors : null,
+
     }));
 
 

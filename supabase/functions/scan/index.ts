@@ -1113,12 +1113,13 @@ serve(async (req) => {
     }
 
 
-    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity`);
+    console.log(`📊 Analysis complete: ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity, ${chatgptUsedCount}/${prompts.length} ChatGPT, ${claudeUsedCount}/${prompts.length} Claude (search analysis: ${llmUsedCount}/${prompts.length})`);
     if (llmErrors.length > 0) {
       console.log('⚠️ LLM errors encountered:', llmErrors.join(', '));
     }
 
-    const score = aggregateScore(rows);
+    const score = aggregateScore(rows, enginesToRun, weights);
+
 
     // Persist to Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

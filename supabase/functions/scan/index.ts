@@ -1476,13 +1476,22 @@ serve(async (req) => {
           reasoning: classification.reasoning,
           method: classification.method,
         },
+        engines: {
+          ran: enginesToRun,
+          locked: lockedEngines,
+          plan: planId,
+          isPaid,
+        },
         meta: {
           llmAnalysisUsed: llmUsedCount,
           geminiAnalysisUsed: geminiUsedCount,
           perplexityAnalysisUsed: perplexityUsedCount,
+          chatgptAnalysisUsed: chatgptUsedCount,
+          claudeAnalysisUsed: claudeUsedCount,
           totalPrompts: prompts.length,
           llmErrors: llmErrors.length > 0 ? llmErrors : undefined,
         },
+
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

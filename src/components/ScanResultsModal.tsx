@@ -515,9 +515,11 @@ export function ScanResultsModal({
               
               {(
                 [
-                  { key: "gemini", label: "Gemini AI", dot: "bg-blue-500", data: visibility.gemini },
-                  { key: "search", label: "ChatGPT / Search", dot: "bg-emerald-500", data: visibility.search },
-                  { key: "perplexity", label: "Perplexity AI", dot: "bg-purple-500", data: visibility.perplexity },
+                  { key: "gemini", label: "Gemini", dot: "bg-blue-500", data: visibility.gemini, planLocked: lockedEngines.includes("gemini") },
+                  { key: "perplexity", label: "Perplexity", dot: "bg-purple-500", data: visibility.perplexity, planLocked: lockedEngines.includes("perplexity") },
+                  { key: "chatgpt", label: "ChatGPT", dot: "bg-teal-500", data: visibility.chatgpt, planLocked: lockedEngines.includes("chatgpt") },
+                  { key: "claude", label: "Claude", dot: "bg-orange-500", data: visibility.claude, planLocked: lockedEngines.includes("claude") },
+                  { key: "search", label: "Google Search", dot: "bg-emerald-500", data: visibility.search, planLocked: false },
                 ] as const
               ).map((row) => (
                 <div key={row.key} className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3 relative">
@@ -525,8 +527,15 @@ export function ScanResultsModal({
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${row.dot}`} />
                       <span className="font-medium text-white">{row.label}</span>
+                      {row.planLocked && (
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-yellow-400/15 text-yellow-400 border border-yellow-400/30">
+                          Pro
+                        </span>
+                      )}
                     </div>
-                    {isUnlocked ? (
+                    {row.planLocked ? (
+                      <span className="text-xs text-yellow-400 font-medium">Upgrade to see</span>
+                    ) : isUnlocked ? (
                       <span className={`font-bold ${getScoreColor(row.data.overall)}`}>
                         {row.data.overall}%
                       </span>
@@ -536,11 +545,11 @@ export function ScanResultsModal({
                   </div>
                   <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${isUnlocked ? getProgressColor(row.data.overall) : "bg-gray-600"} transition-all`}
-                      style={{ width: isUnlocked ? `${row.data.overall}%` : "45%" }}
+                      className={`h-full ${!row.planLocked && isUnlocked ? getProgressColor(row.data.overall) : "bg-gray-600"} transition-all`}
+                      style={{ width: !row.planLocked && isUnlocked ? `${row.data.overall}%` : "45%" }}
                     />
                   </div>
-                  {isUnlocked && (
+                  {isUnlocked && !row.planLocked && (
                     <div className="flex justify-between text-xs text-gray-400">
                       <span>Mentions: {row.data.mentions}%</span>
                       <span>Citations: {row.data.citations}%</span>
@@ -566,8 +575,12 @@ export function ScanResultsModal({
                 </div>
                 <Progress value={isUnlocked ? visibility.combined : 50} className="h-3" />
                 <p className="text-xs text-gray-400">
-                  Weighted: 40% Gemini + 35% Perplexity + 25% Search/ChatGPT
+                  {lockedEngines.length > 0
+                    ? "Free scans check Gemini + Perplexity. Upgrade to add ChatGPT and Claude."
+                    : "Weighted across Gemini, Perplexity, ChatGPT and Claude."}
                 </p>
+              </div>
+
               </div>
             </div>
 

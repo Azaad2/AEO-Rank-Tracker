@@ -724,8 +724,12 @@ async function runCitationPipeline(args: CitationPipelineArgs): Promise<void> {
 
     // Track competitor brand names from each engine for cites_brand attribution
     const compSet = new Set<string>();
-    [...(row.geminiCompetitors || []), ...(row.perplexityCompetitors || [])]
-      .forEach(c => { const n = normalizeBrandLocal(c); if (n) compSet.add(n); });
+    [
+      ...(row.geminiCompetitors || []),
+      ...(row.perplexityCompetitors || []),
+      ...(row.chatgptCompetitors || []),
+      ...(row.claudeCompetitors || []),
+    ].forEach(c => { const n = normalizeBrandLocal(c); if (n) compSet.add(n); });
     competitorBrandsByPrompt.set(row.prompt, compSet);
 
     if (row.geminiResponse) {
@@ -737,6 +741,13 @@ async function runCitationPipeline(args: CitationPipelineArgs): Promise<void> {
       const merged = mergeUnique(fromStruct, fromText);
       batches.push({ scan_result_id: srId, engine: 'perplexity', citations: merged });
     }
+    if (row.chatgptResponse) {
+      batches.push({ scan_result_id: srId, engine: 'chatgpt', citations: extractCitationsFromText(row.chatgptResponse) });
+    }
+    if (row.claudeResponse) {
+      batches.push({ scan_result_id: srId, engine: 'claude', citations: extractCitationsFromText(row.claudeResponse) });
+    }
+
     if (row.searchCitationsRaw && row.searchCitationsRaw.length > 0) {
       batches.push({ scan_result_id: srId, engine: 'search', citations: extractStructuredCitations(row.searchCitationsRaw) });
     }

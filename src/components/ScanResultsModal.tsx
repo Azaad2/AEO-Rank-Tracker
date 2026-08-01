@@ -580,8 +580,6 @@ export function ScanResultsModal({
                     : "Weighted across Gemini, Perplexity, ChatGPT and Claude."}
                 </p>
               </div>
-
-              </div>
             </div>
 
             {/* Issues to Fix */}

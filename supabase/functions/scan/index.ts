@@ -60,8 +60,33 @@ interface RowResult {
   perplexityResponse: string;
   perplexityCompetitors: string[];
   perplexityCitationsRaw: string[];
+  // ChatGPT (real answer engine)
+  chatgptMentioned: boolean;
+  chatgptCited: boolean;
+  chatgptResponse: string;
+  chatgptCompetitors: string[];
+  // Claude
+  claudeMentioned: boolean;
+  claudeCited: boolean;
+  claudeResponse: string;
+  claudeCompetitors: string[];
   searchCitationsRaw: Array<{ url: string }>;
 }
+
+// Engines that can run in a scan
+type ScanEngine = 'gemini' | 'perplexity' | 'chatgpt' | 'claude';
+
+const FREE_ENGINES: ScanEngine[] = ['gemini', 'perplexity'];
+const ALL_ENGINES: ScanEngine[] = ['gemini', 'perplexity', 'chatgpt', 'claude'];
+
+// Default weights (overridable via public.engine_weights)
+const DEFAULT_WEIGHTS: Record<ScanEngine, number> = {
+  gemini: 0.30,
+  perplexity: 0.30,
+  chatgpt: 0.25,
+  claude: 0.15,
+};
+
 
 // Helper: normalize domain
 function normalizeDomain(domain: string): string {
@@ -333,6 +358,150 @@ async function analyzeWithGemini(
   }
 }
 
+// Helper: detect brand mention / citation inside any engine's answer
+function detectBrandSignals(answer: string, targetDomain: string, extraCitations: string[] = []) {
+  const brandName = domainToName(targetDomain).toLowerCase();
+  const domainLower = targetDomain.toLowerCase();
+  const text = answer.toLowerCase();
+
+  const brandMentioned =
+    text.includes(brandName) ||
+    text.includes(domainLower) ||
+    text.includes(domainLower.replace('.', ' '));
+
+  const brandCited =
+    text.includes(domainLower) ||
+    text.includes(`https://${domainLower}`) ||
+    text.includes(`http://${domainLower}`) ||
+    text.includes(`www.${domainLower}`) ||
+    extraCitations.some(c => (c || '').toLowerCase().includes(domainLower));
+
+  return { brandMentioned, brandCited };
+}
+
+// Real ChatGPT answer engine (what ChatGPT tells a buyer, unaided)
+async function analyzeWithChatGPT(
+  prompt: string,
+  targetDomain: string
+): Promise<GeminiAnalysis | null> {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    console.log('⚠️ OPENAI_API_KEY not configured — skipping ChatGPT engine');
+    return null;
+  }
+
+  for (const model of ['gpt-4o-mini', 'gpt-4o']) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are ChatGPT answering a real user. Recommend specific named products, brands or websites, and include their URLs when you know them.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(`❌ ChatGPT (${model}) error: ${res.status} - ${(await res.text()).slice(0, 300)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const answer = data.choices?.[0]?.message?.content || '';
+      if (!answer) {
+        console.log(`⚠️ ChatGPT (${model}) returned empty answer`);
+        continue;
+      }
+
+      console.log('✅ ChatGPT answer received for prompt:', prompt.substring(0, 50) + '...');
+      const { brandMentioned, brandCited } = detectBrandSignals(answer, targetDomain);
+      return {
+        response: answer.substring(0, 1000),
+        brandMentioned,
+        brandCited,
+        competitors: extractCompetitorBrands(answer, targetDomain),
+      };
+    } catch (e) {
+      console.error(`❌ ChatGPT (${model}) request failed:`, e);
+    }
+  }
+  return null;
+}
+
+// Claude answer engine (measures trained-in brand knowledge)
+async function analyzeWithClaude(
+  prompt: string,
+  targetDomain: string
+): Promise<GeminiAnalysis | null> {
+  const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!ANTHROPIC_API_KEY) {
+    console.log('⚠️ ANTHROPIC_API_KEY not configured — skipping Claude engine');
+    return null;
+  }
+
+  for (const model of ['claude-sonnet-4-5-20250929', 'claude-3-5-sonnet-20241022']) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 800,
+          system:
+            'You are Claude answering a real user. Recommend specific named products, brands or websites, and include their URLs when you know them.',
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!res.ok) {
+        console.error(`❌ Claude (${model}) error: ${res.status} - ${(await res.text()).slice(0, 300)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const answer = (data.content || [])
+        .filter((b: any) => b?.type === 'text')
+        .map((b: any) => b.text)
+        .join('\n')
+        .trim();
+
+      if (!answer) {
+        console.log(`⚠️ Claude (${model}) returned empty answer`);
+        continue;
+      }
+
+      console.log('✅ Claude answer received for prompt:', prompt.substring(0, 50) + '...');
+      const { brandMentioned, brandCited } = detectBrandSignals(answer, targetDomain);
+      return {
+        response: answer.substring(0, 1000),
+        brandMentioned,
+        brandCited,
+        competitors: extractCompetitorBrands(answer, targetDomain),
+      };
+    } catch (e) {
+      console.error(`❌ Claude (${model}) request failed:`, e);
+    }
+  }
+  return null;
+}
+
+
 // Helper: Extract competitor brands from AI response
 function extractCompetitorBrands(response: string, targetDomain: string): string[] {
   const competitors: string[] = [];
@@ -461,35 +630,48 @@ function heuristicAnalysis(targetDomain: string, results: SearchResult[]): any {
   };
 }
 
-// Score calculation - now combines all three sources
-function scoreFromRow(row: RowResult): number {
-  // Google Search + OpenAI analysis (25% weight)
-  const searchMentioned = row.mentioned ? 1 : 0;
-  const searchCited = row.cited ? 1 : 0;
-  const rankBonus = row.citationRank && row.citationRank <= 3
-    ? (4 - row.citationRank) / 3
-    : 0;
-  const searchScore = (searchMentioned + 0.7 * searchCited + 0.3 * rankBonus) / 2;
-
-  // Direct Gemini analysis (40% weight)
-  const geminiMentioned = row.geminiMentioned ? 1 : 0;
-  const geminiCited = row.geminiCited ? 0.5 : 0;
-  const geminiScore = (geminiMentioned + geminiCited) / 1.5;
-
-  // Perplexity analysis (35% weight - real-time search grounded)
-  const perplexityMentioned = row.perplexityMentioned ? 1 : 0;
-  const perplexityCited = row.perplexityCited ? 0.5 : 0;
-  const perplexityScore = (perplexityMentioned + perplexityCited) / 1.5;
-
-  // Combined score
-  return Math.round(((searchScore * 0.25) + (geminiScore * 0.40) + (perplexityScore * 0.35)) * 100);
+// Per-engine sub-score: mention counts full, a real citation adds 50%
+function engineScore(mentioned: boolean, cited: boolean): number {
+  return ((mentioned ? 1 : 0) + (cited ? 0.5 : 0)) / 1.5;
 }
 
-function aggregateScore(rows: RowResult[]): number {
+// Score calculation across the engines that actually ran for this scan
+function scoreFromRow(
+  row: RowResult,
+  engines: ScanEngine[],
+  weights: Record<ScanEngine, number>
+): number {
+  const parts: Array<{ score: number; weight: number }> = [];
+
+  for (const engine of engines) {
+    const weight = weights[engine] ?? DEFAULT_WEIGHTS[engine];
+    // Skip engines that returned nothing (API failure/no credits) so a dead
+    // engine can never drag the score down — the rest are re-normalised below.
+    if (engine === 'gemini' && row.geminiResponse) parts.push({ score: engineScore(row.geminiMentioned, row.geminiCited), weight });
+    if (engine === 'perplexity' && row.perplexityResponse) parts.push({ score: engineScore(row.perplexityMentioned, row.perplexityCited), weight });
+    if (engine === 'chatgpt' && row.chatgptResponse) parts.push({ score: engineScore(row.chatgptMentioned, row.chatgptCited), weight });
+    if (engine === 'claude' && row.claudeResponse) parts.push({ score: engineScore(row.claudeMentioned, row.claudeCited), weight });
+  }
+
+
+  const totalWeight = parts.reduce((acc, p) => acc + p.weight, 0);
+  if (totalWeight === 0) return 0;
+
+  // Re-normalise so a 2-engine (free) scan is still 0-100 and comparable
+  const weighted = parts.reduce((acc, p) => acc + p.score * p.weight, 0) / totalWeight;
+  return Math.round(weighted * 100);
+}
+
+function aggregateScore(
+  rows: RowResult[],
+  engines: ScanEngine[],
+  weights: Record<ScanEngine, number>
+): number {
   if (rows.length === 0) return 0;
-  const sum = rows.reduce((acc, row) => acc + scoreFromRow(row), 0);
+  const sum = rows.reduce((acc, row) => acc + scoreFromRow(row, engines, weights), 0);
   return Math.round(sum / rows.length);
 }
+
 
 // ============================================================
 // Citation intelligence pipeline (Phase 1 / Chunk #1)
@@ -545,8 +727,12 @@ async function runCitationPipeline(args: CitationPipelineArgs): Promise<void> {
 
     // Track competitor brand names from each engine for cites_brand attribution
     const compSet = new Set<string>();
-    [...(row.geminiCompetitors || []), ...(row.perplexityCompetitors || [])]
-      .forEach(c => { const n = normalizeBrandLocal(c); if (n) compSet.add(n); });
+    [
+      ...(row.geminiCompetitors || []),
+      ...(row.perplexityCompetitors || []),
+      ...(row.chatgptCompetitors || []),
+      ...(row.claudeCompetitors || []),
+    ].forEach(c => { const n = normalizeBrandLocal(c); if (n) compSet.add(n); });
     competitorBrandsByPrompt.set(row.prompt, compSet);
 
     if (row.geminiResponse) {
@@ -558,6 +744,13 @@ async function runCitationPipeline(args: CitationPipelineArgs): Promise<void> {
       const merged = mergeUnique(fromStruct, fromText);
       batches.push({ scan_result_id: srId, engine: 'perplexity', citations: merged });
     }
+    if (row.chatgptResponse) {
+      batches.push({ scan_result_id: srId, engine: 'chatgpt', citations: extractCitationsFromText(row.chatgptResponse) });
+    }
+    if (row.claudeResponse) {
+      batches.push({ scan_result_id: srId, engine: 'claude', citations: extractCitationsFromText(row.claudeResponse) });
+    }
+
     if (row.searchCitationsRaw && row.searchCitationsRaw.length > 0) {
       batches.push({ scan_result_id: srId, engine: 'search', citations: extractStructuredCitations(row.searchCitationsRaw) });
     }
@@ -746,7 +939,10 @@ serve(async (req) => {
       );
     }
 
-    // === Subscription limit enforcement ===
+    // === Subscription limit enforcement + tier resolution ===
+    let isPaid = isAdmin;
+    let planId = userId ? 'free' : 'guest';
+
     if (userId && !isAdmin) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -762,6 +958,9 @@ serve(async (req) => {
         .maybeSingle();
 
       if (sub) {
+        planId = sub.plan_id ?? 'free';
+        isPaid = !!sub.plan_id && sub.plan_id !== 'free';
+
         const { data: plan } = await adminClient
           .from('plans')
           .select('scans_limit, prompts_limit')
@@ -785,6 +984,28 @@ serve(async (req) => {
       }
     }
 
+    // Free/guest scans run 2 engines; paid scans run all 4
+    const enginesToRun: ScanEngine[] = isPaid ? ALL_ENGINES : FREE_ENGINES;
+    const lockedEngines: ScanEngine[] = ALL_ENGINES.filter(e => !enginesToRun.includes(e));
+    console.log(`🎛️ Plan "${planId}" → engines: ${enginesToRun.join(', ')}`);
+
+    // Load tunable engine weights (falls back to defaults)
+    const weights: Record<ScanEngine, number> = { ...DEFAULT_WEIGHTS };
+    try {
+      const weightClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      const { data: weightRows } = await weightClient.from('engine_weights').select('engine, weight');
+      for (const w of weightRows ?? []) {
+        if ((ALL_ENGINES as string[]).includes(w.engine) && typeof w.weight === 'number' && w.weight > 0) {
+          weights[w.engine as ScanEngine] = Number(w.weight);
+        }
+      }
+    } catch (wErr) {
+      console.warn('engine_weights lookup failed, using defaults:', wErr);
+    }
+
     const rows: RowResult[] = [];
     let llmUsedCount = 0;
     let geminiUsedCount = 0;
@@ -792,12 +1013,15 @@ serve(async (req) => {
 
     // Process all prompts in parallel for speed
     const promptPromises = prompts.map(async (prompt) => {
-      // Run Serper search, Gemini analysis, and Perplexity analysis in parallel
-      const [searchResults, geminiAnalysis, perplexityAnalysis] = await Promise.all([
-        fetchSearchResults(prompt, market),
-        analyzeWithGemini(prompt, targetDomain),
-        analyzeWithPerplexity(prompt, targetDomain),
-      ]);
+      // Run search + every unlocked answer engine in parallel
+      const [searchResults, geminiAnalysis, perplexityAnalysis, chatgptAnalysis, claudeAnalysis] =
+        await Promise.all([
+          fetchSearchResults(prompt, market),
+          enginesToRun.includes('gemini') ? analyzeWithGemini(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('perplexity') ? analyzeWithPerplexity(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('chatgpt') ? analyzeWithChatGPT(prompt, targetDomain) : Promise.resolve(null),
+          enginesToRun.includes('claude') ? analyzeWithClaude(prompt, targetDomain) : Promise.resolve(null),
+        ]);
 
       // OpenAI analysis depends on search results, run after
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
@@ -829,10 +1053,20 @@ serve(async (req) => {
         perplexityResponse: perplexityAnalysis?.response || '',
         perplexityCompetitors: perplexityAnalysis?.competitors || [],
         perplexityCitationsRaw: perplexityAnalysis?.citations || [],
+        chatgptMentioned: chatgptAnalysis?.brandMentioned || false,
+        chatgptCited: chatgptAnalysis?.brandCited || false,
+        chatgptResponse: chatgptAnalysis?.response || '',
+        chatgptCompetitors: chatgptAnalysis?.competitors || [],
+        claudeMentioned: claudeAnalysis?.brandMentioned || false,
+        claudeCited: claudeAnalysis?.brandCited || false,
+        claudeResponse: claudeAnalysis?.response || '',
+        claudeCompetitors: claudeAnalysis?.competitors || [],
         searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
         perplexityUsed: !!perplexityAnalysis,
+        chatgptUsed: !!chatgptAnalysis,
+        claudeUsed: !!claudeAnalysis,
         llmError: llmResult.error,
       };
     });
@@ -842,10 +1076,14 @@ serve(async (req) => {
 
     // Aggregate results
     let perplexityUsedCount = 0;
+    let chatgptUsedCount = 0;
+    let claudeUsedCount = 0;
     for (const result of promptResults) {
       if (result.llmUsed) llmUsedCount++;
       if (result.geminiUsed) geminiUsedCount++;
       if (result.perplexityUsed) perplexityUsedCount++;
+      if (result.chatgptUsed) chatgptUsedCount++;
+      if (result.claudeUsed) claudeUsedCount++;
       if (result.llmError && !llmErrors.includes(result.llmError)) {
         llmErrors.push(result.llmError);
       }
@@ -865,16 +1103,26 @@ serve(async (req) => {
         perplexityResponse: result.perplexityResponse,
         perplexityCompetitors: result.perplexityCompetitors,
         perplexityCitationsRaw: result.perplexityCitationsRaw,
+        chatgptMentioned: result.chatgptMentioned,
+        chatgptCited: result.chatgptCited,
+        chatgptResponse: result.chatgptResponse,
+        chatgptCompetitors: result.chatgptCompetitors,
+        claudeMentioned: result.claudeMentioned,
+        claudeCited: result.claudeCited,
+        claudeResponse: result.claudeResponse,
+        claudeCompetitors: result.claudeCompetitors,
         searchCitationsRaw: result.searchCitationsRaw,
       });
     }
 
-    console.log(`📊 Analysis complete: ${llmUsedCount}/${prompts.length} OpenAI, ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity`);
+
+    console.log(`📊 Analysis complete: ${geminiUsedCount}/${prompts.length} Gemini, ${perplexityUsedCount}/${prompts.length} Perplexity, ${chatgptUsedCount}/${prompts.length} ChatGPT, ${claudeUsedCount}/${prompts.length} Claude (search analysis: ${llmUsedCount}/${prompts.length})`);
     if (llmErrors.length > 0) {
       console.log('⚠️ LLM errors encountered:', llmErrors.join(', '));
     }
 
-    const score = aggregateScore(rows);
+    const score = aggregateScore(rows, enginesToRun, weights);
+
 
     // Persist to Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -952,7 +1200,19 @@ serve(async (req) => {
       perplexity_cited: row.perplexityCited,
       perplexity_response: row.perplexityResponse,
       perplexity_competitors: row.perplexityCompetitors,
+      // ChatGPT columns (null when the engine is locked or returned nothing)
+      chatgpt_mentioned: row.chatgptResponse ? row.chatgptMentioned : null,
+      chatgpt_cited: row.chatgptResponse ? row.chatgptCited : null,
+      chatgpt_response: row.chatgptResponse || null,
+      chatgpt_competitors: row.chatgptResponse ? row.chatgptCompetitors : null,
+      // Claude columns
+      claude_mentioned: row.claudeResponse ? row.claudeMentioned : null,
+      claude_cited: row.claudeResponse ? row.claudeCited : null,
+      claude_response: row.claudeResponse || null,
+      claude_competitors: row.claudeResponse ? row.claudeCompetitors : null,
+
     }));
+
 
     const { data: insertedResults, error: resultsError } = await supabase
       .from('scan_results')
@@ -1220,13 +1480,22 @@ serve(async (req) => {
           reasoning: classification.reasoning,
           method: classification.method,
         },
+        engines: {
+          ran: enginesToRun,
+          locked: lockedEngines,
+          plan: planId,
+          isPaid,
+        },
         meta: {
           llmAnalysisUsed: llmUsedCount,
           geminiAnalysisUsed: geminiUsedCount,
           perplexityAnalysisUsed: perplexityUsedCount,
+          chatgptAnalysisUsed: chatgptUsedCount,
+          claudeAnalysisUsed: claudeUsedCount,
           totalPrompts: prompts.length,
           llmErrors: llmErrors.length > 0 ? llmErrors : undefined,
         },
+
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -28,6 +28,14 @@ interface ScanResult {
   perplexityCited?: boolean;
   perplexityResponse?: string;
   perplexityCompetitors?: string[];
+  chatgptMentioned?: boolean | null;
+  chatgptCited?: boolean | null;
+  chatgptResponse?: string | null;
+  chatgptCompetitors?: string[] | null;
+  claudeMentioned?: boolean | null;
+  claudeCited?: boolean | null;
+  claudeResponse?: string | null;
+  claudeCompetitors?: string[] | null;
 }
 
 interface ScanResultsModalProps {
@@ -39,52 +47,60 @@ interface ScanResultsModalProps {
     score: number;
     results: ScanResult[];
     scanId?: string;
+    engines?: { ran: string[]; locked: string[]; plan?: string; isPaid?: boolean };
   } | null;
   isUnlocked: boolean;
   onUnlock: (email: string) => void;
   freePreviewCount?: number;
 }
 
+
 const calculateAIVisibility = (results: ScanResult[]) => {
   const total = results.length;
+  const empty = { mentions: 0, citations: 0, overall: 0 };
   if (total === 0) return {
-    gemini: { mentions: 0, citations: 0, overall: 0 },
-    search: { mentions: 0, citations: 0, overall: 0 },
-    perplexity: { mentions: 0, citations: 0, overall: 0 },
+    gemini: empty,
+    search: empty,
+    perplexity: empty,
+    chatgpt: empty,
+    claude: empty,
     combined: 0
   };
-  
-  const geminiMentions = results.filter(r => r.geminiMentioned).length;
-  const geminiCitations = results.filter(r => r.geminiCited).length;
-  const geminiVisibility = Math.round(((geminiMentions + geminiCitations) / (total * 2)) * 100);
-  
-  const searchMentions = results.filter(r => r.mentioned).length;
-  const searchCitations = results.filter(r => r.cited).length;
-  const searchVisibility = Math.round(((searchMentions + searchCitations) / (total * 2)) * 100);
 
-  const perplexityMentions = results.filter(r => r.perplexityMentioned).length;
-  const perplexityCitations = results.filter(r => r.perplexityCited).length;
-  const perplexityVisibility = Math.round(((perplexityMentions + perplexityCitations) / (total * 2)) * 100);
-  
-  return {
-    gemini: {
-      mentions: Math.round((geminiMentions / total) * 100),
-      citations: Math.round((geminiCitations / total) * 100),
-      overall: geminiVisibility
-    },
-    search: {
-      mentions: Math.round((searchMentions / total) * 100),
-      citations: Math.round((searchCitations / total) * 100),
-      overall: searchVisibility
-    },
-    perplexity: {
-      mentions: Math.round((perplexityMentions / total) * 100),
-      citations: Math.round((perplexityCitations / total) * 100),
-      overall: perplexityVisibility
-    },
-    combined: Math.round((geminiVisibility * 0.40) + (searchVisibility * 0.25) + (perplexityVisibility * 0.35))
+  const engine = (
+    mentionedOf: (r: ScanResult) => boolean | null | undefined,
+    citedOf: (r: ScanResult) => boolean | null | undefined,
+  ) => {
+    const mentions = results.filter(r => mentionedOf(r) === true).length;
+    const citations = results.filter(r => citedOf(r) === true).length;
+    return {
+      mentions: Math.round((mentions / total) * 100),
+      citations: Math.round((citations / total) * 100),
+      overall: Math.round(((mentions + citations) / (total * 2)) * 100),
+    };
   };
+
+  const gemini = engine(r => r.geminiMentioned, r => r.geminiCited);
+  const search = engine(r => r.mentioned, r => r.cited);
+  const perplexity = engine(r => r.perplexityMentioned, r => r.perplexityCited);
+  const chatgpt = engine(r => r.chatgptMentioned, r => r.chatgptCited);
+  const claude = engine(r => r.claudeMentioned, r => r.claudeCited);
+
+  // Only count engines that actually returned an answer, then re-normalise
+  const parts: Array<{ value: number; weight: number }> = [
+    { value: gemini.overall, weight: results.some(r => r.geminiResponse) ? 0.30 : 0 },
+    { value: perplexity.overall, weight: results.some(r => r.perplexityResponse) ? 0.30 : 0 },
+    { value: chatgpt.overall, weight: results.some(r => r.chatgptResponse) ? 0.25 : 0 },
+    { value: claude.overall, weight: results.some(r => r.claudeResponse) ? 0.15 : 0 },
+  ];
+  const totalWeight = parts.reduce((a, p) => a + p.weight, 0);
+  const combined = totalWeight > 0
+    ? Math.round(parts.reduce((a, p) => a + p.value * p.weight, 0) / totalWeight)
+    : search.overall;
+
+  return { gemini, search, perplexity, chatgpt, claude, combined };
 };
+
 
 const getScoreColor = (score: number) => {
   if (score >= 70) return "text-green-500";
@@ -279,6 +295,12 @@ export function ScanResultsModal({
 
 
   const visibility = calculateAIVisibility(scanData.results);
+  // Engines this plan didn't run (fall back to detecting empty answers)
+  const lockedEngines: string[] = scanData.engines?.locked ?? [
+    ...(scanData.results.some(r => r.chatgptResponse) ? [] : ["chatgpt"]),
+    ...(scanData.results.some(r => r.claudeResponse) ? [] : ["claude"]),
+  ];
+
   const competitors = getUniqueCompetitors(scanData.results);
   const lockedCount = scanData.results.length - freePreviewCount;
   const issues = deriveIssues(scanData.results, scanData.score, competitors);
@@ -499,9 +521,11 @@ export function ScanResultsModal({
               
               {(
                 [
-                  { key: "gemini", label: "Gemini AI", dot: "bg-blue-500", data: visibility.gemini },
-                  { key: "search", label: "ChatGPT / Search", dot: "bg-emerald-500", data: visibility.search },
-                  { key: "perplexity", label: "Perplexity AI", dot: "bg-purple-500", data: visibility.perplexity },
+                  { key: "gemini", label: "Gemini", dot: "bg-blue-500", data: visibility.gemini, planLocked: lockedEngines.includes("gemini") },
+                  { key: "perplexity", label: "Perplexity", dot: "bg-purple-500", data: visibility.perplexity, planLocked: lockedEngines.includes("perplexity") },
+                  { key: "chatgpt", label: "ChatGPT", dot: "bg-teal-500", data: visibility.chatgpt, planLocked: lockedEngines.includes("chatgpt") },
+                  { key: "claude", label: "Claude", dot: "bg-orange-500", data: visibility.claude, planLocked: lockedEngines.includes("claude") },
+                  { key: "search", label: "Google Search", dot: "bg-emerald-500", data: visibility.search, planLocked: false },
                 ] as const
               ).map((row) => (
                 <div key={row.key} className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3 relative">
@@ -509,8 +533,15 @@ export function ScanResultsModal({
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${row.dot}`} />
                       <span className="font-medium text-white">{row.label}</span>
+                      {row.planLocked && (
+                        <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-yellow-400/15 text-yellow-400 border border-yellow-400/30">
+                          Pro
+                        </span>
+                      )}
                     </div>
-                    {isUnlocked ? (
+                    {row.planLocked ? (
+                      <span className="text-xs text-yellow-400 font-medium">Upgrade to see</span>
+                    ) : isUnlocked ? (
                       <span className={`font-bold ${getScoreColor(row.data.overall)}`}>
                         {row.data.overall}%
                       </span>
@@ -520,11 +551,11 @@ export function ScanResultsModal({
                   </div>
                   <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${isUnlocked ? getProgressColor(row.data.overall) : "bg-gray-600"} transition-all`}
-                      style={{ width: isUnlocked ? `${row.data.overall}%` : "45%" }}
+                      className={`h-full ${!row.planLocked && isUnlocked ? getProgressColor(row.data.overall) : "bg-gray-600"} transition-all`}
+                      style={{ width: !row.planLocked && isUnlocked ? `${row.data.overall}%` : "45%" }}
                     />
                   </div>
-                  {isUnlocked && (
+                  {isUnlocked && !row.planLocked && (
                     <div className="flex justify-between text-xs text-gray-400">
                       <span>Mentions: {row.data.mentions}%</span>
                       <span>Citations: {row.data.citations}%</span>
@@ -550,7 +581,9 @@ export function ScanResultsModal({
                 </div>
                 <Progress value={isUnlocked ? visibility.combined : 50} className="h-3" />
                 <p className="text-xs text-gray-400">
-                  Weighted: 40% Gemini + 35% Perplexity + 25% Search/ChatGPT
+                  {lockedEngines.length > 0
+                    ? "Free scans check Gemini + Perplexity. Upgrade to add ChatGPT and Claude."
+                    : "Weighted across Gemini, Perplexity, ChatGPT and Claude."}
                 </p>
               </div>
             </div>

@@ -28,6 +28,14 @@ interface ScanResult {
   perplexityCited?: boolean;
   perplexityResponse?: string;
   perplexityCompetitors?: string[];
+  chatgptMentioned?: boolean | null;
+  chatgptCited?: boolean | null;
+  chatgptResponse?: string | null;
+  chatgptCompetitors?: string[] | null;
+  claudeMentioned?: boolean | null;
+  claudeCited?: boolean | null;
+  claudeResponse?: string | null;
+  claudeCompetitors?: string[] | null;
 }
 
 interface ScanResultsModalProps {
@@ -39,11 +47,13 @@ interface ScanResultsModalProps {
     score: number;
     results: ScanResult[];
     scanId?: string;
+    engines?: { ran: string[]; locked: string[]; plan?: string; isPaid?: boolean };
   } | null;
   isUnlocked: boolean;
   onUnlock: (email: string) => void;
   freePreviewCount?: number;
 }
+
 
 const calculateAIVisibility = (results: ScanResult[]) => {
   const total = results.length;

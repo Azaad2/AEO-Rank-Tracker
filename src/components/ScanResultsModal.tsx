@@ -295,6 +295,12 @@ export function ScanResultsModal({
 
 
   const visibility = calculateAIVisibility(scanData.results);
+  // Engines this plan didn't run (fall back to detecting empty answers)
+  const lockedEngines: string[] = scanData.engines?.locked ?? [
+    ...(scanData.results.some(r => r.chatgptResponse) ? [] : ["chatgpt"]),
+    ...(scanData.results.some(r => r.claudeResponse) ? [] : ["claude"]),
+  ];
+
   const competitors = getUniqueCompetitors(scanData.results);
   const lockedCount = scanData.results.length - freePreviewCount;
   const issues = deriveIssues(scanData.results, scanData.score, competitors);

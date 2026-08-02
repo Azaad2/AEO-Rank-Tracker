@@ -8,6 +8,9 @@ import {
   type Engine,
 } from "../_shared/citations.ts";
 import { classifyIndustry } from "../_shared/classify-industry.ts";
+import { getDomainProfile, type DomainProfile } from "../_shared/domain-profile.ts";
+import { extractRecommendedBrands, rankCompetitorEvidence } from "../_shared/brand-extract.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1011,6 +1014,28 @@ serve(async (req) => {
     let geminiUsedCount = 0;
     let llmErrors: string[] = [];
 
+    // === Understand the domain before judging any answer ===
+    // Reads the actual website (cached for 30 days) so competitor detection is
+    // anchored to the real product category instead of a guess.
+    const lovableKeyForProfile = Deno.env.get('LOVABLE_API_KEY');
+    let domainProfile: DomainProfile | null = null;
+    if (lovableKeyForProfile) {
+      try {
+        const profileClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+        domainProfile = await getDomainProfile(profileClient, targetDomain, lovableKeyForProfile);
+        console.log(
+          `🏷️ Domain profile: ${domainProfile.brandName} — "${domainProfile.category}" (site readable: ${domainProfile.fetchOk})`
+        );
+      } catch (pErr) {
+        console.warn('domain profile lookup failed:', pErr);
+      }
+    }
+    const targetBrandName = domainProfile?.brandName || domainToName(targetDomain);
+    const targetCategory = domainProfile?.category || '';
+
     // Process all prompts in parallel for speed
     const promptPromises = prompts.map(async (prompt) => {
       // Run search + every unlocked answer engine in parallel
@@ -1022,6 +1047,32 @@ serve(async (req) => {
           enginesToRun.includes('chatgpt') ? analyzeWithChatGPT(prompt, targetDomain) : Promise.resolve(null),
           enginesToRun.includes('claude') ? analyzeWithClaude(prompt, targetDomain) : Promise.resolve(null),
         ]);
+
+      // Verified competitor extraction: one structured pass over every engine
+      // answer for this prompt, filtered against the real category.
+      let brandsByEngine: Record<string, string[]> = {};
+      if (lovableKeyForProfile) {
+        try {
+          brandsByEngine = await extractRecommendedBrands(
+            prompt,
+            {
+              gemini: geminiAnalysis?.response || '',
+              perplexity: perplexityAnalysis?.response || '',
+              chatgpt: chatgptAnalysis?.response || '',
+              claude: claudeAnalysis?.response || '',
+            },
+            {
+              targetDomain,
+              targetBrand: targetBrandName,
+              category: targetCategory,
+              apiKey: lovableKeyForProfile,
+            }
+          );
+        } catch (bErr) {
+          console.warn('competitor extraction failed for prompt:', bErr);
+        }
+      }
+
 
       // OpenAI analysis depends on search results, run after
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);
@@ -1037,6 +1088,10 @@ serve(async (req) => {
         .map((c: any) => safeHost(c.url))
         .filter((h: string) => h);
 
+      // Verified extraction wins; the engine's own regex guess is a last resort.
+      const competitorsFor = (engine: string, legacy?: string[] | null) =>
+        brandsByEngine[engine]?.length ? brandsByEngine[engine] : (legacy || []);
+
       return {
         prompt,
         mentioned: analysis.brandMentioned || false,
@@ -1047,20 +1102,20 @@ serve(async (req) => {
         geminiMentioned: geminiAnalysis?.brandMentioned || false,
         geminiCited: geminiAnalysis?.brandCited || false,
         geminiResponse: geminiAnalysis?.response || '',
-        geminiCompetitors: geminiAnalysis?.competitors || [],
+        geminiCompetitors: competitorsFor('gemini', geminiAnalysis?.competitors),
         perplexityMentioned: perplexityAnalysis?.brandMentioned || false,
         perplexityCited: perplexityAnalysis?.brandCited || false,
         perplexityResponse: perplexityAnalysis?.response || '',
-        perplexityCompetitors: perplexityAnalysis?.competitors || [],
+        perplexityCompetitors: competitorsFor('perplexity', perplexityAnalysis?.competitors),
         perplexityCitationsRaw: perplexityAnalysis?.citations || [],
         chatgptMentioned: chatgptAnalysis?.brandMentioned || false,
         chatgptCited: chatgptAnalysis?.brandCited || false,
         chatgptResponse: chatgptAnalysis?.response || '',
-        chatgptCompetitors: chatgptAnalysis?.competitors || [],
+        chatgptCompetitors: competitorsFor('chatgpt', chatgptAnalysis?.competitors),
         claudeMentioned: claudeAnalysis?.brandMentioned || false,
         claudeCited: claudeAnalysis?.brandCited || false,
         claudeResponse: claudeAnalysis?.response || '',
-        claudeCompetitors: claudeAnalysis?.competitors || [],
+        claudeCompetitors: competitorsFor('claude', claudeAnalysis?.competitors),
         searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
@@ -1070,6 +1125,7 @@ serve(async (req) => {
         llmError: llmResult.error,
       };
     });
+
 
     // Wait for all prompts to complete
     const promptResults = await Promise.all(promptPromises);
@@ -1122,6 +1178,20 @@ serve(async (req) => {
     }
 
     const score = aggregateScore(rows, enginesToRun, weights);
+
+    // Rank competitors by how many prompts and engines actually named them.
+    const competitorEvidence = rankCompetitorEvidence(
+      rows.map(r => ({
+        prompt: r.prompt,
+        byEngine: {
+          gemini: r.geminiCompetitors || [],
+          perplexity: r.perplexityCompetitors || [],
+          chatgpt: r.chatgptCompetitors || [],
+          claude: r.claudeCompetitors || [],
+        },
+      }))
+    ).map(c => ({ ...c, totalPrompts: prompts.length }));
+
 
 
     // Persist to Supabase
@@ -1471,6 +1541,19 @@ serve(async (req) => {
         promptsCount: prompts.length,
         score,
         results: rows,
+        competitorEvidence,
+        domainProfile: domainProfile
+          ? {
+              brandName: domainProfile.brandName,
+              category: domainProfile.category,
+              description: domainProfile.description,
+              icp: domainProfile.icp,
+              knownCompetitors: domainProfile.knownCompetitors,
+              readable: domainProfile.fetchOk,
+              source: domainProfile.source,
+            }
+          : null,
+
         classification: {
           industry_id: classification.industry_id,
           industry_slug: classification.industry_slug,

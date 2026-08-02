@@ -128,6 +128,15 @@ const Index = () => {
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [detectedProfile, setDetectedProfile] = useState<{
+    brandName?: string;
+    category?: string;
+    description?: string;
+    icp?: string;
+    knownCompetitors?: string[];
+    readable?: boolean;
+  } | null>(null);
+
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
   
@@ -240,25 +249,27 @@ const Index = () => {
     setUnlockedEmail(null);
 
     try {
-      // Auto-generate prompts if user did not supply any
+      // Read the website first, then build prompts from what it actually sells
       let finalPrompts = promptsText.trim();
       if (!finalPrompts) {
         const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         try {
-          const { data: gen, error: genErr } = await supabase.functions.invoke('generate-prompts', {
-            body: {
-              industry: 'general',
-              businessDescription: `Website ${domainName}${competitor.trim() ? ` competing with ${competitor.trim()}` : ''}`,
-              targetAudience: 'general',
-            },
+          const { data: prof, error: profErr } = await supabase.functions.invoke('domain-profile', {
+            body: { domain: domainName, withPrompts: true, promptCount: 6 },
           });
-          if (genErr) throw genErr;
-          finalPrompts = ((gen?.prompts || []) as any[])
-            .slice(0, 5)
-            .map((p: any) => (p.prompt || p))
-            .join('\n');
+          if (profErr) throw profErr;
+          if (prof?.profile) {
+            setDetectedProfile(prof.profile);
+            if (prof.profile.readable === false) {
+              toast({
+                title: "We couldn't read your website",
+                description: 'We guessed your category. Check the prompts below and edit them if they look wrong.',
+              });
+            }
+          }
+          finalPrompts = ((prof?.prompts || []) as string[]).join('\n');
         } catch (e) {
-          console.warn('Auto prompt generation failed, falling back', e);
+          console.warn('Domain profiling failed, falling back', e);
         }
         if (!finalPrompts) {
           finalPrompts = BUSINESS_TYPE_PROMPTS.Other
@@ -267,6 +278,7 @@ const Index = () => {
         }
         setPromptsText(finalPrompts);
       }
+
 
       // Check subscription limits for logged-in users (now that we know prompt count)
       const promptCount = finalPrompts.split(/[\n,]/).filter(p => p.trim()).length;
@@ -1015,6 +1027,27 @@ const Index = () => {
                   <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
                     Prompts/Keywords (one per line)
                   </label>
+                  {detectedProfile && (
+                    <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-3 space-y-1">
+                      <p className="text-xs text-yellow-300 font-semibold">
+                        {detectedProfile.readable === false
+                          ? "We couldn't open your website — this is our best guess"
+                          : 'We read your website'}
+                      </p>
+                      <p className="text-sm text-gray-200">
+                        <span className="text-gray-400">You look like:</span>{' '}
+                        {detectedProfile.category || 'unclear'}
+                      </p>
+                      {detectedProfile.knownCompetitors?.length ? (
+                        <p className="text-xs text-gray-400">
+                          Brands we'll treat as your rivals: {detectedProfile.knownCompetitors.join(', ')}
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-gray-500">
+                        Not right? Edit the prompts below and scan again — we test exactly what you type.
+                      </p>
+                    </div>
+                  )}
                   <Textarea
                     id="prompts"
                     placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
@@ -1026,9 +1059,10 @@ const Index = () => {
                     className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
                   />
                   <p className="text-xs text-gray-500">
-                    Leave blank to auto-generate. Max 15 prompts.
+                    Leave blank and we'll read your website to build the right prompts. Max 15 prompts.
                   </p>
                 </div>
+
               </CollapsibleContent>
             </Collapsible>
           </CardContent>

@@ -465,6 +465,45 @@ export type Database = {
           },
         ]
       }
+      domain_profiles: {
+        Row: {
+          brand_name: string | null
+          category: string | null
+          description: string | null
+          domain: string
+          fetch_ok: boolean
+          fetched_at: string
+          icp: string | null
+          known_competitors: Json
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_name?: string | null
+          category?: string | null
+          description?: string | null
+          domain: string
+          fetch_ok?: boolean
+          fetched_at?: string
+          icp?: string | null
+          known_competitors?: Json
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string | null
+          category?: string | null
+          description?: string | null
+          domain?: string
+          fetch_ok?: boolean
+          fetched_at?: string
+          icp?: string | null
+          known_competitors?: Json
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string

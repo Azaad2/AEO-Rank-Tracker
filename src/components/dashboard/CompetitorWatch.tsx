@@ -29,7 +29,9 @@ interface CompetitorData {
   count: number;
   percentage: number;
   prompts: string[];
+  engines: string[];
 }
+
 
 interface CitationRow {
   scan_result_id: number;

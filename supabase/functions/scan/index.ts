@@ -1088,6 +1088,10 @@ serve(async (req) => {
         .map((c: any) => safeHost(c.url))
         .filter((h: string) => h);
 
+      // Verified extraction wins; the engine's own regex guess is a last resort.
+      const competitorsFor = (engine: string, legacy?: string[] | null) =>
+        brandsByEngine[engine]?.length ? brandsByEngine[engine] : (legacy || []);
+
       return {
         prompt,
         mentioned: analysis.brandMentioned || false,
@@ -1098,20 +1102,20 @@ serve(async (req) => {
         geminiMentioned: geminiAnalysis?.brandMentioned || false,
         geminiCited: geminiAnalysis?.brandCited || false,
         geminiResponse: geminiAnalysis?.response || '',
-        geminiCompetitors: geminiAnalysis?.competitors || [],
+        geminiCompetitors: competitorsFor('gemini', geminiAnalysis?.competitors),
         perplexityMentioned: perplexityAnalysis?.brandMentioned || false,
         perplexityCited: perplexityAnalysis?.brandCited || false,
         perplexityResponse: perplexityAnalysis?.response || '',
-        perplexityCompetitors: perplexityAnalysis?.competitors || [],
+        perplexityCompetitors: competitorsFor('perplexity', perplexityAnalysis?.competitors),
         perplexityCitationsRaw: perplexityAnalysis?.citations || [],
         chatgptMentioned: chatgptAnalysis?.brandMentioned || false,
         chatgptCited: chatgptAnalysis?.brandCited || false,
         chatgptResponse: chatgptAnalysis?.response || '',
-        chatgptCompetitors: chatgptAnalysis?.competitors || [],
+        chatgptCompetitors: competitorsFor('chatgpt', chatgptAnalysis?.competitors),
         claudeMentioned: claudeAnalysis?.brandMentioned || false,
         claudeCited: claudeAnalysis?.brandCited || false,
         claudeResponse: claudeAnalysis?.response || '',
-        claudeCompetitors: claudeAnalysis?.competitors || [],
+        claudeCompetitors: competitorsFor('claude', claudeAnalysis?.competitors),
         searchCitationsRaw: (analysis.citations || []).map((c: any) => ({ url: c.url })).filter((c: any) => c.url),
         llmUsed: llmResult.usedLLM,
         geminiUsed: !!geminiAnalysis,
@@ -1121,6 +1125,7 @@ serve(async (req) => {
         llmError: llmResult.error,
       };
     });
+
 
     // Wait for all prompts to complete
     const promptResults = await Promise.all(promptPromises);

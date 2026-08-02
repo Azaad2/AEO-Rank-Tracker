@@ -1541,6 +1541,19 @@ serve(async (req) => {
         promptsCount: prompts.length,
         score,
         results: rows,
+        competitorEvidence,
+        domainProfile: domainProfile
+          ? {
+              brandName: domainProfile.brandName,
+              category: domainProfile.category,
+              description: domainProfile.description,
+              icp: domainProfile.icp,
+              knownCompetitors: domainProfile.knownCompetitors,
+              readable: domainProfile.fetchOk,
+              source: domainProfile.source,
+            }
+          : null,
+
         classification: {
           industry_id: classification.industry_id,
           industry_slug: classification.industry_slug,

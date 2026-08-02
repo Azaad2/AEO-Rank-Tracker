@@ -160,7 +160,7 @@ export function CompetitorWatch() {
 
       const { data: results } = await supabase
         .from('scan_results')
-        .select('id, prompt, gemini_competitors, top_cited_domains')
+        .select('id, prompt, gemini_competitors, perplexity_competitors, chatgpt_competitors, claude_competitors, top_cited_domains')
         .in('scan_id', scanIds);
 
       if (!results) {
@@ -186,19 +186,26 @@ export function CompetitorWatch() {
       }
       setCitations(cits);
 
-      const map = new Map<string, { count: number; prompts: Set<string> }>();
+      const map = new Map<string, { count: number; prompts: Set<string>; engines: Set<string> }>();
       for (const r of results) {
-        const combined = [
-          ...((r as any).gemini_competitors || []),
-          ...((r as any).top_cited_domains || []),
+        // Brands AI recommended, per engine — plus the sites it leaned on
+        const byEngine: Array<[string, any[]]> = [
+          ['Gemini', (r as any).gemini_competitors || []],
+          ['Perplexity', (r as any).perplexity_competitors || []],
+          ['ChatGPT', (r as any).chatgpt_competitors || []],
+          ['Claude', (r as any).claude_competitors || []],
+          ['Web search', (r as any).top_cited_domains || []],
         ];
-        for (const raw of combined) {
-          const name = String(raw).trim();
-          if (!name) continue;
-          const cur = map.get(name) || { count: 0, prompts: new Set<string>() };
-          cur.count += 1;
-          if ((r as any).prompt) cur.prompts.add((r as any).prompt);
-          map.set(name, cur);
+        for (const [engine, brands] of byEngine) {
+          for (const raw of brands) {
+            const name = String(raw).trim();
+            if (!name) continue;
+            const cur = map.get(name) || { count: 0, prompts: new Set<string>(), engines: new Set<string>() };
+            cur.count += 1;
+            cur.engines.add(engine);
+            if ((r as any).prompt) cur.prompts.add((r as any).prompt);
+            map.set(name, cur);
+          }
         }
       }
 
@@ -208,10 +215,12 @@ export function CompetitorWatch() {
           count: v.count,
           percentage: Math.round((v.count / results.length) * 100),
           prompts: Array.from(v.prompts),
+          engines: Array.from(v.engines),
         }))
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => b.prompts.length * 10 + b.engines.length - (a.prompts.length * 10 + a.engines.length));
 
       setAllBrands(list);
+
     } catch (e) {
       console.error(e);
     } finally {

@@ -8,6 +8,9 @@ import {
   type Engine,
 } from "../_shared/citations.ts";
 import { classifyIndustry } from "../_shared/classify-industry.ts";
+import { getDomainProfile, type DomainProfile } from "../_shared/domain-profile.ts";
+import { extractRecommendedBrands, rankCompetitorEvidence } from "../_shared/brand-extract.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

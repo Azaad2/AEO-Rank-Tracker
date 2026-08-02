@@ -240,25 +240,27 @@ const Index = () => {
     setUnlockedEmail(null);
 
     try {
-      // Auto-generate prompts if user did not supply any
+      // Read the website first, then build prompts from what it actually sells
       let finalPrompts = promptsText.trim();
       if (!finalPrompts) {
         const domainName = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
         try {
-          const { data: gen, error: genErr } = await supabase.functions.invoke('generate-prompts', {
-            body: {
-              industry: 'general',
-              businessDescription: `Website ${domainName}${competitor.trim() ? ` competing with ${competitor.trim()}` : ''}`,
-              targetAudience: 'general',
-            },
+          const { data: prof, error: profErr } = await supabase.functions.invoke('domain-profile', {
+            body: { domain: domainName, withPrompts: true, promptCount: 6 },
           });
-          if (genErr) throw genErr;
-          finalPrompts = ((gen?.prompts || []) as any[])
-            .slice(0, 5)
-            .map((p: any) => (p.prompt || p))
-            .join('\n');
+          if (profErr) throw profErr;
+          if (prof?.profile) {
+            setDetectedProfile(prof.profile);
+            if (prof.profile.readable === false) {
+              toast({
+                title: "We couldn't read your website",
+                description: 'We guessed your category. Check the prompts below and edit them if they look wrong.',
+              });
+            }
+          }
+          finalPrompts = ((prof?.prompts || []) as string[]).join('\n');
         } catch (e) {
-          console.warn('Auto prompt generation failed, falling back', e);
+          console.warn('Domain profiling failed, falling back', e);
         }
         if (!finalPrompts) {
           finalPrompts = BUSINESS_TYPE_PROMPTS.Other
@@ -267,6 +269,7 @@ const Index = () => {
         }
         setPromptsText(finalPrompts);
       }
+
 
       // Check subscription limits for logged-in users (now that we know prompt count)
       const promptCount = finalPrompts.split(/[\n,]/).filter(p => p.trim()).length;

@@ -128,6 +128,15 @@ const Index = () => {
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [detectedProfile, setDetectedProfile] = useState<{
+    brandName?: string;
+    category?: string;
+    description?: string;
+    icp?: string;
+    knownCompetitors?: string[];
+    readable?: boolean;
+  } | null>(null);
+
   const { toast } = useToast();
   const { trackEvent } = useActivityTracking();
   

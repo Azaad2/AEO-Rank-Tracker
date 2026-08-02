@@ -1027,6 +1027,27 @@ const Index = () => {
                   <label htmlFor="prompts" className="text-sm font-medium text-gray-300">
                     Prompts/Keywords (one per line)
                   </label>
+                  {detectedProfile && (
+                    <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-3 space-y-1">
+                      <p className="text-xs text-yellow-300 font-semibold">
+                        {detectedProfile.readable === false
+                          ? "We couldn't open your website — this is our best guess"
+                          : 'We read your website'}
+                      </p>
+                      <p className="text-sm text-gray-200">
+                        <span className="text-gray-400">You look like:</span>{' '}
+                        {detectedProfile.category || 'unclear'}
+                      </p>
+                      {detectedProfile.knownCompetitors?.length ? (
+                        <p className="text-xs text-gray-400">
+                          Brands we'll treat as your rivals: {detectedProfile.knownCompetitors.join(', ')}
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-gray-500">
+                        Not right? Edit the prompts below and scan again — we test exactly what you type.
+                      </p>
+                    </div>
+                  )}
                   <Textarea
                     id="prompts"
                     placeholder="best wholesale marketplace for resellers&#10;bndbox vs faire&#10;is bndbox legit?"
@@ -1038,9 +1059,10 @@ const Index = () => {
                     className="font-mono text-sm bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
                   />
                   <p className="text-xs text-gray-500">
-                    Leave blank to auto-generate. Max 15 prompts.
+                    Leave blank and we'll read your website to build the right prompts. Max 15 prompts.
                   </p>
                 </div>
+
               </CollapsibleContent>
             </Collapsible>
           </CardContent>

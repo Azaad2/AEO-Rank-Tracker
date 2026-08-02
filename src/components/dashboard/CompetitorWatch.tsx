@@ -431,12 +431,21 @@ export function CompetitorWatch() {
                       <Badge variant="outline" className="text-[10px] bg-yellow-400/10 text-yellow-400 border-yellow-400/30">
                         #{i + 1} threat
                       </Badge>
+                      {comp.prompts.length === 1 && comp.engines.length === 1 && (
+                        <Badge variant="outline" className="text-[10px] bg-gray-700/50 text-gray-300 border-gray-600">
+                          Seen once — might not be a real rival
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-gray-300 mt-1">
                       AI recommends this brand{' '}
                       <span className="text-yellow-400 font-bold">{multiplier}× more often</span> than you
                       <span className="text-gray-500"> ({comp.percentage}% vs {userVisibility}%)</span>
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Named in {comp.prompts.length} of {totalPrompts} questions, on {comp.engines.join(', ')}
+                    </p>
+
                   </div>
                 </div>
 

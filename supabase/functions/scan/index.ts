@@ -1179,6 +1179,20 @@ serve(async (req) => {
 
     const score = aggregateScore(rows, enginesToRun, weights);
 
+    // Rank competitors by how many prompts and engines actually named them.
+    const competitorEvidence = rankCompetitorEvidence(
+      rows.map(r => ({
+        prompt: r.prompt,
+        byEngine: {
+          gemini: r.geminiCompetitors || [],
+          perplexity: r.perplexityCompetitors || [],
+          chatgpt: r.chatgptCompetitors || [],
+          claude: r.claudeCompetitors || [],
+        },
+      }))
+    ).map(c => ({ ...c, totalPrompts: prompts.length }));
+
+
 
     // Persist to Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -1014,6 +1014,28 @@ serve(async (req) => {
     let geminiUsedCount = 0;
     let llmErrors: string[] = [];
 
+    // === Understand the domain before judging any answer ===
+    // Reads the actual website (cached for 30 days) so competitor detection is
+    // anchored to the real product category instead of a guess.
+    const lovableKeyForProfile = Deno.env.get('LOVABLE_API_KEY');
+    let domainProfile: DomainProfile | null = null;
+    if (lovableKeyForProfile) {
+      try {
+        const profileClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+        domainProfile = await getDomainProfile(profileClient, targetDomain, lovableKeyForProfile);
+        console.log(
+          `🏷️ Domain profile: ${domainProfile.brandName} — "${domainProfile.category}" (site readable: ${domainProfile.fetchOk})`
+        );
+      } catch (pErr) {
+        console.warn('domain profile lookup failed:', pErr);
+      }
+    }
+    const targetBrandName = domainProfile?.brandName || domainToName(targetDomain);
+    const targetCategory = domainProfile?.category || '';
+
     // Process all prompts in parallel for speed
     const promptPromises = prompts.map(async (prompt) => {
       // Run search + every unlocked answer engine in parallel
@@ -1025,6 +1047,32 @@ serve(async (req) => {
           enginesToRun.includes('chatgpt') ? analyzeWithChatGPT(prompt, targetDomain) : Promise.resolve(null),
           enginesToRun.includes('claude') ? analyzeWithClaude(prompt, targetDomain) : Promise.resolve(null),
         ]);
+
+      // Verified competitor extraction: one structured pass over every engine
+      // answer for this prompt, filtered against the real category.
+      let brandsByEngine: Record<string, string[]> = {};
+      if (lovableKeyForProfile) {
+        try {
+          brandsByEngine = await extractRecommendedBrands(
+            prompt,
+            {
+              gemini: geminiAnalysis?.response || '',
+              perplexity: perplexityAnalysis?.response || '',
+              chatgpt: chatgptAnalysis?.response || '',
+              claude: claudeAnalysis?.response || '',
+            },
+            {
+              targetDomain,
+              targetBrand: targetBrandName,
+              category: targetCategory,
+              apiKey: lovableKeyForProfile,
+            }
+          );
+        } catch (bErr) {
+          console.warn('competitor extraction failed for prompt:', bErr);
+        }
+      }
+
 
       // OpenAI analysis depends on search results, run after
       const llmResult = await analyzeWithLLM(prompt, targetDomain, searchResults);

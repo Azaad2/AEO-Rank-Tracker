@@ -691,8 +691,55 @@ const Index = () => {
             </div>
           </div>
 
+          {/* Trust & Promise Section */}
+          {!scanData && (
+            <section className="py-10 md:py-14">
+              <div className="text-center max-w-3xl mx-auto space-y-6">
+                <span className="inline-block px-3 py-1 bg-yellow-400/15 text-yellow-400 text-xs font-semibold rounded-full uppercase tracking-wider">
+                  Trusted by 500+ brands
+                </span>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight">
+                  We will put you inside <span className="text-yellow-400">ChatGPT, Claude, Perplexity, Gemini</span> in 30 days.
+                </h2>
+                <p className="text-gray-300 text-base md:text-lg max-w-2xl mx-auto">
+                  Brands like <strong className="text-white">BndBox</strong> and <strong className="text-white">Puubra</strong> used to be invisible when buyers asked AI for recommendations. We found the exact questions their customers were asking, built the pages and answers AI engines trust, and turned those mentions into real visibility.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                  {[
+                    { value: "500+", label: "Brands made visible inside AI answers" },
+                    { value: "4", label: "Major AI engines monitored" },
+                    { value: "30", label: "Days to measurable AI mentions" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="p-5 rounded-xl bg-gray-900 border border-gray-800 text-center">
+                      <div className="text-3xl font-extrabold text-yellow-400">{stat.value}</div>
+                      <div className="text-sm text-gray-400 mt-1">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  {["ChatGPT", "Claude", "Perplexity", "Gemini"].map((platform) => (
+                    <span
+                      key={platform}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900 border border-gray-800 text-sm font-medium text-white"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-yellow-400" />
+                      {platform}
+                    </span>
+                  ))}
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  No fake rankings. We show you what AI actually says, then build the assets that make it say you.
+                </p>
+              </div>
+            </section>
+          )}
+
           {/* Product walkthrough with real screenshots */}
           <ProductWalkthrough />
+
 
 
           {/* Example competitor intelligence report — static illustrative output */}

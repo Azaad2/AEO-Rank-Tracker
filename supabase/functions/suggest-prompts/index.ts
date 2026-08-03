@@ -51,9 +51,11 @@ serve(async (req) => {
     }
 
     if (suggestionsLimit === 0) {
+      // Return 200 so the browser client can read the payload (non-2xx bodies
+      // are swallowed by supabase.functions.invoke).
       return new Response(
-        JSON.stringify({ error: "Upgrade to a paid plan to unlock AI-suggested prompts", suggestions: [] }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ locked: true, error: "Upgrade to a paid plan to unlock AI-suggested prompts", suggestions: [] }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

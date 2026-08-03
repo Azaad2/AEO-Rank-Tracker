@@ -57,13 +57,19 @@ export function SuggestedPrompts({ domain, onAddPrompt, disabled }: SuggestedPro
       });
 
       if (error) {
-        // Check for 403 (free plan)
+        // Non-2xx (e.g. plan gate or upstream failure) — treat gate as locked
         if (error.message?.includes('403') || data?.error?.includes('Upgrade')) {
           setIsLocked(true);
           setHasLoaded(true);
           return;
         }
         throw error;
+      }
+
+      if (data?.locked) {
+        setIsLocked(true);
+        setHasLoaded(true);
+        return;
       }
 
       if (data?.error) {

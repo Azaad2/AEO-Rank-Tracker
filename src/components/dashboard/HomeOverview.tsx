@@ -99,13 +99,13 @@ export function HomeOverview({
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Swords className="h-4 w-4 text-yellow-400" />
-                Competitor gap
+                Where you can win
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-400 mb-4">See which competitors AI models cite more often — and why.</p>
+              <p className="text-sm text-gray-400 mb-4">See who is winning in your space and how to claim your share of AI recommendations.</p>
               <Button size="sm" onClick={() => onNavigate('competitors')} className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold">
-                Analyze gap <ArrowRight className="ml-1 h-3 w-3" />
+                Find your edge <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardContent>
           </Card>

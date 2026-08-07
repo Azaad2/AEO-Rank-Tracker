@@ -41,15 +41,18 @@ export const ShareButtons = ({ title }: ShareButtonsProps) => {
     }
   };
 
+  const btnClass =
+    "gap-2 bg-gray-900 border-gray-700 text-white hover:bg-gray-800 hover:text-yellow-400";
+
   return (
-    <div className="mt-12 pt-8 border-t">
-      <h4 className="font-semibold mb-4 text-foreground">Share this article</h4>
+    <div className="mt-12 pt-8 border-t border-gray-800">
+      <h4 className="font-semibold mb-4 text-white">Share this article</h4>
       <div className="flex items-center gap-3">
         <Button
           variant="outline"
           size="sm"
           onClick={shareOnTwitter}
-          className="gap-2"
+          className={btnClass}
         >
           <Twitter className="h-4 w-4" />
           Twitter
@@ -58,7 +61,7 @@ export const ShareButtons = ({ title }: ShareButtonsProps) => {
           variant="outline"
           size="sm"
           onClick={shareOnLinkedIn}
-          className="gap-2"
+          className={btnClass}
         >
           <Linkedin className="h-4 w-4" />
           LinkedIn
@@ -67,7 +70,7 @@ export const ShareButtons = ({ title }: ShareButtonsProps) => {
           variant="outline"
           size="sm"
           onClick={copyLink}
-          className="gap-2"
+          className={btnClass}
         >
           {copied ? (
             <Check className="h-4 w-4 text-green-500" />
@@ -77,6 +80,9 @@ export const ShareButtons = ({ title }: ShareButtonsProps) => {
           {copied ? "Copied!" : "Copy Link"}
         </Button>
       </div>
+    </div>
+  );
+
     </div>
   );
 };

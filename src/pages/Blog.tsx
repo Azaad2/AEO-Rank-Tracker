@@ -18,6 +18,15 @@ const categories = [
 
 const blogPosts = [
   {
+    title: "What Is Answer Engine Optimization (AEO)? Do You Actually Need It?",
+    description: "What AEO is, why it's replacing traditional SEO, and how to get your brand mentioned inside ChatGPT, Gemini, Claude, and Perplexity — with real examples and the three pillars that matter.",
+    slug: "what-is-answer-engine-optimization-do-you-need-it",
+    category: "AEO",
+    readTime: "12 min",
+    publishDate: "August 7, 2026",
+    featured: true,
+  },
+  {
     title: "How AI Decides What Brands to Recommend",
     description: "A plain-English look at how ChatGPT, Gemini, Claude, and Perplexity actually choose which brands to name — and why some companies keep winning the recommendation while others stay invisible.",
     slug: "how-ai-decides-what-brands-to-recommend",

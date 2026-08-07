@@ -80,6 +80,7 @@ import GEOOptimizationGuide from "./pages/blog/GEOOptimizationGuide";
 import AICitationTrackingGuide from "./pages/blog/AICitationTrackingGuide";
 import BestOnlineLLMRankTracker from "./pages/blog/BestOnlineLLMRankTracker";
 import AEOGuide from "./pages/blog/AEOGuide";
+import WhatIsAEODoYouNeedIt from "./pages/blog/WhatIsAEODoYouNeedIt";
 import FiftySaaSBrandsAIVisibility from "./pages/blog/FiftySaaSBrandsAIVisibility";
 import HowToTrackBrandMentionsInAISearch from "./pages/blog/HowToTrackBrandMentionsInAISearch";
 import HowToCheckAISearchVisibility from "./pages/blog/HowToCheckAISearchVisibility";
@@ -173,6 +174,7 @@ const App = () => (
             <Route path="/blog/ai-citation-tracking-guide" element={<AICitationTrackingGuide />} />
             <Route path="/blog/best-online-llm-rank-tracker" element={<BestOnlineLLMRankTracker />} />
             <Route path="/blog/what-is-answer-engine-optimization-aeo-guide" element={<AEOGuide />} />
+            <Route path="/blog/what-is-answer-engine-optimization-do-you-need-it" element={<WhatIsAEODoYouNeedIt />} />
             <Route path="/blog/50-saas-brands-ai-visibility-data" element={<FiftySaaSBrandsAIVisibility />} />
             <Route path="/blog/how-to-track-brand-mentions-in-ai-search" element={<HowToTrackBrandMentionsInAISearch />} />
             <Route path="/blog/how-to-check-ai-search-visibility" element={<HowToCheckAISearchVisibility />} />

@@ -265,7 +265,7 @@ export const BlogLayout = ({
               <Button asChild size="lg" className="bg-yellow-400 text-black hover:bg-yellow-500">
                 <Link to="/#scan">Check Your AI Visibility</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-gray-600 text-white hover:bg-gray-800">
+              <Button asChild variant="outline" size="lg" className="bg-transparent border-gray-600 text-white hover:bg-gray-800 hover:text-yellow-400">
                 <Link to="/tools">Explore All Tools</Link>
               </Button>
             </div>

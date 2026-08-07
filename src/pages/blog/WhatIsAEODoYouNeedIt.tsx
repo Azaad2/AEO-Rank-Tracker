@@ -27,6 +27,26 @@ const faqs = [
     answer:
       "It behaves more like PR than paid ads. Structured data changes get picked up within days of a recrawl, while authority and citations usually take weeks to a few months before AI answers start naming you consistently.",
   },
+  {
+    question: "Does schema guarantee AI citations?",
+    answer:
+      "No. Schema improves how accurately AI understands your business, but authority and genuinely helpful content remain essential for being recommended.",
+  },
+  {
+    question: "Can small businesses benefit from AEO?",
+    answer:
+      "Yes. Many niche businesses become trusted recommendations because they demonstrate real expertise in a specific area, which often beats large brands on narrow questions.",
+  },
+  {
+    question: "What's the biggest AEO ranking factor?",
+    answer:
+      "There isn't a single one. Authority, trust, expertise, and helpful content consistently appear to matter across every AI platform.",
+  },
+  {
+    question: "Can AI Mention You guarantee ChatGPT mentions?",
+    answer:
+      "No ethical tool can guarantee AI recommendations. AI Mention You helps you understand your current visibility, identify authority gaps, and prioritize the improvements that increase your likelihood of being recommended.",
+  },
 ];
 
 const relatedPosts = [

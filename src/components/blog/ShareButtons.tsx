@@ -82,9 +82,6 @@ export const ShareButtons = ({ title }: ShareButtonsProps) => {
       </div>
     </div>
   );
-
-    </div>
-  );
 };
 
 export default ShareButtons;

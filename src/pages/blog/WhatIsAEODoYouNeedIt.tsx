@@ -27,6 +27,26 @@ const faqs = [
     answer:
       "It behaves more like PR than paid ads. Structured data changes get picked up within days of a recrawl, while authority and citations usually take weeks to a few months before AI answers start naming you consistently.",
   },
+  {
+    question: "Does schema guarantee AI citations?",
+    answer:
+      "No. Schema improves how accurately AI understands your business, but authority and genuinely helpful content remain essential for being recommended.",
+  },
+  {
+    question: "Can small businesses benefit from AEO?",
+    answer:
+      "Yes. Many niche businesses become trusted recommendations because they demonstrate real expertise in a specific area, which often beats large brands on narrow questions.",
+  },
+  {
+    question: "What's the biggest AEO ranking factor?",
+    answer:
+      "There isn't a single one. Authority, trust, expertise, and helpful content consistently appear to matter across every AI platform.",
+  },
+  {
+    question: "Can AI Mention You guarantee ChatGPT mentions?",
+    answer:
+      "No ethical tool can guarantee AI recommendations. AI Mention You helps you understand your current visibility, identify authority gaps, and prioritize the improvements that increase your likelihood of being recommended.",
+  },
 ];
 
 const relatedPosts = [
@@ -300,6 +320,237 @@ const WhatIsAEODoYouNeedIt = () => {
           Actionable recommendations to improve authority and increase AI citations.
         </figcaption>
       </figure>
+
+      <h2 id="how-ai-chooses">How AI answer engines choose which brands to recommend</h2>
+
+      <p>
+        Now that you understand what AEO is, the next question is obvious: how do AI assistants
+        decide which companies to recommend? The honest answer is that nobody outside OpenAI, Google,
+        Anthropic, or Perplexity knows the exact ranking formulas. But by analyzing thousands of
+        AI-generated answers, research papers, search quality documentation, and real-world examples,
+        clear patterns emerge. The biggest one: AI doesn't simply recommend the company with the best
+        SEO. It recommends the company it trusts.
+      </p>
+
+      <h3 id="chatgpt-sources">How ChatGPT chooses sources</h3>
+
+      <p>
+        ChatGPT doesn't rank websites the way Google does. It generates answers from a combination of
+        training knowledge, live web information when available, high-authority websites, structured
+        information, and facts that stay consistent across multiple trusted sources. Imagine someone
+        asking, "What's the best AI visibility tool?" If twenty trusted sources mention your brand
+        positively, your chances of appearing rise dramatically. If your company exists only on its
+        own website, AI has almost no evidence that anyone else trusts you. That's why authority
+        matters more than ever.
+      </p>
+
+      <h3 id="gemini-sources">How Gemini finds information</h3>
+
+      <p>
+        Google Gemini benefits from Google's vast understanding of the web. The signals that appear
+        to matter most are helpful content, clear topical authority, structured data, brand
+        reputation, and consistent information across the web. Google has spent years rewarding
+        websites that demonstrate Experience, Expertise, Authoritativeness, and Trustworthiness
+        (E-E-A-T), and those same qualities naturally make content easier for AI systems to trust.
+      </p>
+
+      <h3 id="claude-sources">How Claude evaluates content</h3>
+
+      <p>
+        Claude is particularly good at understanding context. Instead of matching keywords, it tries
+        to answer questions like: is this information logical, does it directly answer the user's
+        question, is it internally consistent, and does it appear trustworthy? This is why long,
+        genuinely helpful content usually performs better than dozens of thin articles built around
+        individual keywords.
+      </p>
+
+      <h3 id="perplexity-citations">Why Perplexity often includes citations</h3>
+
+      <p>
+        Perplexity is different because it usually shows where its answers come from. That creates a
+        real opportunity. If your content is original, well researched, easy to understand, and
+        frequently referenced elsewhere, Perplexity is far more likely to cite it directly. Those
+        citations also establish your brand as an authority for the users who click through to verify
+        sources.
+      </p>
+
+      <h2 id="seo-vs-aeo">The future isn't SEO vs AEO</h2>
+
+      <p>
+        Marketers keep asking whether they should stop doing SEO. Absolutely not. SEO gets your
+        content discovered. AEO helps your brand become the recommendation. They're two parts of the
+        same strategy.
+      </p>
+
+      <div className="overflow-x-auto my-6">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr>
+              <th className="py-2 pr-4">SEO</th>
+              <th className="py-2">AEO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td className="py-2 pr-4">Improves rankings</td><td className="py-2">Improves recommendations</td></tr>
+            <tr><td className="py-2 pr-4">Generates clicks</td><td className="py-2">Generates trust</td></tr>
+            <tr><td className="py-2 pr-4">Targets search engines</td><td className="py-2">Targets AI assistants</td></tr>
+            <tr><td className="py-2 pr-4">Focuses on keywords</td><td className="py-2">Focuses on authority</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The strongest brands invest in both.</p>
+
+      <h2 id="roadmap">A practical 90-day AEO roadmap</h2>
+
+      <p>
+        If you're starting today, don't try to optimize everything at once. Here's the roadmap I'd
+        follow.
+      </p>
+
+      <h3 id="month-1">Month 1 — build the foundation</h3>
+
+      <p>
+        Start with an honest audit. Does every page have a clear purpose? Is every article answering
+        a real question? Is the information up to date? Remove or improve thin pages, because quality
+        beats quantity here. Then implement structured data: Organization, FAQ, Article, Breadcrumb,
+        Author, and SoftwareApplication schema if it applies. Structured data helps AI understand your
+        business accurately instead of guessing.
+      </p>
+
+      <p>
+        Finally, fix internal linking. Every important page should connect naturally to related
+        resources — your visibility checker to your recommendation intelligence, your citation data to
+        your competitor analysis. Internal links help both users and AI systems understand how your
+        topics relate to each other.
+      </p>
+
+      <h3 id="month-2">Month 2 — build authority</h3>
+
+      <p>
+        Authority isn't built overnight; it's earned through consistent expertise. Publish content
+        only your business could create: original research, customer insights, industry trends, case
+        studies, data analysis, and founder perspectives. This article is an example. Instead of
+        repeating what everyone else says about AEO, it includes a real founder story and hands-on
+        experience — and that's much harder to copy.
+      </p>
+
+      <h3 id="month-3">Month 3 — measure and improve</h3>
+
+      <p>
+        Optimization isn't finished when you hit publish. You need to measure progress against real
+        questions: is ChatGPT mentioning my brand, are competitors recommended more often, which
+        prompts trigger my business, which pages receive citations, and where are the authority gaps?
+        This is where AI Mention You becomes useful. Instead of guessing, you can see the
+        opportunities and prioritize.
+      </p>
+
+      <h2 id="how-we-measure">How AI Mention You helps you measure it</h2>
+
+      <p>
+        Traditional SEO tools tell you rankings, backlinks, keywords, and search traffic. Those
+        metrics still matter. But they don't answer a newer question: how visible is my brand inside
+        AI? AI Mention You answers which AI assistants mention your brand, which competitors receive
+        more recommendations, what authority gaps exist, which prompts trigger your business, and what
+        you should improve next.
+      </p>
+
+      <figure className="my-6">
+        <img
+          src="/screenshots/13-competitor-comparison.png"
+          alt="Competitor comparison showing which brands AI recommends instead of yours"
+          loading="lazy"
+          className="rounded-lg border border-gray-800 w-full"
+        />
+        <figcaption className="text-sm text-gray-400 mt-2">
+          Compare your AI visibility against competitors across multiple answer engines.
+        </figcaption>
+      </figure>
+
+      <figure className="my-6">
+        <img
+          src="/screenshots/14-citation-intelligence.png"
+          alt="Citation intelligence showing the trusted sources AI uses to describe a brand"
+          loading="lazy"
+          className="rounded-lg border border-gray-800 w-full"
+        />
+        <figcaption className="text-sm text-gray-400 mt-2">
+          Understand where AI assistants find information about your brand.
+        </figcaption>
+      </figure>
+
+      <figure className="my-6">
+        <img
+          src="/screenshots/15-prompt-diagnostics.png"
+          alt="Prompt diagnostics showing head-to-head visibility and ranking factors for a prompt"
+          loading="lazy"
+          className="rounded-lg border border-gray-800 w-full"
+        />
+        <figcaption className="text-sm text-gray-400 mt-2">
+          Analyze prompts that trigger competitor recommendations and uncover optimization
+          opportunities.
+        </figcaption>
+      </figure>
+
+      <figure className="my-6">
+        <img
+          src="/screenshots/16-industry-benchmark.png"
+          alt="Industry benchmark comparing a brand's AI visibility score to its category average"
+          loading="lazy"
+          className="rounded-lg border border-gray-800 w-full"
+        />
+        <figcaption className="text-sm text-gray-400 mt-2">
+          Benchmark your AI visibility against businesses in your industry.
+        </figcaption>
+      </figure>
+
+      <h2 id="myths">Common myths about AEO</h2>
+
+      <p>
+        <strong>"I just need more keywords."</strong> Authority consistently beats keyword stuffing.{" "}
+        <strong>"SEO is dead."</strong> It isn't — it's the foundation AEO builds on.{" "}
+        <strong>"Publishing AI-generated blogs is enough."</strong> Generic content rarely becomes
+        authoritative; original insight does. <strong>"Only big brands can win."</strong> Smaller
+        businesses with genuine expertise often outperform much larger companies on niche questions.
+      </p>
+
+      <h2 id="checklist">Answer Engine Optimization checklist</h2>
+
+      <p>Before publishing any page, ask yourself:</p>
+
+      <ul>
+        <li>Does it answer a real question?</li>
+        <li>Is it written by someone with genuine expertise?</li>
+        <li>Does it include original insights?</li>
+        <li>Does it include concrete examples?</li>
+        <li>Is schema implemented?</li>
+        <li>Is the content easy to scan?</li>
+        <li>Are there relevant internal links?</li>
+        <li>Is the information accurate?</li>
+        <li>Is it updated regularly?</li>
+        <li>Would you confidently cite this page yourself?</li>
+      </ul>
+
+      <p>If the answer is yes to all ten, you're already ahead of most websites.</p>
+
+      <h2 id="final-thoughts">Final thoughts</h2>
+
+      <p>
+        Search is changing faster than most businesses realize. People no longer want ten blue links —
+        they want answers, and AI assistants are becoming the first place they look. That's why I
+        believe the future belongs to businesses that build authority rather than simply chase
+        rankings.
+      </p>
+
+      <p>
+        When BndBox started appearing in AI-generated answers, it changed my perspective on digital
+        marketing entirely. It wasn't about ranking anymore. It was about becoming trusted enough to
+        be recommended. That insight eventually led to AI Mention You, a platform built to help
+        businesses understand, measure, and improve their visibility across the next generation of
+        search. My advice is simple: don't wait until AI becomes your biggest traffic source. Start
+        building authority today, because the brands AI trusts tomorrow are the ones investing in
+        trust right now.
+      </p>
 
       <h2 id="internal-resources">Where to start</h2>
 

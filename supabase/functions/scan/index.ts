@@ -679,6 +679,20 @@ function scoreFromRow(
     if (engine === 'claude' && row.claudeResponse) parts.push({ score: engineScore(row.claudeMentioned, row.claudeCited), weight });
   }
 
+  // Web search signal (Serper): the sources AI engines actually retrieve from.
+  // Counted when search returned results, so ranking in search can no longer
+  // leave a domain at a flat 0 across the board.
+  if (row.searchCitationsRaw && row.searchCitationsRaw.length > 0) {
+    // Top-3 placement is worth full credit, deeper ranks taper off
+    const rankBonus = row.citationRank && row.citationRank <= 3 ? 0.5
+      : row.citationRank && row.citationRank <= 10 ? 0.25
+      : 0;
+    const searchScore = Math.min(1, engineScore(row.mentioned, row.cited) + rankBonus);
+    parts.push({ score: searchScore, weight: SEARCH_WEIGHT });
+  }
+
+
+
 
   const totalWeight = parts.reduce((acc, p) => acc + p.weight, 0);
   if (totalWeight === 0) return 0;

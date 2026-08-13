@@ -537,7 +537,8 @@ function extractCompetitorBrands(response: string, targetDomain: string): string
   return [...new Set(competitors)].slice(0, 5);
 }
 
-// NEW: Direct Perplexity AI Analysis
+// NEW: Direct Perplexity AI Analysis (with retry — a transient failure used to
+// silently drop the whole engine out of the score)
 async function analyzeWithPerplexity(
   prompt: string,
   targetDomain: string
@@ -551,26 +552,48 @@ async function analyzeWithPerplexity(
   const brandName = domainToName(targetDomain);
 
   try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar',
-        messages: [
-          { role: 'system', content: 'Be precise and provide helpful information with sources.' },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
+    let response: Response | null = null;
+    let lastError = '';
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Perplexity API error: ${response.status} - ${errorText}`);
+    // Up to 3 attempts with backoff on 429/5xx (rate limits are the usual cause)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            { role: 'system', content: 'Be precise and provide helpful information with sources.' },
+            { role: 'user', content: prompt }
+          ],
+        }),
+      });
+
+      if (response.ok) break;
+
+      lastError = await response.text();
+      const retryable = response.status === 429 || response.status >= 500;
+      console.error(
+        `❌ Perplexity API error (attempt ${attempt}/3): ${response.status} - ${lastError.substring(0, 300)}`
+      );
+
+      if (response.status === 401 && lastError.includes('insufficient_quota')) {
+        console.error('💳 Perplexity API credits are exhausted — buy credits at https://console.perplexity.ai');
+        return null;
+      }
+      if (!retryable || attempt === 3) return null;
+
+      await new Promise((r) => setTimeout(r, 600 * attempt));
+    }
+
+    if (!response || !response.ok) {
+      console.error(`❌ Perplexity failed after retries for prompt: ${prompt.substring(0, 60)}`);
       return null;
     }
+
 
     const data = await response.json();
     const perplexityResponse = data.choices?.[0]?.message?.content || '';

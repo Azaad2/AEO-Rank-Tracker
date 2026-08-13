@@ -90,6 +90,10 @@ const DEFAULT_WEIGHTS: Record<ScanEngine, number> = {
   claude: 0.15,
 };
 
+// Weight of the web-search (Serper) signal — the retrieval layer AI engines read from
+const SEARCH_WEIGHT = 0.20;
+
+
 
 // Helper: normalize domain
 function normalizeDomain(domain: string): string {

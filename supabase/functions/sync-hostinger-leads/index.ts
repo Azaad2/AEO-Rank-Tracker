@@ -1,11 +1,21 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { ImapFlow } from 'npm:imapflow@2.0.2';
+import PostalMime from 'npm:postal-mime@2.4.3';
 import { z } from 'npm:zod@3.25.76';
 
 const RESEND_API = 'https://api.resend.com';
 const BodySchema = z.object({ days: z.number().int().min(1).max(30).optional() }).strict();
 const AUTOMATED_LOCAL_PARTS = /^(?:no-?reply|do-?not-?reply|mailer-daemon|postmaster|notifications?|alerts?|support|billing|receipts?|newsletters?|updates?|hello)$/i;
+const CLEAR_SALES_PITCH = /\b(?:i|we)\s+(?:can|could|would like to|want to|help(?:ed|ing)?\s+(?:businesses|brands|companies)?\s*(?:like yours)?\s*to)\s+(?:help|offer|provide|grow|improve|increase|build|manage|optimi[sz]e|redesign|promote)\b/i;
+const SALES_INTENT_SIGNALS = [
+  /\b(?:our|my)\s+(?:services?|agency|team|solution|offer)\b/i,
+  /\b(?:free|complimentary)\s+(?:audit|consultation|analysis|proposal)\b/i,
+  /\b(?:seo|content marketing|web design|development|lead generation|link building|guest post|paid ads?|social media)\s+services?\b/i,
+  /\b(?:book|schedule|arrange|jump on)\s+(?:a\s+)?(?:quick\s+)?(?:call|meeting|demo)\b/i,
+  /\b(?:partnership|collaboration|proposal|business opportunity)\b/i,
+  /\b(?:increase|grow|improve|boost)\s+(?:your\s+)?(?:traffic|sales|leads|revenue|rankings?|visibility|conversions?)\b/i,
+];
 
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -14,6 +24,12 @@ function normalizeEmail(value: string): string {
 function isHumanExternalAddress(email: string): boolean {
   const [local, domain] = email.split('@');
   return Boolean(local && domain && domain.includes('.') && domain !== 'aimentionyou.com' && !AUTOMATED_LOCAL_PARTS.test(local));
+}
+
+function isServicePitch(content: string): boolean {
+  const normalized = content.replace(/\s+/g, ' ').slice(0, 30_000);
+  if (CLEAR_SALES_PITCH.test(normalized)) return true;
+  return SALES_INTENT_SIGNALS.filter((pattern) => pattern.test(normalized)).length >= 2;
 }
 
 async function hmacToken(email: string, secret: string): Promise<string> {
@@ -112,15 +128,29 @@ Deno.serve(async (req) => {
   });
 
   const inboxSenders = new Set<string>();
+  const salesPitchSenders = new Set<string>();
   try {
     await client.connect();
     await client.mailboxOpen('INBOX', { readOnly: true });
     const messageIds = await client.search({ since }, { uid: true });
     if (messageIds.length > 0) {
-      for await (const message of client.fetch(messageIds, { envelope: true }, { uid: true })) {
+      for await (const message of client.fetch(messageIds, { envelope: true, source: true }, { uid: true })) {
+        let messageContent = message.envelope?.subject ?? '';
+        if (message.source) {
+          try {
+            const parsedMessage = await new PostalMime().parse(message.source);
+            messageContent = `${messageContent}\n${parsedMessage.text ?? ''}\n${parsedMessage.html ?? ''}`;
+          } catch (error) {
+            console.warn('Could not parse one inbox message:', error);
+          }
+        }
+        const salesPitch = isServicePitch(messageContent);
         for (const address of message.envelope?.from ?? []) {
           const email = normalizeEmail(address.address ?? '');
-          if (isHumanExternalAddress(email)) inboxSenders.add(email);
+          if (isHumanExternalAddress(email)) {
+            inboxSenders.add(email);
+            if (salesPitch) salesPitchSenders.add(email);
+          }
         }
       }
     }
@@ -155,7 +185,7 @@ Deno.serve(async (req) => {
     ...(profiles ?? []).filter((row) => row.marketing_unsubscribed_at).map((row) => normalizeEmail(row.email)),
     ...(suppressed ?? []).map((row) => normalizeEmail(row.email)),
   ]);
-  const eligible = candidates.filter((email) => known.has(email) && !blocked.has(email));
+  const eligible = candidates.filter((email) => (known.has(email) || salesPitchSenders.has(email)) && !blocked.has(email));
 
   let added = 0;
   let existing = 0;
@@ -187,6 +217,7 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({
     checked: candidates.length,
     eligible: eligible.length,
+    sales_pitches: candidates.filter((email) => salesPitchSenders.has(email)).length,
     added,
     existing,
     skipped: candidates.length - eligible.length,

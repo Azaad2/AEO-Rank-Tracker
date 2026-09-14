@@ -8,49 +8,39 @@ const corsHeaders = {
 const RESEND_API = 'https://api.resend.com';
 const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
-// Product features & metrics inside AI Mention You — each email explains
-// ONE feature/metric, what it measures, and how users act on it to fix
-// their AI visibility. No generic GEO tips.
+// Each email starts with a result the reader wants, then gives them one
+// evidence-led action. Outcomes are goals, never guarantees or invented proof.
 const TOPICS = [
-  { feature: 'AI Visibility Score', what: 'Composite 0–100 score weighted Gemini 60%, Perplexity 20%, Search 20%.', fix: 'How to raise the score by targeting the lowest-weighted engine first.' },
-  { feature: 'Prompt Diagnostics', what: 'Per-prompt breakdown of who AI cites and why you were skipped.', fix: 'How to read the evidence panel and generate the missing asset (comparison, FAQ, review).' },
-  { feature: 'Citation Intelligence', what: 'Which trusted domains AI pulls from to answer prompts in your category.', fix: 'How to prioritise the 3 highest-authority domains to get listed on this month.' },
-  { feature: 'Industry Benchmark', what: 'Your visibility vs. the 34% category average and top competitors.', fix: 'How to use the gap number to pick your next content bet.' },
-  { feature: 'Recommendation Intelligence', what: 'Ranked actions by projected visibility lift.', fix: 'How to sequence the top 3 recommendations for the fastest score jump.' },
-  { feature: 'Competitor Watch', what: 'Which competitors AI mentions instead of you, per prompt.', fix: 'How to reverse-engineer their citation sources and beat them.' },
-  { feature: 'Action Plan', what: 'Auto-generated optimisation tasks tied to scan findings.', fix: 'How to work the plan top-down and mark wins.' },
-  { feature: 'Auto-Fix (Content & Schema)', what: 'One-click generation of FAQ schema, comparison pages, and meta.', fix: 'How to deploy an auto-fix asset in under 10 minutes.' },
-  { feature: 'Ranking Opportunities', what: 'Prompts where you nearly ranked and can win with small edits.', fix: 'How to pick the highest-intent near-miss prompts first.' },
-  { feature: 'Scan History & Score Trend', what: 'Weekly movement of your visibility score.', fix: 'How to spot AI answer drift before it costs traffic.' },
-  { feature: 'Saved Domains & Daily Monitoring', what: 'Automated 2AM UTC scans of every saved domain.', fix: 'How to set alerts so you catch drops within 24 hours.' },
-  { feature: 'AI Assistant', what: 'Chat that answers "why am I invisible for X prompt?" using your scan data.', fix: 'How to ask it to draft the exact content asset you are missing.' },
-  { feature: 'Suggested Prompts', what: 'AI-generated prompts your buyers actually type into ChatGPT/Perplexity.', fix: 'How to add 5 new tracked prompts a week to widen coverage.' },
-  { feature: 'LLM Readiness Score', what: 'How ingestible your site is to LLM crawlers.', fix: 'How to fix the 3 crawlability blockers most sites fail on.' },
-  { feature: 'llms.txt Generator', what: 'The file that guides AI crawlers to your best content.', fix: 'How to ship a working llms.txt in 5 minutes.' },
-  { feature: 'Schema Generator', what: 'JSON-LD builder for FAQ, Product, Organization schemas.', fix: 'How to pick the ONE schema type that unlocks AI citations for your category.' },
-  { feature: 'FAQ Generator', what: 'Extracts real buyer questions and formats them for AI ingestion.', fix: 'How to place FAQ blocks so AI actually cites them.' },
-  { feature: 'Comparison Page Builder', what: 'Head-to-head pages AI loves to cite in "X vs Y" prompts.', fix: 'How to structure a comparison so Perplexity picks it up.' },
-  { feature: 'Content Auditor', what: 'Scores existing pages for AI ingestibility.', fix: 'How to rewrite the lowest-scoring page for a 20+ point lift.' },
-  { feature: 'Keyword Analyzer (AI intent)', what: 'Maps keywords to AI prompt patterns.', fix: 'How to shift a keyword page into an AI-answerable format.' },
-  { feature: 'Brand Monitor', what: 'Tracks mentions & hallucinations about your brand across LLMs.', fix: 'How to correct a hallucinated fact at the source.' },
-  { feature: 'ChatGPT / Claude / Copilot / Perplexity Rank Trackers', what: 'Per-engine visibility position over time.', fix: 'How to read the per-engine tabs and pick which engine to fight for first.' },
-  { feature: 'AI Overviews Tracker', what: 'Whether Google AI Overviews cites you for target queries.', fix: 'How to earn an AI Overview citation with structured answers.' },
-  { feature: 'Meta Optimizer', what: 'Rewrites title/description for AI-search click-through.', fix: 'How to A/B test one meta rewrite a week.' },
-  { feature: 'SERP Previewer', what: 'Shows how your snippet renders in AI-augmented SERPs.', fix: 'How to compress your answer into the AI snippet window.' },
-  { feature: 'Trusted Sources panel', what: 'Ranked list of domains AI trusts in your niche.', fix: 'How to earn a listing on the top-3 trusted domains.' },
-  { feature: 'Biggest Opportunity card', what: 'The single action with the highest projected score lift.', fix: 'How to ship the Biggest Opportunity this week.' },
-  { feature: 'Credit Usage & Scan Limits', what: 'How scans and prompts are metered per tier.', fix: 'How to prioritise which domains to scan when credits are tight.' },
-  { feature: 'CSV Export & Premium PDF Report', what: 'Shareable evidence pack for stakeholders.', fix: 'How to use the PDF to justify next month\'s content budget.' },
-  { feature: 'Onboarding Checklist', what: 'Guided path from first scan to first fix.', fix: 'How to finish onboarding in under 30 minutes and see your first score gain.' },
+  { outcome: 'Earn your first AI recommendation', evidence: 'Find one buyer prompt where another brand is recommended and your brand is absent.', action: 'Open Prompt Intelligence, choose one missed prompt, and create the answer or comparison page supported by its cited evidence.', cta: 'Find my first opportunity', path: '/dashboard?tab=prompt-intelligence' },
+  { outcome: 'Replace a competitor in one high-intent answer', evidence: 'Use Brands AI Recommends Instead to see which rival appears most often and the sources supporting it.', action: 'Choose the rival with the strongest evidence, study the exact cited pages, and publish a clearer answer for the same buyer decision.', cta: 'See who is beating me', path: '/dashboard?tab=competitors' },
+  { outcome: 'Get cited by a source AI already trusts', evidence: 'Citation Intelligence shows the publications, directories, and review sites appearing in answers in your market.', action: 'Pick one relevant missing source and pursue a listing, review, contribution, or mention there before chasing lower-value links.', cta: 'Find a trusted source', path: '/dashboard?tab=citations' },
+  { outcome: 'Turn a zero score into a measurable first signal', evidence: 'A zero means the tested engines did not mention or cite the brand for the scanned prompts; it is a baseline, not a verdict.', action: 'Choose the narrowest buyer prompt, complete its highest-priority recommendation, then rescan after the new page is discoverable.', cta: 'Choose my first fix', path: '/dashboard?tab=recommendations' },
+  { outcome: 'Win a comparison prompt buyers use before purchasing', evidence: 'Prompt results reveal the brands named for “best,” “alternative,” and “versus” questions.', action: 'Create one honest comparison page that states who each option suits, includes verifiable facts, and answers the decision directly.', cta: 'Find a comparison gap', path: '/dashboard?tab=prompt-intelligence' },
+  { outcome: 'Give AI a clear answer it can quote', evidence: 'Prompt Diagnostics shows the question, current answer, cited pages, and the content format that is missing.', action: 'Put a direct two-sentence answer near the top of the relevant page, then support it with proof, examples, and clear headings.', cta: 'Open Prompt Diagnostics', path: '/dashboard?tab=prompt-intelligence' },
+  { outcome: 'Recover a visibility drop before it becomes a trend', evidence: 'Scan History separates a single noisy result from repeated declines across prompts and engines.', action: 'Compare the latest scan with the previous one, identify the lost prompt, and check which brand or source replaced you.', cta: 'Review my score trend', path: '/dashboard?tab=overview' },
+  { outcome: 'Become easier for ChatGPT, Claude, Gemini, and Perplexity to understand', evidence: 'The readiness audit identifies unclear pages and missing machine-readable business information.', action: 'Fix the highest-impact blocker first, then make your product, audience, proof, and key pages unambiguous.', cta: 'Check my site readiness', path: '/tools/llm-readiness-score' },
+  { outcome: 'Build the page most likely to improve your next scan', evidence: 'Recommendations are ranked from your scan findings, competitor evidence, and current visibility gaps.', action: 'Complete the top evidence-backed recommendation rather than spreading effort across several generic content ideas.', cta: 'Show my best next action', path: '/dashboard?tab=recommendations' },
+  { outcome: 'Own one narrow category before chasing broad visibility', evidence: 'Industry Benchmark shows where your brand trails the market and where the gap is small enough to attack.', action: 'Choose one specific use case, audience, or location where your proof is strongest and build a focused answer around it.', cta: 'Find my winnable category', path: '/dashboard?tab=benchmark' },
+  { outcome: 'Turn AI visibility into qualified website visits', evidence: 'A mention creates awareness; a useful cited page gives the buyer a reason and path to visit.', action: 'Make the page behind each citation satisfy the next buying question and include one clear, relevant next step.', cta: 'Inspect my cited pages', path: '/dashboard?tab=citations' },
+  { outcome: 'Stop creating content that no buyer prompt needs', evidence: 'Suggested Prompts and Prompt Intelligence connect content ideas to real questions and observed market patterns.', action: 'Select one prompt with buying intent and visible competitor activity, then create the single page needed to answer it completely.', cta: 'Find evidence-backed ideas', path: '/dashboard?tab=prompt-intelligence' },
+  { outcome: 'Correct an inaccurate AI description of your brand', evidence: 'Brand monitoring exposes answers that mention the brand with incomplete or incorrect details.', action: 'Trace the claim to its likely source, correct the source page, and state the accurate fact consistently on your own site.', cta: 'Check how AI describes me', path: '/dashboard?tab=competitors' },
+  { outcome: 'Build proof that supports a content budget', evidence: 'Scan history, citations, competitor appearances, and completed recommendations show what changed and what remains missing.', action: 'Export the evidence, connect each proposed page to a missed buyer prompt, and prioritize work by expected business relevance.', cta: 'Open my evidence', path: '/dashboard?tab=overview' },
+  { outcome: 'Make progress without chasing a vanity number', evidence: 'A visibility score summarizes results, but prompt-level wins reveal which buying conversations the brand has entered.', action: 'Track new mentions, new citations, and competitor replacements by prompt before focusing on the overall score.', cta: 'See prompt-level wins', path: '/dashboard?tab=prompt-intelligence' },
 ];
 
-async function generateTip(topic: { feature: string; what: string; fix: string }, apiKey: string): Promise<{ subject: string; html: string; snippet: string }> {
-  const sys = `You are the product educator for AI Mention You, a tool that helps SaaS founders and agencies get cited by ChatGPT, Perplexity, Claude, Copilot and Google AI Overviews. Write a daily product email (150-220 words) that teaches ONE feature/metric of the product and shows exactly how it helps the user FIX their AI visibility. Tone: confident, practical, product-specific, no fluff, no emojis. Never invent features. Return STRICT JSON: {"subject": "<max 60 chars, feature-first, e.g. 'How your AI Visibility Score really works'>", "body_html": "<inner HTML: 1 opening line naming the feature, 1-2 short <p> explaining WHAT the metric measures, 1 <p> or <ul> with 2-3 <li> showing HOW to act on it inside the dashboard, closing line with the one next step. No <html>, <body>, no inline styles.>"}`;
-  const user = `Today's feature: ${topic.feature}
-What it measures: ${topic.what}
-How users fix visibility with it: ${topic.fix}
+async function generateTip(topic: { outcome: string; evidence: string; action: string; cta: string; path: string }, apiKey: string): Promise<{ subject: string; html: string; snippet: string }> {
+  const sys = `You are an experienced growth adviser writing for founders and marketers. AI Mention You tests whether ChatGPT, Gemini, Claude and Perplexity recommend or cite a brand. Write a concise daily outcome brief of 150-220 words.
 
-Write the email. Reference the feature by its exact name. End with a 1-sentence next step that tells the user which tab/page to open in AI Mention You.`;
+Lead with the business result, not a product feature. Explain why the result matters, what evidence the reader should inspect, and the first practical action to take. Use familiar language and short paragraphs. Sound human, specific and useful; no technical jargon, hype, emojis, or feature list.
+
+Accuracy rules: never promise a #1 ranking, traffic, leads, revenue, a percentage lift, or a deadline. Never invent a customer, case study, page count, scan count, quote, or result. Do not claim the outcome is guaranteed. Distinguish a goal from an achieved result. Only use the evidence supplied below.
+
+Return STRICT JSON: {"subject":"<max 60 chars, outcome-first and curiosity-driven>","body_html":"<inner HTML only: a strong opening <p>, 2-3 short <p>, and optionally one <ul> of practical steps. Do not add a button, heading, <html>, <body>, inline styles, or an unsubscribe link. End by telling the reader what they will learn or decide after taking the action.>"}`;
+  const user = `Today's desired outcome: ${topic.outcome}
+Evidence available inside the product: ${topic.evidence}
+First action: ${topic.action}
+
+Write the email around the outcome. Treat it as a practical goal, not a promised result. The button below the email will say “${topic.cta}”, so do not repeat that exact call to action.`;
 
   const res = await fetch(AI_GATEWAY, {
     method: 'POST',
@@ -103,7 +93,7 @@ function extractJson(raw: string): Record<string, unknown> {
   throw new Error('Unbalanced JSON in model output');
 }
 
-function renderEmail(subject: string, innerHtml: string): string {
+function renderEmail(subject: string, innerHtml: string, cta: string, path: string): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>${subject}</title></head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e5e5e5;">
@@ -112,13 +102,13 @@ function renderEmail(subject: string, innerHtml: string): string {
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#111;border:1px solid #1f1f1f;border-radius:12px;overflow:hidden;">
         <tr><td style="padding:28px 32px 8px;border-bottom:1px solid #1f1f1f;">
           <div style="font-family:'Courier New',monospace;color:#facc15;font-size:14px;font-weight:700;letter-spacing:2px;">AI MENTION YOU</div>
-          <div style="color:#888;font-size:12px;margin-top:4px;">Daily AI Visibility Tip</div>
+          <div style="color:#888;font-size:12px;margin-top:4px;">Your Daily Growth Brief</div>
         </td></tr>
         <tr><td style="padding:24px 32px;color:#e5e5e5;font-size:15px;line-height:1.65;">
           ${innerHtml}
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #1f1f1f;">
-          <a href="https://aimentionyou.com/dashboard" style="display:inline-block;background:#facc15;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;font-size:14px;">Run a scan →</a>
+          <a href="https://aimentionyou.com${path}" style="display:inline-block;background:#facc15;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;font-size:14px;">${cta} →</a>
         </td></tr>
         <tr><td style="padding:16px 32px 24px;background:#0a0a0a;color:#666;font-size:11px;line-height:1.5;text-align:center;">
           You're receiving this because you signed up at aimentionyou.com.<br>
@@ -193,11 +183,11 @@ Deno.serve(async (req) => {
     innerHtml = tip.html;
     snippet = tip.snippet;
   } catch (e) {
-    await admin.from('newsletter_log').insert({ send_date: today, subject: topic.feature, status: 'failed', error: `AI generation: ${(e as Error).message}` });
+    await admin.from('newsletter_log').insert({ send_date: today, subject: topic.outcome, status: 'failed', error: `AI generation: ${(e as Error).message}` });
     return new Response(JSON.stringify({ error: 'AI generation failed', detail: (e as Error).message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  const html = renderEmail(subject, innerHtml);
+  const html = renderEmail(subject, innerHtml, topic.cta, topic.path);
 
   // Create broadcast
   const createRes = await fetch(`${RESEND_API}/broadcasts`, {
@@ -209,7 +199,7 @@ Deno.serve(async (req) => {
       subject,
       html,
       reply_to: 'hello@aimentionyou.com',
-      name: `Daily Tip ${today}`,
+      name: `Daily Growth Brief ${today}`,
     }),
   });
   const createJson = await createRes.json();
@@ -235,7 +225,7 @@ Deno.serve(async (req) => {
 
   await admin.from('newsletter_log').insert({ send_date: today, subject, body_snippet: snippet, broadcast_id: broadcastId, status: 'sent' });
 
-  return new Response(JSON.stringify({ sent: true, broadcast_id: broadcastId, subject, feature: topic.feature }), {
+  return new Response(JSON.stringify({ sent: true, broadcast_id: broadcastId, subject, outcome: topic.outcome }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

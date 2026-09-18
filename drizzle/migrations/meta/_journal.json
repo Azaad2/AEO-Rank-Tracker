@@ -8,6 +8,13 @@
       "when": 1789751669755,
       "tag": "0000_lifecycle_email_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789751801003,
+      "tag": "0001_schedule_lifecycle_email_evaluator",
+      "breakpoints": true
     }
   ]
 }

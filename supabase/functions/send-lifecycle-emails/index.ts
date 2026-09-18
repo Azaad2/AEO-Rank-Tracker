@@ -4,7 +4,7 @@ import { z } from 'npm:zod@3.25.76';
 
 const BodySchema = z.object({ dry_run: z.boolean().optional() }).strict();
 const SITE_URL = 'https://aimentionyou.com';
-const SCHEDULER_TOKEN = Deno.env.get('SYNC_RESEND_CRON_KEY');
+const SCHEDULER_TOKEN_HASH = 'd2cbb3c729e03f3c78df8de749bdb48f46d4c0722ecb3164b624559d57df19d1';
 
 type Activity = { user_id: string; event_type: string; event_metadata: Record<string, unknown> | null; created_at: string };
 type Journey = { key: string; contextKey: string; subject: string; heading: string; detail: string; action: string; path: string; metadata: Record<string, unknown> };
@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
   if (!url || !serviceKey || !resendKey) return new Response(JSON.stringify({ error: 'Email settings are missing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const cronSecret = req.headers.get('x-cron-secret') ?? '';
-  if (bearer !== serviceKey && cronSecret !== SCHEDULER_TOKEN) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  const suppliedHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(cronSecret)))).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  if (bearer !== serviceKey && suppliedHash !== SCHEDULER_TOKEN_HASH) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   let input: unknown = {};
   try { const raw = await req.text(); input = raw ? JSON.parse(raw) : {}; } catch { return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }

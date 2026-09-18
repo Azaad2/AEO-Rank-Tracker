@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.enrich-prompt-evidence]
 verify_jwt = false
+
+[functions.send-lifecycle-emails]
+verify_jwt = false

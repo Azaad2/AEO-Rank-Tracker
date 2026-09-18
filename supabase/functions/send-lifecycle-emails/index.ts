@@ -4,7 +4,6 @@ import { z } from 'npm:zod@3.25.76';
 
 const BodySchema = z.object({ dry_run: z.boolean().optional() }).strict();
 const SITE_URL = 'https://aimentionyou.com';
-const FEATURE_START = '2026-09-18T07:50:00.000Z';
 
 type Activity = { user_id: string; event_type: string; event_metadata: Record<string, unknown> | null; created_at: string };
 type Journey = { key: string; contextKey: string; subject: string; heading: string; detail: string; action: string; path: string; metadata: Record<string, unknown> };
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
   const admin = createClient(url, serviceKey);
   const now = Date.now();
   const inactivityCutoff = new Date(now - 30 * 60_000).toISOString();
-  const lookback = new Date(Math.max(new Date(FEATURE_START).getTime(), now - 48 * 60 * 60_000)).toISOString();
+  const lookback = new Date(now - 48 * 60 * 60_000).toISOString();
   const { data: rows, error } = await admin.from('user_activity').select('user_id,event_type,event_metadata,created_at').not('user_id', 'is', null).gte('created_at', lookback).order('created_at', { ascending: false }).limit(2000);
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -69,9 +68,13 @@ Deno.serve(async (req) => {
     const open = (recommendations ?? []).filter((rec) => rec.status !== 'completed');
     const started = open.find((rec) => rec.status === 'in_progress');
     const viewedRecommendations = activities.some((event) => event.event_type === 'recommendation_started' || (event.event_type === 'dashboard_section_viewed' && event.event_metadata?.section === 'recommendations'));
+    const optimizationStarted = activities.find((event) => event.event_type === 'optimization_plan_requested');
+    const optimizationFinished = activities.find((event) => event.event_type === 'optimization_plan_generated');
     let journey: Journey;
-    if (started) journey = { key: 'recommendation_started', contextKey: started.id, subject: `Continue: ${started.title}`, heading: 'You already chose what to improve', detail: `You started “${started.title}” but have not marked it finished. Open it again to continue from your checklist.`, action: 'Continue this improvement', path: '/dashboard?tab=recommendations', metadata: { recommendation_id: started.id, scan_id: started.scan_id } };
+    if (optimizationStarted && (!optimizationFinished || optimizationFinished.created_at < optimizationStarted.created_at)) journey = { key: 'optimization_unfinished', contextKey: String(optimizationStarted.event_metadata?.scan_id ?? optimizationStarted.created_at), subject: 'Finish your improvement plan', heading: 'You started building your plan but did not finish it', detail: 'Your scan evidence is still available. Return to the improvement hub to generate the practical steps for your brand.', action: 'Finish my plan', path: '/dashboard?tab=recommendations', metadata: optimizationStarted.event_metadata ?? {} };
+    else if (started) journey = { key: 'recommendation_started', contextKey: started.id, subject: `Continue: ${started.title}`, heading: 'You already chose what to improve', detail: `You started “${started.title}” but have not marked it finished. Open it again to continue from your checklist.`, action: 'Continue this improvement', path: '/dashboard?tab=recommendations', metadata: { recommendation_id: started.id, scan_id: started.scan_id } };
     else if (viewedRecommendations && open[0]) journey = { key: 'recommendations_viewed', contextKey: open[0].id, subject: 'Your best next step is ready', heading: 'You saw the advice—now choose one action', detail: `Your top unfinished suggestion is “${open[0].title}”. Start with its first checklist item rather than trying to fix everything at once.`, action: 'Start my top suggestion', path: '/dashboard?tab=recommendations', metadata: { recommendation_id: open[0].id, scan_id: open[0].scan_id } };
+    else if ((recommendations ?? []).length > 0 && open.length === 0) { summary.skipped++; continue; }
     else if (scan) journey = { key: 'scan_ready', contextKey: scan.id, subject: `Your next step for ${scan.project_domain}`, heading: `Your scan for ${scan.project_domain} is ready`, detail: `Your latest AI visibility score is ${scan.score ?? 'ready to review'}. Open the evidence-backed suggestions and choose one improvement.`, action: 'See what to do next', path: '/dashboard?tab=recommendations', metadata: { scan_id: scan.id, domain: scan.project_domain, score: scan.score } };
     else journey = { key: 'account_no_scan', contextKey: 'first-scan', subject: 'Your first AI visibility answer is one scan away', heading: 'You created your account but have not scanned a brand yet', detail: 'Enter your website once to see whether ChatGPT, Claude, Gemini, and Perplexity recommend your brand—and which brands they choose instead.', action: 'Run my first scan', path: '/dashboard?tab=scan', metadata: {} };
 

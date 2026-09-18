@@ -6,5 +6,5 @@
 - [x] Deploy and verify the daily importer and its schedule.
 - [x] Define factual abandonment journeys from real app activity.
 - [x] Record signed-in activity and recommendation progress.
-- [ ] Add rate-limited lifecycle email state and evaluation.
-- [ ] Deploy and safely test continue-where-you-left-off emails.
+- [x] Add rate-limited lifecycle email state and evaluation.
+- [x] Deploy and safely test continue-where-you-left-off emails.

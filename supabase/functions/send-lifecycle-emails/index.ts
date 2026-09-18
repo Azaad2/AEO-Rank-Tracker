@@ -4,7 +4,7 @@ import { z } from 'npm:zod@3.25.76';
 
 const BodySchema = z.object({ dry_run: z.boolean().optional() }).strict();
 const SITE_URL = 'https://aimentionyou.com';
-const SCHEDULER_TOKEN = '-nUyS-BGRH3Pei7Rta_jIriicKA5Nh29iTV-1SpoJrY';
+const SCHEDULER_TOKEN = Deno.env.get('SYNC_RESEND_CRON_KEY');
 
 type Activity = { user_id: string; event_type: string; event_metadata: Record<string, unknown> | null; created_at: string };
 type Journey = { key: string; contextKey: string; subject: string; heading: string; detail: string; action: string; path: string; metadata: Record<string, unknown> };

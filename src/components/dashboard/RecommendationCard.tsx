@@ -32,6 +32,7 @@ import {
   Circle,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import { useActivityTracking } from '@/hooks/useActivityTracking';
 import {
   BarCompare,
   GapMeter,
@@ -377,6 +378,7 @@ interface Props {
 
 export function RecommendationCard({ rec, onChanged }: Props) {
   const { toast } = useToast();
+  const { trackEvent } = useActivityTracking();
   const [advOpen, setAdvOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -395,6 +397,15 @@ export function RecommendationCard({ rec, onChanged }: Props) {
       try {
         localStorage.setItem(`rec-checklist-${rec.id}`, JSON.stringify(next));
       } catch {}
+      if (next[i]) {
+        void trackEvent('recommendation_started', {
+          recommendation_id: rec.id,
+          recommendation_title: rec.title,
+        });
+        if (rec.status !== 'in_progress') {
+          void supabase.from('recommendations').update({ status: 'in_progress' }).eq('id', rec.id);
+        }
+      }
       return next;
     });
   }
@@ -466,6 +477,10 @@ export function RecommendationCard({ rec, onChanged }: Props) {
         });
     }
     toast({ title: status === 'completed' ? 'Marked done' : 'Updated' });
+    void trackEvent(
+      status === 'completed' ? 'recommendation_completed' : 'recommendation_status_changed',
+      { recommendation_id: rec.id, recommendation_title: rec.title, status },
+    );
     onChanged?.();
   }
 

@@ -25,11 +25,18 @@ export const useActivityTracking = () => {
   ) => {
     const sessionId = getSessionId();
     const userAgent = navigator.userAgent;
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id ?? null;
+    const enrichedMetadata = {
+      ...(metadata || {}),
+      user_id: userId,
+      page_path: window.location.pathname + window.location.search,
+    };
 
     // Track in Google Analytics
     if (window.gtag) {
       window.gtag('event', eventType, {
-        ...metadata,
+        ...enrichedMetadata,
         session_id: sessionId,
       });
     }
@@ -38,7 +45,7 @@ export const useActivityTracking = () => {
     if (typeof window !== 'undefined' && posthog) {
       try {
         posthog.capture(eventType, {
-          ...metadata,
+          ...enrichedMetadata,
           session_id: sessionId,
         });
       } catch (error) {
@@ -48,9 +55,10 @@ export const useActivityTracking = () => {
 
     // Track in Supabase (async, non-blocking)
     try {
-      await supabase.from('user_activity').insert({
+      await (supabase.from('user_activity') as any).insert({
+        user_id: userId,
         event_type: eventType,
-        event_metadata: metadata || {},
+        event_metadata: enrichedMetadata,
         session_id: sessionId,
         user_agent: userAgent,
       });

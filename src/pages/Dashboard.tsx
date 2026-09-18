@@ -24,6 +24,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AIAssistant } from '@/components/dashboard/AIAssistant';
 import { useToast } from '@/hooks/use-toast';
+import { useActivityTracking } from '@/hooks/useActivityTracking';
 
 interface SubscriptionData {
   plan_id: string;
@@ -122,6 +123,7 @@ function PendingFixHandler() {
 
 function DashboardInner() {
   const { user } = useAuth();
+  const { trackEvent } = useActivityTracking();
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [plan, setPlan] = useState<PlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,6 +136,11 @@ function DashboardInner() {
 
   const rawTab = searchParams.get('tab') || 'home';
   const activeTab = LEGACY_TAB_MAP[rawTab] || rawTab;
+
+  useEffect(() => {
+    if (!user) return;
+    void trackEvent('dashboard_section_viewed', { section: activeTab });
+  }, [activeTab, user?.id]);
 
   const handleSelect = (tab: string) => {
     setSearchParams({ tab }, { replace: true });

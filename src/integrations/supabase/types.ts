@@ -931,6 +931,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lifecycle_email_events: {
+        Row: {
+          context_key: string
+          created_at: string
+          id: string
+          journey_key: string
+          message_id: string
+          metadata: Json
+          recipient_email: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          context_key?: string
+          created_at?: string
+          id?: string
+          journey_key: string
+          message_id: string
+          metadata?: Json
+          recipient_email: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          context_key?: string
+          created_at?: string
+          id?: string
+          journey_key?: string
+          message_id?: string
+          metadata?: Json
+          recipient_email?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       market_intelligence_reports: {
         Row: {
           created_at: string
@@ -2016,6 +2052,7 @@ export type Database = {
           id: string
           session_id: string | null
           user_agent: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2024,6 +2061,7 @@ export type Database = {
           id?: string
           session_id?: string | null
           user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2032,6 +2070,7 @@ export type Database = {
           id?: string
           session_id?: string | null
           user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

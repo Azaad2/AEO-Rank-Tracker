@@ -57,6 +57,7 @@ export function useAuth(): AuthState & AuthActions {
               try { return sessionStorage.getItem('tracking_session_id'); } catch { return null; }
             })();
             const payload = {
+              user_id: u.id,
               event_type: 'account_created',
               event_metadata: {
                 source_page: intent?.source_page ?? null,
@@ -72,7 +73,7 @@ export function useAuth(): AuthState & AuthActions {
               session_id: sessionId,
               user_agent: navigator.userAgent,
             };
-            supabase.from('user_activity').insert(payload).then(({ error }) => {
+            (supabase.from('user_activity') as any).insert(payload).then(({ error }: { error: Error | null }) => {
               if (error) console.debug('account_created insert failed:', error);
             });
             // Persist referral attribution onto the profile for payout reconciliation.

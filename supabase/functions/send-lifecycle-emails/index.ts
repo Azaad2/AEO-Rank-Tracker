@@ -4,6 +4,7 @@ import { z } from 'npm:zod@3.25.76';
 
 const BodySchema = z.object({ dry_run: z.boolean().optional() }).strict();
 const SITE_URL = 'https://aimentionyou.com';
+const SCHEDULER_TOKEN = '-nUyS-BGRH3Pei7Rta_jIriicKA5Nh29iTV-1SpoJrY';
 
 type Activity = { user_id: string; event_type: string; event_metadata: Record<string, unknown> | null; created_at: string };
 type Journey = { key: string; contextKey: string; subject: string; heading: string; detail: string; action: string; path: string; metadata: Record<string, unknown> };
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
   if (!url || !serviceKey || !resendKey) return new Response(JSON.stringify({ error: 'Email settings are missing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const cronSecret = req.headers.get('x-cron-secret') ?? '';
-  if (bearer !== serviceKey && cronSecret !== serviceKey) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (bearer !== serviceKey && cronSecret !== SCHEDULER_TOKEN) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   let input: unknown = {};
   try { const raw = await req.text(); input = raw ? JSON.parse(raw) : {}; } catch { return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }

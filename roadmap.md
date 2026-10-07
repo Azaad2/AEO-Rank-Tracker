@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Research 10 suitable SEO agency prospects using official public sources.
+- [x] Draft personal outreach for each and save a verified prospect pack; do not send messages.
 - [x] Read recent messages sent to hello@aimentionyou.com through Hostinger.
 - [x] Add known customers, leads, and genuine people pitching services to the Daily Growth Brief audience.
 - [x] Exclude automated, unsubscribed, and suppressed senders.

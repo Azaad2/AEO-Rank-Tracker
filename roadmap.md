@@ -11,5 +11,6 @@
 - [x] Add rate-limited lifecycle email state and evaluation.
 - [x] Deploy and safely test continue-where-you-left-off emails.
 - [x] Verify outgoing Hostinger access: login succeeded and Hostinger accepted one test to the owner; inbox arrival not yet confirmed.
-- [ ] Check recipient eligibility and opt-outs; blocked on the owner's valid business postal address for outreach disclosures.
-- [ ] Send eligible approved personal drafts and record actual outcomes; blocked on sender address and recipient checks; zero prospects contacted.
+- [x] Obtain the owner's valid postal address for outreach disclosures.
+- [x] Check Hostinger sending policy: unsolicited outreach is prohibited; existing prospect permission is not established.
+- [ ] Send eligible approved personal drafts and record actual outcomes; blocked on prospect opt-in required by Hostinger; zero prospects contacted and no newsletter enrollment.

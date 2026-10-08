@@ -10,3 +10,6 @@
 - [x] Record signed-in activity and recommendation progress.
 - [x] Add rate-limited lifecycle email state and evaluation.
 - [x] Deploy and safely test continue-where-you-left-off emails.
+- [ ] Verify outgoing Hostinger access for approved personal agency outreach.
+- [ ] Check recipient eligibility, opt-outs, and required sender disclosures before sending.
+- [ ] Send eligible approved personal drafts and record actual outcomes; no newsletter enrollment.
